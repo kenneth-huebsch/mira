@@ -7,9 +7,13 @@ This repo is allowed to contain personalized behavior, account conventions, chat
 ## Layout
 
 - `workspace/` mirrors the behavior-bearing parts of `~/.openclaw/workspace/`.
+- `workspace/assets/rumi.jpg` is Rumi's local visual reference.
 - `templates/` contains friend-safe examples of runtime config and cron jobs with credential fields redacted.
 - `scripts/sync-from-live.sh` updates the blueprint from the running host.
 - `scripts/restore-to-live.sh` copies the blueprint into a new OpenClaw workspace.
+- `AGENTS.md`, `CLAUDE.md`, and `GEMINI.md` give coding agents tool-agnostic operating instructions.
+- `.cursor/skills/` contains Cursor adapters that point to the same tool-agnostic playbooks.
+- `docs/agent-playbooks/` contains the source-of-truth agent workflows for configuring and backing up Rumi.
 - `docs/cron-dependencies.md` tracks files that cron prompts or context loaders depend on.
 - `docs/source-change-audit.md` records whether local OpenClaw source changes matter for restore.
 

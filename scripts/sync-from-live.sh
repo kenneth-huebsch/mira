@@ -56,6 +56,7 @@ behavior_files=(
   USER.md
   TOOLS.md
   HEARTBEAT.md
+  assets/rumi.jpg
   package.json
   package-lock.json
   cron/RUMIS_EMAIL_TRIAGE.md
