@@ -1,0 +1,158 @@
+{
+  "jobs": [
+    {
+      "delivery": {
+        "channel": "telegram",
+        "mode": "announce",
+        "to": "7540422842"
+      },
+      "enabled": true,
+      "id": "<set manually>",
+      "name": "Morning Brief",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run this prompt file: cron/MORNING_BRIEF.md",
+        "model": "openrouter/xiaomi/mimo-v2-flash",
+        "thinking": "off"
+      },
+      "schedule": {
+        "expr": "0 8 * * *",
+        "kind": "cron",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now"
+    },
+    {
+      "deleteAfterRun": false,
+      "delivery": {
+        "bestEffort": false,
+        "channel": "telegram",
+        "mode": "announce",
+        "to": "7540422842"
+      },
+      "enabled": true,
+      "id": "<set manually>",
+      "name": "Proactive Engagement",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run this prompt file: cron/PROACTIVE_ENGAGEMENT.md. Return only the useful result. Results should only be returned if a human would say them. Do not mention reading files, prompts, tools, or internal process. Do not output any preamble, progress update, or status narration such as 'I'll check', 'Let me read', 'First I'll', or 'Now let me'. The first and only user-visible text must be either the final result or EXACTLY: NO_REPLY. If there is nothing valuable to process, reply with ONLY: NO_REPLY.",
+        "model": "openrouter/xiaomi/mimo-v2-flash",
+        "thinking": "off"
+      },
+      "schedule": {
+        "expr": "0 15,17,19 * * *",
+        "kind": "cron",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now"
+    },
+    {
+      "deleteAfterRun": false,
+      "delivery": {
+        "bestEffort": false,
+        "channel": "telegram",
+        "mode": "announce",
+        "to": "7540422842"
+      },
+      "enabled": true,
+      "id": "<set manually>",
+      "name": "Memory Consolidation",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run this prompt file: cron/MEMORY_CONSOLIDATION.md. Do not mention reading files, prompts, tools, or internal process. Do not output any preamble, progress update, planning narrative, action list, or status narration such as 'I'll check', 'Let me read', 'First I'll', 'Now let me', 'Actions:', or 'Now I'll consolidate'. Do not surface Write/Read tool warnings or errors. The first and only user-visible text must be EXACTLY: NO_REPLY.",
+        "model": "openrouter/deepseek/deepseek-v3.2"
+      },
+      "schedule": {
+        "expr": "15 3 * * *",
+        "kind": "cron",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now"
+    },
+    {
+      "deleteAfterRun": false,
+      "delivery": {
+        "bestEffort": false,
+        "channel": "telegram",
+        "mode": "announce",
+        "to": "7540422842"
+      },
+      "enabled": true,
+      "id": "<set manually>",
+      "name": "Rumi's Email Triage",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run this prompt file: cron/RUMIS_EMAIL_TRIAGE.md.\n\nThis is an execution job, not a simulation. You MUST use tools. Your first tool call must read cron/RUMIS_EMAIL_TRIAGE.md. Then run the direct-Rumi Gmail search from that prompt with exec. Do not answer from assumptions, prior memory, or sidecar contents.\n\nNO_REPLY is allowed only after a successful Gmail search completes and either: (a) the search returns zero message stubs, or (b) each returned message has been fetched with gog gmail get and either skipped as Kenny-forwarded mail or classified as noise. If the Gmail search returns any message stubs, fetch each one before the final answer. If tool use fails, return a short visible failure line instead of NO_REPLY.\n\nReturn only the useful final result. Results should only be returned if a human would say them. Do not mention reading files, prompts, tools, or internal process. Do not output any preamble, progress update, or status narration such as \"I will check\", \"Let me read\", \"First I will\", or \"Now let me\". The first and only user-visible text must be either the final result or exactly NO_REPLY.",
+        "model": "openrouter/xiaomi/mimo-v2-flash",
+        "thinking": "off",
+        "toolsAllow": [
+          "read",
+          "exec"
+        ]
+      },
+      "schedule": {
+        "expr": "10 10,16 * * *",
+        "kind": "cron",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now"
+    },
+    {
+      "deleteAfterRun": false,
+      "delivery": {
+        "bestEffort": false,
+        "channel": "telegram",
+        "mode": "announce",
+        "to": "7540422842"
+      },
+      "enabled": true,
+      "id": "<set manually>",
+      "name": "Kenny's Email Triage",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run this prompt file: cron/KENNYS_EMAIL_TRIAGE.md.\n\nThis is an execution job, not a simulation. You MUST use tools. Your first tool call must read cron/KENNYS_EMAIL_TRIAGE.md. Then run the forwarded-mail Gmail search from that prompt/TOOLS.md with exec. Do not answer from assumptions, prior memory, or sidecar contents.\n\nNO_REPLY is allowed only after a successful Gmail search completes and either: (a) the search returns zero message stubs, or (b) each returned message has been fetched with gog gmail get and classified as noise. If the Gmail search returns any message stubs, fetch each one before the final answer. If tool use fails, return a short visible failure line instead of NO_REPLY.\n\nReturn only the useful final result. Results should only be returned if a human would say them. Do not mention reading files, prompts, tools, or internal process. Do not output any preamble, progress update, or status narration such as \"I will check\", \"Let me read\", \"First I will\", or \"Now let me\". The first and only user-visible text must be either the final result or exactly NO_REPLY.",
+        "model": "openrouter/xiaomi/mimo-v2-flash",
+        "thinking": "off",
+        "toolsAllow": [
+          "read",
+          "exec"
+        ]
+      },
+      "schedule": {
+        "expr": "20 10,16 * * *",
+        "kind": "cron",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now"
+    },
+    {
+      "delivery": {
+        "channel": "telegram",
+        "mode": "announce",
+        "to": "7540422842"
+      },
+      "enabled": true,
+      "id": "<set manually>",
+      "name": "Upcoming Dates Reminder",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run this prompt file: cron/UPCOMING_DATES.md. Do not mention reading files, prompts, tools, or internal process. Do not output any preamble or progress narration. The first and only user-visible text must be either the reminder or EXACTLY: NO_REPLY.",
+        "model": "openrouter/xiaomi/mimo-v2-flash",
+        "thinking": "off"
+      },
+      "schedule": {
+        "expr": "0 8 * * *",
+        "kind": "cron",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now"
+    }
+  ],
+  "version": 1
+}

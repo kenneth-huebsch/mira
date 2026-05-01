@@ -1,0 +1,317 @@
+{
+  "agents": {
+    "defaults": {
+      "heartbeat": {
+        "activeHours": {
+          "end": "23:30",
+          "start": "07:30",
+          "timezone": "America/New_York"
+        },
+        "every": "0m",
+        "target": "last"
+      },
+      "model": {
+        "primary": "openrouter/anthropic/claude-sonnet-4.6"
+      },
+      "sandbox": {
+        "mode": "off"
+      },
+      "timeoutSeconds": 180,
+      "workspace": "/home/node/.openclaw/workspace"
+    }
+  },
+  "auth": {
+    "profiles": {
+      "openrouter:default": {
+        "mode": "api_key",
+        "provider": "openrouter"
+      }
+    }
+  },
+  "browser": {
+    "defaultProfile": "openclaw",
+    "enabled": true,
+    "noSandbox": true
+  },
+  "channels": {
+    "telegram": {
+      "allowFrom": [
+        "7540422842",
+        "8790259622"
+      ],
+      "botToken": "<set manually>",
+      "direct": {
+        "8790259622": {
+          "enabled": true,
+          "systemPrompt": "You are talking with Cayce \u2014 Kenny's wife. She has open access: feel free to share anything you would tell Kenny, including schedule, calendar, plans, current focus, family details, and life context. Use the same warm, candid, direct tone you use with Kenny \u2014 full personality, dry humor allowed \u2014 but with NO flirty, romantic, or affectionate banter; that register is exclusively for Kenny. You may read everything (memory/*.jsonl, Google Calendar via gog, etc). You MUST NOT write, edit, or delete any file under memory/, and you MUST NOT create, edit, or delete Google Calendar events on Kenny's calendars. If she says 'remember this' or 'put it on Kenny's calendar', acknowledge politely but explain you only do those for Kenny \u2014 offer to relay it to him instead.",
+          "tools": {
+            "deny": [
+              "write",
+              "edit",
+              "apply_patch"
+            ]
+          }
+        }
+      },
+      "dmPolicy": "allowlist",
+      "enabled": true,
+      "groups": {
+        "*": {
+          "requireMention": true
+        }
+      }
+    }
+  },
+  "gateway": {
+    "auth": {
+      "mode": "token",
+      "token": "<set manually>"
+    },
+    "bind": "loopback",
+    "controlUi": {
+      "allowInsecureAuth": true,
+      "allowedOrigins": [
+        "http://localhost:18789"
+      ]
+    },
+    "mode": "local",
+    "nodes": {
+      "denyCommands": [
+        "camera.snap",
+        "camera.clip",
+        "screen.record",
+        "contacts.add",
+        "calendar.add",
+        "reminders.add",
+        "sms.send",
+        "sms.search"
+      ]
+    },
+    "port": 18789,
+    "tailscale": {
+      "mode": "off",
+      "resetOnExit": false
+    }
+  },
+  "hooks": {
+    "internal": {
+      "entries": {
+        "session-memory": {
+          "enabled": false
+        }
+      }
+    }
+  },
+  "mcp": {
+    "servers": {
+      "todoist": {
+        "headers": {
+          "Authorization": "<set manually>"
+        },
+        "transport": "streamable-http",
+        "url": "https://ai.todoist.net/mcp"
+      }
+    }
+  },
+  "meta": {
+    "lastTouchedAt": "2026-05-01T22:18:29.874Z",
+    "lastTouchedVersion": "2026.4.4"
+  },
+  "plugins": {
+    "entries": {
+      "anthropic": {
+        "enabled": true
+      },
+      "browser": {
+        "enabled": true
+      },
+      "deepseek": {
+        "enabled": true
+      },
+      "openrouter": {
+        "enabled": true
+      },
+      "stepfun": {
+        "enabled": true
+      },
+      "xiaomi": {
+        "enabled": true
+      }
+    }
+  },
+  "session": {
+    "dmScope": "per-channel-peer"
+  },
+  "skills": {
+    "entries": {
+      "1password": "<set manually>",
+      "apple-notes": {
+        "enabled": false
+      },
+      "apple-reminders": {
+        "enabled": false
+      },
+      "bear-notes": {
+        "enabled": false
+      },
+      "blogwatcher": {
+        "enabled": false
+      },
+      "blucli": {
+        "enabled": false
+      },
+      "bluebubbles": {
+        "enabled": false
+      },
+      "camsnap": {
+        "enabled": false
+      },
+      "clawhub": {
+        "enabled": false
+      },
+      "coding-agent": {
+        "enabled": false
+      },
+      "discord": {
+        "enabled": false
+      },
+      "eightctl": {
+        "enabled": false
+      },
+      "gemini": {
+        "enabled": false
+      },
+      "gh-issues": {
+        "enabled": false
+      },
+      "gifgrep": {
+        "enabled": false
+      },
+      "github": {
+        "enabled": false
+      },
+      "gog": {
+        "enabled": true
+      },
+      "goplaces": {
+        "enabled": false
+      },
+      "himalaya": {
+        "enabled": false
+      },
+      "imsg": {
+        "enabled": false
+      },
+      "mcporter": {
+        "enabled": false
+      },
+      "model-usage": {
+        "enabled": false
+      },
+      "multi-search-engine": {
+        "enabled": false
+      },
+      "nano-pdf": {
+        "enabled": false
+      },
+      "node-connect": {
+        "enabled": false
+      },
+      "notion": {
+        "enabled": false
+      },
+      "obsidian": {
+        "enabled": false
+      },
+      "openai-whisper": {
+        "enabled": false
+      },
+      "openai-whisper-api": {
+        "enabled": false
+      },
+      "openhue": {
+        "enabled": false
+      },
+      "oracle": {
+        "enabled": false
+      },
+      "ordercli": {
+        "enabled": false
+      },
+      "peekaboo": {
+        "enabled": false
+      },
+      "quick-reminders": {
+        "enabled": true
+      },
+      "sag": {
+        "enabled": false
+      },
+      "session-logs": {
+        "enabled": false
+      },
+      "sherpa-onnx-tts": {
+        "enabled": false
+      },
+      "skill-creator": {
+        "enabled": false
+      },
+      "slack": {
+        "enabled": false
+      },
+      "songsee": {
+        "enabled": false
+      },
+      "sonoscli": {
+        "enabled": false
+      },
+      "spotify-player": {
+        "enabled": false
+      },
+      "summarize": {
+        "enabled": false
+      },
+      "things-mac": {
+        "enabled": false
+      },
+      "tmux": {
+        "enabled": false
+      },
+      "trello": {
+        "enabled": false
+      },
+      "video-frames": {
+        "enabled": false
+      },
+      "voice-call": {
+        "enabled": false
+      },
+      "wacli": {
+        "enabled": false
+      },
+      "weather": {
+        "enabled": false
+      },
+      "xurl": {
+        "enabled": false
+      }
+    }
+  },
+  "tools": {
+    "profile": "coding",
+    "sessions": {
+      "visibility": "agent"
+    },
+    "web": {
+      "search": {
+        "provider": "brave"
+      }
+    }
+  },
+  "wizard": {
+    "lastRunAt": "2026-04-05T01:43:50.047Z",
+    "lastRunCommand": "onboard",
+    "lastRunMode": "local",
+    "lastRunVersion": "2026.4.4"
+  }
+}

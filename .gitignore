@@ -1,0 +1,49 @@
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+
+# OpenClaw live state and credentials
+credentials/
+gcal-tokens/
+gogcli/credentials.json
+identity/device-auth.json
+agents/
+devices/
+logs/
+delivery-queue/
+cron/runs/
+browser/
+chromium/
+runtime/
+state/
+cache/
+
+# Secret-bearing config should stay as templates only
+openclaw.json
+openclaw.json.bak*
+auth-profiles.json
+*.token
+*.secret
+*.pem
+*.key
+.env
+.env.*
+
+# Local editor/system state
+.DS_Store
+.claude/settings.local.json
+workspace/.claude/settings.local.json
+workspace/.openclaw/workspace-state.json
+
+# Accumulated private memory is intentionally not synced.
+# Required restore seed files under workspace/memory are force-added below.
+workspace/memory/*.jsonl
+workspace/memory/.dreams/
+!workspace/memory/medium_memory.jsonl
+!workspace/memory/long_memory.jsonl
+!workspace/memory/engagement_memory.jsonl
+!workspace/memory/engagement_priorities.jsonl
+!workspace/memory/email_triage_state.jsonl
+!workspace/memory/rolling_summary.json
+!workspace/memory/ACTIVE_PRIORITIES.md
