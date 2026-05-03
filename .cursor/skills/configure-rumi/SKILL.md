@@ -11,6 +11,14 @@ Key rule: durable behavior belongs in Rumi's workspace docs, cron prompts, skill
 plugins, and assets. Do not rely only on `memory/*.jsonl` for canonical behavior
 policy.
 
+Memory-system changes must keep these files in sync:
+
+- `cron/NIGHTLY_SESSION_REFLECTION.md` for tomorrow-useful interactive context and durable facts Kenny explicitly revealed.
+- `cron/MEMORY_CONSOLIDATION.md` for hygiene only.
+- `AGENTS.md` for memory ownership policy.
+- `docs/cron-dependencies.md` and `docs/agent-playbooks/configure-rumi.md`.
+- `scripts/sync-from-live.sh` and `scripts/restore-to-live.sh` when adding prompts or helper scripts.
+
 After changing live behavior, run:
 
 ```bash

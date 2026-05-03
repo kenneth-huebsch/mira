@@ -71,7 +71,13 @@ behavior_files=(
   cron/KENNYS_EMAIL_TRIAGE.md
   cron/MORNING_BRIEF.md
   cron/MEMORY_CONSOLIDATION.md
+  cron/memory_consolidation.py
+  cron/NIGHTLY_SESSION_REFLECTION.md
+  cron/nightly_session_reflection.py
   cron/PROACTIVE_ENGAGEMENT.md
+  cron/proactive_engagement.py
+  cron/email_triage_preflight.py
+  cron/morning_brief_collect.py
   cron/UPCOMING_DATES.md
   plugins/memory-plugin.ts
   skills/memory_manager.md
@@ -91,6 +97,7 @@ seed_files=(
   memory/engagement_memory.jsonl
   memory/engagement_priorities.jsonl
   memory/email_triage_state.jsonl
+  memory/nightly_session_reflection_state.jsonl
   memory/rolling_summary.json
   memory/ACTIVE_PRIORITIES.md
 )

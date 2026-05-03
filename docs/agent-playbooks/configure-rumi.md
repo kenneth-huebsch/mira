@@ -12,9 +12,9 @@ Important files:
 
 - `IDENTITY.md` - Rumi's name, role, appearance, persona, and relational presence.
 - `SOUL.md` - Rumi's core stance and durable behavior principles.
-- `USER.md` - Kenny context.
-- `AGENTS.md` - mode policy, hard rules, memory policy, and email handling.
-- `TOOLS.md` - tool-specific conventions, accounts, calendars, Todoist, Telegram, and skills.
+- `USER.md` - Kenny context and durable non-tool, non-rule preferences such as people, relationships, preferred names/titles, communication preferences, and stable personal/project context.
+- `AGENTS.md` - mode policy, hard rules, memory policy, email handling, and where shared behavior should be recorded.
+- `TOOLS.md` - tool-specific conventions, accounts, calendars, Todoist, Telegram, and skills. Do not put user/person/project preferences here.
 - `HEARTBEAT.md` - heartbeat behavior.
 - `cron/*.md` - scheduled behavior.
 - `plugins/` - workspace plugin code.
@@ -24,11 +24,22 @@ Important files:
 ## Editing Rules
 
 1. Put durable behavior in persona/config docs, not only in memory.
-2. Use `memory/*.jsonl` for remembered facts and evolving context, not canonical behavior policy.
-3. If a cron prompt references a file, make sure the backup includes that path or a restore seed for it.
-4. When adding a new local asset, update both `scripts/sync-from-live.sh` and `scripts/restore-to-live.sh`.
-5. Keep Rumi's persona consistent with `IDENTITY.md` and `SOUL.md`: she should speak as Rumi, with continuity and personality, not as a generic tool.
-6. Preserve explicit confirmation rules around external actions such as sending email.
+2. Put durable non-tool, non-rule preferences in `USER.md`. Examples: family/contact details, preferred names/titles, communication preferences, stable relationship context, and stable project context that should be available to both interactive Rumi and relevant crons.
+3. Use `memory/*.jsonl` for remembered facts and evolving context, not canonical behavior policy or stable preferences. If a memory entry contradicts a durable preference moved into `USER.md`, remove or expire the memory entry in the live workspace.
+4. Keep tool mechanics in `TOOLS.md`: account names, command shapes, calendar IDs, Gmail queries, Todoist conventions, Telegram IDs, tool-specific gotchas, and workspace-local skill notes. Do not put user/person/project preferences in `TOOLS.md`.
+5. Keep hard rules and workflow policy in `AGENTS.md`: safety lines, mode policy, memory write policy, email confirmation rules, and instructions telling Rumi where durable shared preferences belong.
+6. Keep nightly reflection and memory consolidation responsibilities separate:
+   `cron/NIGHTLY_SESSION_REFLECTION.md` extracts tomorrow-useful interactive context and durable facts Kenny explicitly revealed; `cron/MEMORY_CONSOLIDATION.md` performs hygiene only.
+7. If a cron prompt references a file, make sure the backup includes that path or a restore seed for it.
+8. If a cron must use shared preferences from `USER.md`, verify whether its cron payload uses `lightContext: true`. Light-context cron runs intentionally strip default bootstrap files; either remove `lightContext` for that job or make the job explicitly read/load `USER.md`.
+9. When adding a new local asset or helper script, update both `scripts/sync-from-live.sh` and `scripts/restore-to-live.sh`.
+10. Keep Rumi's persona consistent with `IDENTITY.md` and `SOUL.md`: she should speak as Rumi, with continuity and personality, not as a generic tool.
+11. Preserve explicit confirmation rules around external actions such as sending email.
+12. For crons, keep deterministic plumbing in helpers and human-visible language
+    with Rumi. Helper scripts should fetch data, parse JSON, route sources,
+    enforce eligibility, dedupe, write files safely, construct compact context,
+    and handle obvious `NO_REPLY` exits. The model should handle judgment,
+    prioritization, warmth, and varied final prose for human-facing crons.
 
 ## After Changes
 

@@ -24,43 +24,40 @@ schema lives in `AGENTS.md` under "Email Handling".
 
 ## TASK
 
-This job is invalid unless you actually use tools. Do not simulate the mailbox,
-do not infer that there is no mail from memory or prior runs, and do not use
-`NO_REPLY` as a shortcut.
-
-Step 1: Fetch unread inbox messages addressed directly to this mailbox with
-this exact command:
+Step 1: Run the compact Gmail preflight.
 
 ```bash
-gog gmail messages search "in:inbox is:unread deliveredto:rumi.openclaw@gmail.com" --max 50 --account rumi.openclaw@gmail.com --json
+python3 cron/email_triage_preflight.py rumis
 ```
 
-- Parse the JSON result into a list of message stubs.
-- If, and only if, that successful command returns an empty list, return exactly
-  `NO_REPLY` and stop.
-- If every fetched message turns out to be auto-forwarded mail from
-  `kenny@dripr.ai` or `kenny@0trust.email` (the `deliveredto:` filter
-  occasionally lets these slip through), silently skip them all and return
-  exactly `NO_REPLY`. Do NOT explain.
+The helper owns deterministic plumbing only: Gmail search, full-message fetch,
+header/source extraction, body excerpts, and mechanical routing of forwarded
+Kenny mail. It does not make final importance or reply decisions.
 
-Step 2: For each unread message, in the order returned:
+- If the helper output is exactly `NO_REPLY`, return exactly `NO_REPLY` and stop.
+- If the helper exits non-zero, return `Rumi email triage failed: mailbox unavailable.`
+- If the helper returns JSON with `"status":"OK"`, use only its compact message
+  records for review. Do not re-fetch messages unless a mutation fails and you
+  need to verify.
 
-1. Fetch full content via `gog gmail get` (see `TOOLS.md`).
-2. Extract: `from`, `subject`, `date`, short plain-text body excerpt (~500 chars), the `Message-ID` header if present, and `threadId`.
-3. If the full message shows the original recipient/source was `kenny@dripr.ai` or `kenny@0trust.email`, skip it immediately. Do not draft, record, summarize, or mark it read; leave it unread for Kenny's Email Triage.
-4. Classify internally as one of:
+Step 2: For each compact message record, in the order returned:
+
+1. If `mechanical_route` is `skip_forwarded_for_kennys_cron`, skip it. Do not
+   draft, record, summarize, or mark it read.
+2. Classify internally as one of:
    - `actionable_reply` — from a human (or human-run thread) that asks a question, requests a decision, proposes a time, or expects a response.
    - `info_only` — something Kenny should know about but that does not need a reply (confirmations, bills, calendar invites, important notifications).
    - `noise` — newsletters, marketing, automated bulk mail, used verification codes, social-network notifications, anything Kenny would not care about.
-5. If `actionable_reply`:
+3. If `actionable_reply`:
    - Draft a short, natural reply as Rumi. Write in your own voice — never impersonate Kenny or sign as Kenny.
+   - Honor relevant shared preferences and context from `USER.md` before choosing recipients, salutations, titles, tone, or signoff.
    - On first contact (no prior thread, or sender is addressing Kenny directly), open with a brief intro: "Hi <Name>, I'm Rumi, Kenny's assistant — he asked me to help manage his inbox." On continuing threads, skip the intro.
    - Address the core ask. Concise, warm, professional. Sign off as `Rumi` (or `Rumi — Kenny's assistant`).
    - Do not invent facts, dates, or commitments. When unsure, draft a brief holding reply that confirms receipt and says you'll check with Kenny.
    - If the right move is to loop Kenny in rather than answer, draft a short note acknowledging receipt and saying you'll pass it along.
    - Create the draft via `gog gmail drafts create` (see `TOOLS.md`). Capture the returned `draftId`.
    - If draft creation fails, record `drafted: false` and put the error in `note`.
-6. After processing direct Rumi mail (regardless of class), mark the message as read using the `--remove UNREAD` command from `TOOLS.md`. If marking read fails, note it for the summary.
+4. After processing direct Rumi mail (regardless of class), mark the message as read using the `--remove UNREAD` command from `TOOLS.md`. If marking read fails, note it for the summary.
 
 Step 3: Record important emails in the sidecar.
 

@@ -17,22 +17,25 @@ do not restate calendar IDs, account names, or query syntax in this prompt.
 
 ## INPUT
 
-Read:
-- `memory/medium_memory.jsonl`
+Run the collector helper below. It gathers deterministic facts cheaply and
+leaves final wording to you so the brief still feels like Rumi.
+
+```bash
+python3 cron/morning_brief_collect.py
+```
 
 ---
 
 ## TASK
 
-1. Get the current time in Eastern (`America/New_York`).
-2. Determine today's ET window (`00:00` to `23:59:59`).
-3. Query BOTH of Kenny's calendars (Personal + Work — see `TOOLS.md`) for that window. Querying only one calendar is a defect. Tag each event with which calendar it came from when it adds clarity.
-4. Query Todoist for tasks from `Kennys Personal Tasks` and `Kennys Work Todo List`.
-5. Summarize before reasoning:
+1. Use the collector JSON as the source of truth for current time, calendar
+   events, calendar failures, and current medium-memory context.
+2. Query Todoist for tasks from `Kennys Personal Tasks` and `Kennys Work Todo List`.
+3. Summarize before reasoning:
    - List key events with time and title only. Highlight anything important or unusual.
    - For tasks, include those due today, high priority (`P1` / `P2`), and important upcoming items.
    - Apply the calendar failure handling from `TOOLS.md`. Never claim "no events" when retrieval failed.
-6. Generate the brief:
+4. Generate the brief:
    - Key priorities for today.
    - Important events.
    - Urgent tasks.

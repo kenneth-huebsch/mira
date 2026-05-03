@@ -24,40 +24,34 @@ the Gmail commands and the sidecar schema both live there and in `AGENTS.md`'s
 
 ## TASK
 
-This job is invalid unless you actually use tools. Do not simulate the mailbox,
-do not infer that there is no mail from memory or prior runs, and do not use
-`NO_REPLY` as a shortcut.
-
-Step 1: Fetch unread mail forwarded from Kenny's personal addresses with this
-exact command:
+Step 1: Run the compact Gmail preflight.
 
 ```bash
-gog gmail messages search "in:inbox is:unread deliveredto:rumi.openclaw@gmail.com (to:kenny@dripr.ai OR to:kenny@0trust.email)" --max 100 --account rumi.openclaw@gmail.com --json
+python3 cron/email_triage_preflight.py kennys
 ```
 
-It uses `deliveredto:rumi.openclaw@gmail.com` as the mailbox filter and Kenny's
-personal addresses in `to:` as the original-recipient filter.
+The helper owns deterministic plumbing only: Gmail search, full-message fetch,
+header/source extraction, body excerpts, and compact JSON construction. It
+does not make final importance decisions.
 
-- Parse the JSON result into a list of message stubs.
-- If, and only if, that successful command returns an empty list, return exactly
-  `NO_REPLY` and stop.
+- If the helper output is exactly `NO_REPLY`, return exactly `NO_REPLY` and stop.
+- If the helper exits non-zero, return `Kenny email triage failed: mailbox unavailable.`
+- If the helper returns JSON with `"status":"OK"`, use only its compact message
+  records for review. Do not re-fetch messages unless a mutation fails and you
+  need to verify.
 
 Step 2: For each message, in the order returned:
 
-1. Fetch full content via `gog gmail get` (see `TOOLS.md`).
-2. Extract:
-   - `from` (sender display + email)
-   - `subject`
-   - `date`
-   - `messageId` (Gmail messageId)
-   - `threadId`
-   - `Message-ID` header value (RFC Message-ID) if present
-   - Short plain-text body excerpt (~500 chars)
-   - Source address — resolve it from the first matching available header/value among `X-Pm-Forwarded-From`, `X-Original-To`, `Delivered-To`, and `To`. It must be one of `kenny@dripr.ai` or `kenny@0trust.email`. Use it both to group the digest and as the `source` field on the sidecar record.
-3. Classify internally as one of:
+1. Treat `python_hints` as hints only; they are not final labels.
+2. Classify internally as one of:
    - `worth_knowing` — anything Kenny would actually want to see: real human messages, bills/receipts of meaningful size, account-security alerts (sign-ins, password resets, MFA changes), time-sensitive shipping/delivery updates, calendar invites, government/legal/medical correspondence, anything that requires action or contains real information he should be aware of.
    - `noise` — newsletters, marketing, promotional offers, social-network notifications, automated bulk mail, used verification codes, "you have a new follower" / "weekly digest" / sales emails, etc. When in doubt, lean toward `noise` — Kenny does not want a long digest.
-4. Mark the message as read regardless of classification (see `TOOLS.md` for the `--remove UNREAD` command). If marking read fails, note it for the summary and continue.
+3. Only touch mail whose `source` is `kenny@dripr.ai` or `kenny@0trust.email`.
+   If `source` is null or unresolved, do not mark read; mention mailbox
+   unavailable if all messages are unresolved.
+4. Mark each reviewed forwarded message as read regardless of classification
+   (see `TOOLS.md` for the `--remove UNREAD` command). If marking read fails,
+   note it for the summary and continue.
 
 Step 3: Record `worth_knowing` items in the sidecar.
 

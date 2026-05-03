@@ -15,75 +15,132 @@ the `Copied Birthdays` calendar id is resolved at runtime via
 
 ## TASK
 
-Step 1: Compute the target date.
+Run this exact command once with `exec`, then return only its stdout as the
+final assistant text. Do not use web search, do not make extra date/tool calls,
+and do not narrate what you are doing.
 
 ```bash
-LOOKAHEAD_DAYS=7
-TARGET_DATE="$(TZ=America/New_York date -I -d "+${LOOKAHEAD_DAYS} days")"          # YYYY-MM-DD
-TARGET_FROM="$(TZ=America/New_York date -Iseconds -d "${TARGET_DATE} 00:00")"
-TARGET_TO="$(TZ=America/New_York date -Iseconds -d "${TARGET_DATE} 23:59:59")"
-TARGET_MMDD="$(TZ=America/New_York date -d "${TARGET_DATE}" +%m-%d)"
-TARGET_HUMAN="$(TZ=America/New_York date -d "${TARGET_DATE}" '+%A, %b %-d')"
+python3 - <<'PY'
+import json
+import subprocess
+from datetime import date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
+
+ACCOUNT = "rumi.openclaw@gmail.com"
+LOOKAHEAD_DAYS = 7
+TZ = ZoneInfo("America/New_York")
+
+
+def run_json(args):
+    last_error = None
+    for _ in range(2):
+        proc = subprocess.run(args, text=True, capture_output=True)
+        if proc.returncode == 0:
+            try:
+                return json.loads(proc.stdout)
+            except json.JSONDecodeError as exc:
+                last_error = str(exc)
+        else:
+            last_error = proc.stderr.strip() or proc.stdout.strip()
+    raise RuntimeError(last_error or "command failed")
+
+
+def entries(data, *keys):
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict):
+        for key in keys:
+            value = data.get(key)
+            if isinstance(value, list):
+                return value
+    return []
+
+
+def nth_weekday(year, month, weekday, n):
+    current = date(year, month, 1)
+    offset = (weekday - current.weekday()) % 7
+    return current + timedelta(days=offset + 7 * (n - 1))
+
+
+try:
+    today = datetime.now(TZ).date()
+    target = today + timedelta(days=LOOKAHEAD_DAYS)
+    target_from = datetime.combine(target, time.min, TZ).isoformat()
+    target_to = datetime.combine(target, time(23, 59, 59), TZ).isoformat()
+    target_mmdd = target.strftime("%m-%d")
+    target_human = target.strftime("%A, %b ") + str(target.day)
+
+    calendars = entries(
+        run_json(["gog", "calendar", "calendars", "--json", "--account", ACCOUNT]),
+        "calendars",
+        "items",
+    )
+    birthday_calendar = next(
+        (
+            cal
+            for cal in calendars
+            if "copied birthdays"
+            in (cal.get("summaryOverride") or cal.get("summary") or "").lower()
+        ),
+        None,
+    )
+    if not birthday_calendar:
+        raise RuntimeError("Copied Birthdays calendar unavailable")
+
+    events = entries(
+        run_json(
+            [
+                "gog",
+                "calendar",
+                "events",
+                birthday_calendar["id"],
+                "--from",
+                target_from,
+                "--to",
+                target_to,
+                "--json",
+                "--account",
+                ACCOUNT,
+            ]
+        ),
+        "events",
+        "items",
+    )
+
+    items = []
+    for event in events:
+        name = (event.get("summary") or "").strip()
+        if name:
+            items.append(f"🎂 {name}'s birthday")
+
+    fixed_holidays = {
+        "02-14": "💘 Valentine's Day",
+        "03-17": "🍀 St. Patty's Day",
+    }
+    if target_mmdd in fixed_holidays:
+        items.append(fixed_holidays[target_mmdd])
+
+    if target == nth_weekday(target.year, 5, 6, 2):
+        items.append("💐 Mother's Day")
+    if target == nth_weekday(target.year, 6, 6, 3):
+        items.append("👔 Father's Day")
+
+    if not items:
+        print("NO_REPLY")
+    else:
+        print(f"📅 Heads up — in {LOOKAHEAD_DAYS} days ({target_human}):")
+        for item in items:
+            print(f"- {item}")
+except Exception:
+    print("Upcoming Dates check failed: calendar unavailable.")
+PY
 ```
-
-Step 2: Resolve the `Copied Birthdays` calendar id via `gog calendar calendars --json`. Save its `id` as `BDAY_CAL`.
-
-Step 3: Query that calendar for events on the target date.
-
-```bash
-gog calendar events "$BDAY_CAL" --from "$TARGET_FROM" --to "$TARGET_TO" --json
-```
-
-Each event's `summary` is a person's name — format as e.g. "Jane Doe's birthday".
-
-Step 4: Check the holiday list against `TARGET_MMDD`.
-
-Fixed holidays (month-day):
-- `01-01` New Year's Day
-- `02-14` Valentine's Day
-- `03-17` St. Patrick's Day
-- `07-04` Independence Day
-- `10-31` Halloween
-- `12-24` Christmas Eve
-- `12-25` Christmas Day
-- `12-31` New Year's Eve
-
-Floating holidays (compute and compare against `TARGET_DATE`):
-- **Mother's Day** — 2nd Sunday of May
-- **Father's Day** — 3rd Sunday of June
-- **Thanksgiving** — 4th Thursday of November
-
-Step 5: Combine birthdays + holiday hits into a single list.
-
-Step 6: Output.
-
-- If the list is **empty**, output exactly `NO_REPLY`.
-- Otherwise, output a short friendly message with emojis. Example:
-
-  ```
-  📅 Heads up — in 7 days (Thursday, May 7):
-  - 💐 Mother's Day
-  - 🎂 Jane Doe's birthday
-  ```
-
-  Replace the date with `TARGET_HUMAN`. One bullet per item. No preamble, no sign-off.
-
-  **Emoji guide** (pick the most fitting per item):
-  - Birthday: 🎂 (or 🎉 / 🥳)
-  - Mother's Day: 💐 or 👩‍👧
-  - Father's Day: 👔 or 👨‍👧
-  - Valentine's Day: 💘 or ❤️
-  - St. Patrick's Day: 🍀
-  - Independence Day: 🇺🇸 or 🎆
-  - Halloween: 🎃
-  - Thanksgiving: 🦃
-  - Christmas Eve / Christmas Day: 🎄
-  - New Year's Eve / New Year's Day: 🎉 or 🥂
-  - Header line: 📅 or 🗓️
 
 ---
 
 ## OUTPUT RULES
 
-- Concise. One short heading + bullets, or `NO_REPLY`.
-- If calendar retrieval fails, retry once. If it still fails, output a one-line note: `Upcoming Dates check failed: calendar unavailable.`
+- Return only one of:
+  - `NO_REPLY`
+  - The reminder produced by the script
+  - `Upcoming Dates check failed: calendar unavailable.`

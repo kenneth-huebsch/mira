@@ -7,6 +7,7 @@ This repo is allowed to contain personalized behavior, account conventions, chat
 ## Layout
 
 - `workspace/` mirrors the behavior-bearing parts of `~/.openclaw/workspace/`.
+  Use `workspace/USER.md` for durable non-tool preferences/context, `workspace/TOOLS.md` for tool mechanics, and `workspace/AGENTS.md` for hard rules and workflow policy.
 - `workspace/assets/rumi.jpg` is Rumi's local visual reference.
 - `templates/` contains friend-safe examples of runtime config and cron jobs with credential fields redacted.
 - `scripts/sync-from-live.sh` updates the blueprint from the running host.

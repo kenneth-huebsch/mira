@@ -141,3 +141,25 @@ of the same name:
 Bundled skills currently enabled (see `~/.openclaw/openclaw.json`
 `skills.entries`): `gog`, `quick-reminders`, `browser`. Everything else is
 disabled by default.
+
+## `agent-browser` CLI (web browsing)
+
+`agent-browser` is the preferred tool for fetching live web content, especially
+for sites that block `web_fetch` (eBay, ESPN, most major news/sports sites).
+
+**Always prefer `agent-browser` over `web_fetch` for:**
+- Web browsing
+- Sports scores, schedules, live data (ESPN, NBA, NFL sites)
+- E-commerce searches (eBay, Amazon, etc.)
+
+**Basic pattern:**
+```bash
+agent-browser open <url>
+agent-browser snapshot          # get page content
+agent-browser snapshot -i       # get content with interactive refs
+agent-browser get title
+agent-browser close             # always close when done
+```
+
+Load and follow `skills/agent-browser/SKILL.md` for full usage. Do not narrate
+that you are using `agent-browser` — just use it and return the result.

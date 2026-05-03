@@ -40,6 +40,20 @@ When Kenny says a cron had no output:
 docker exec openclaw-openclaw-gateway-1 gog ...
 ```
 
+## Nightly Reflection Checklist
+
+For `Nightly Session Reflection`:
+
+- Keep reset disabled until the reset command is explicitly verified. The helper should report `reset_disabled`, not hand-edit session state.
+- Dry-run the helper before enabling or manually running the cron:
+
+```bash
+docker exec openclaw-openclaw-gateway-1 sh -lc 'cd /home/node/.openclaw/workspace && python3 cron/nightly_session_reflection.py collect --date yesterday --out /tmp/nightly-session-context.json && printf "%s\n" "{\"medium_memory\":[],\"long_memory\":[],\"engagement_priorities\":[],\"reset_recommended\":false,\"notes\":[]}" >/tmp/nightly-session-decision.json && python3 cron/nightly_session_reflection.py apply --date yesterday --json-file /tmp/nightly-session-decision.json --dry-run'
+```
+
+- Inspect `memory/nightly_session_reflection_state.jsonl` after real runs. It should contain counts and reset status only, not transcript excerpts.
+- If memory writes look noisy, tune `cron/NIGHTLY_SESSION_REFLECTION.md` selection rules before changing schedules or reset behavior.
+
 ## Safe Cron Edits
 
 When changing a cron that must use tools, consider setting:

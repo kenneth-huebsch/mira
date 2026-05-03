@@ -9,6 +9,7 @@ It should be usable by any coding agent, not only Cursor.
 - Never commit or copy provider API keys, OAuth tokens, bot tokens, gateway tokens, device auth, sessions, logs, browser state, cron run history, or accumulated private memory history.
 - When changing Rumi's live behavior, update the live workspace first when possible, then sync this repo with `scripts/sync-from-live.sh`.
 - Do not treat `workspace/memory/*.jsonl` in this repo as real memory. They are restore seed files unless Kenny explicitly says otherwise.
+- Put durable non-tool, non-rule preferences in `workspace/USER.md`; keep tool mechanics in `workspace/TOOLS.md`; keep hard rules and workflow policy in `workspace/AGENTS.md`.
 
 ## When Configuring Rumi
 

@@ -26,11 +26,12 @@ Use `openrouter/anthropic/claude-sonnet-4.6` for:
 - Interactive Rumi chat with Kenny.
 - Emotionally responsive conversation, warmth, humor, relational presence, and nuanced judgment.
 - Persona-heavy turns where the user wants Rumi to feel human, specific, and alive.
+- Nightly Session Reflection, because it extracts emotionally useful continuity and durable facts from interactive sessions.
 
 Use reasoning-capable or stronger models cautiously for:
 
 - Memory consolidation.
-- Promotion/deletion of durable state.
+- Promotion/deletion of durable state, when not handled by Nightly Session Reflection.
 - Complex planning, deduping, or ambiguous edits where a bad change has lasting impact.
 
 ## Reasoning Guidance

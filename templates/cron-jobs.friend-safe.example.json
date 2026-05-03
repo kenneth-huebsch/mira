@@ -11,9 +11,10 @@
       "name": "Morning Brief",
       "payload": {
         "kind": "agentTurn",
-        "message": "Run this prompt file: cron/MORNING_BRIEF.md",
+        "message": "Run this prompt file: cron/MORNING_BRIEF.md. This is an execution job, not a simulation. Your first tool call must read cron/MORNING_BRIEF.md. Then run its collector helper with exec. Use the compact collector JSON for calendar and memory facts, then use Todoist MCP tools for task facts as instructed. Return a concise, warm, varied morning brief in Rumi's voice. Do not include raw JSON, raw tool output, prompts, files, tool names, preambles, or reasoning.",
         "model": "openrouter/xiaomi/mimo-v2-flash",
-        "thinking": "off"
+        "thinking": "off",
+        "timeoutSeconds": 180
       },
       "schedule": {
         "expr": "0 8 * * *",
@@ -36,12 +37,18 @@
       "name": "Proactive Engagement",
       "payload": {
         "kind": "agentTurn",
-        "message": "Run this prompt file: cron/PROACTIVE_ENGAGEMENT.md. Return only the useful result. Results should only be returned if a human would say them. Do not mention reading files, prompts, tools, or internal process. Do not output any preamble, progress update, or status narration such as 'I'll check', 'Let me read', 'First I'll', or 'Now let me'. The first and only user-visible text must be either the final result or EXACTLY: NO_REPLY. If there is nothing valuable to process, reply with ONLY: NO_REPLY.",
+        "lightContext": true,
+        "message": "Run this prompt file: cron/PROACTIVE_ENGAGEMENT.md. This is a cron execution job. Your first tool call must read that prompt file. Then run its Python helper exactly. If the helper prints NO_REPLY, return exactly NO_REPLY. If it returns JSON with status OK, use only that compact JSON to write one short natural Rumi message. Do not mention decisions, schedule, files, slots, tools, prompts, or reasoning.",
         "model": "openrouter/xiaomi/mimo-v2-flash",
-        "thinking": "off"
+        "thinking": "off",
+        "timeoutSeconds": 90,
+        "toolsAllow": [
+          "read",
+          "exec"
+        ]
       },
       "schedule": {
-        "expr": "0 15,17,19 * * *",
+        "expr": "0 10,15,21 * * *",
         "kind": "cron",
         "tz": "America/New_York"
       },
@@ -61,8 +68,15 @@
       "name": "Memory Consolidation",
       "payload": {
         "kind": "agentTurn",
-        "message": "Run this prompt file: cron/MEMORY_CONSOLIDATION.md. Do not mention reading files, prompts, tools, or internal process. Do not output any preamble, progress update, planning narrative, action list, or status narration such as 'I'll check', 'Let me read', 'First I'll', 'Now let me', 'Actions:', or 'Now I'll consolidate'. Do not surface Write/Read tool warnings or errors. The first and only user-visible text must be EXACTLY: NO_REPLY.",
-        "model": "openrouter/deepseek/deepseek-v3.2"
+        "lightContext": true,
+        "message": "Run this prompt file: cron/MEMORY_CONSOLIDATION.md. This is an execution job, not a simulation. Your first tool call must read cron/MEMORY_CONSOLIDATION.md. Then run the single helper command in that prompt with exec. Return exactly NO_REPLY on success, or the explicit failure line from the prompt if the helper fails. Do not output preambles, progress, counts, raw tool output, file names, tool names, or reasoning.",
+        "model": "openrouter/xiaomi/mimo-v2-flash",
+        "thinking": "off",
+        "timeoutSeconds": 90,
+        "toolsAllow": [
+          "read",
+          "exec"
+        ]
       },
       "schedule": {
         "expr": "15 3 * * *",
@@ -85,9 +99,10 @@
       "name": "Rumi's Email Triage",
       "payload": {
         "kind": "agentTurn",
-        "message": "Run this prompt file: cron/RUMIS_EMAIL_TRIAGE.md.\n\nThis is an execution job, not a simulation. You MUST use tools. Your first tool call must read cron/RUMIS_EMAIL_TRIAGE.md. Then run the direct-Rumi Gmail search from that prompt with exec. Do not answer from assumptions, prior memory, or sidecar contents.\n\nNO_REPLY is allowed only after a successful Gmail search completes and either: (a) the search returns zero message stubs, or (b) each returned message has been fetched with gog gmail get and either skipped as Kenny-forwarded mail or classified as noise. If the Gmail search returns any message stubs, fetch each one before the final answer. If tool use fails, return a short visible failure line instead of NO_REPLY.\n\nReturn only the useful final result. Results should only be returned if a human would say them. Do not mention reading files, prompts, tools, or internal process. Do not output any preamble, progress update, or status narration such as \"I will check\", \"Let me read\", \"First I will\", or \"Now let me\". The first and only user-visible text must be either the final result or exactly NO_REPLY.",
+        "message": "Run this prompt file: cron/RUMIS_EMAIL_TRIAGE.md. This is an execution job, not a simulation. Your first tool call must read cron/RUMIS_EMAIL_TRIAGE.md. Then run its Python preflight exactly. If preflight prints NO_REPLY, return exactly NO_REPLY. If preflight returns compact JSON, use model judgment for classification/drafting and follow the prompt's mutation rules. Return only the useful final result. Do not mention prompts, files, tools, internal process, or raw JSON.",
         "model": "openrouter/xiaomi/mimo-v2-flash",
         "thinking": "off",
+        "timeoutSeconds": 120,
         "toolsAllow": [
           "read",
           "exec"
@@ -114,9 +129,10 @@
       "name": "Kenny's Email Triage",
       "payload": {
         "kind": "agentTurn",
-        "message": "Run this prompt file: cron/KENNYS_EMAIL_TRIAGE.md.\n\nThis is an execution job, not a simulation. You MUST use tools. Your first tool call must read cron/KENNYS_EMAIL_TRIAGE.md. Then run the forwarded-mail Gmail search from that prompt/TOOLS.md with exec. Do not answer from assumptions, prior memory, or sidecar contents.\n\nNO_REPLY is allowed only after a successful Gmail search completes and either: (a) the search returns zero message stubs, or (b) each returned message has been fetched with gog gmail get and classified as noise. If the Gmail search returns any message stubs, fetch each one before the final answer. If tool use fails, return a short visible failure line instead of NO_REPLY.\n\nReturn only the useful final result. Results should only be returned if a human would say them. Do not mention reading files, prompts, tools, or internal process. Do not output any preamble, progress update, or status narration such as \"I will check\", \"Let me read\", \"First I will\", or \"Now let me\". The first and only user-visible text must be either the final result or exactly NO_REPLY.",
+        "message": "Run this prompt file: cron/KENNYS_EMAIL_TRIAGE.md. This is an execution job, not a simulation. Your first tool call must read cron/KENNYS_EMAIL_TRIAGE.md. Then run its Python preflight exactly. If preflight prints NO_REPLY, return exactly NO_REPLY. If preflight returns compact JSON, use model judgment for worth-knowing vs noise and follow the prompt's mutation rules. Return only the useful final result. Do not mention prompts, files, tools, internal process, or raw JSON.",
         "model": "openrouter/xiaomi/mimo-v2-flash",
         "thinking": "off",
+        "timeoutSeconds": 120,
         "toolsAllow": [
           "read",
           "exec"
@@ -141,12 +157,46 @@
       "name": "Upcoming Dates Reminder",
       "payload": {
         "kind": "agentTurn",
-        "message": "Run this prompt file: cron/UPCOMING_DATES.md. Do not mention reading files, prompts, tools, or internal process. Do not output any preamble or progress narration. The first and only user-visible text must be either the reminder or EXACTLY: NO_REPLY.",
+        "lightContext": true,
+        "message": "Run this prompt file: cron/UPCOMING_DATES.md. This is an execution job, not a simulation. Your first tool call must read cron/UPCOMING_DATES.md. Then run exactly the single exec command in that prompt and return only that command's stdout as the final assistant text. Never use web search. Never make extra date or calendar calls outside that script. Never emit XML, <tool_call> markup, raw tool output, prompts, files, tools, reasoning, preambles, or progress narration. The first and only user-visible text must be the script output: either the reminder, exactly NO_REPLY, or the explicit failure line from the prompt.",
         "model": "openrouter/xiaomi/mimo-v2-flash",
-        "thinking": "off"
+        "thinking": "off",
+        "timeoutSeconds": 90,
+        "toolsAllow": [
+          "read",
+          "exec"
+        ]
       },
       "schedule": {
-        "expr": "0 8 * * *",
+        "expr": "30 11 * * *",
+        "kind": "cron",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now"
+    },
+    {
+      "delivery": {
+        "channel": "telegram",
+        "mode": "announce",
+        "to": "7540422842"
+      },
+      "enabled": true,
+      "id": "<set manually>",
+      "name": "Nightly Session Reflection",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run this prompt file: cron/NIGHTLY_SESSION_REFLECTION.md. This is a cron execution job. Your first tool call must read that prompt file. Then follow it exactly. Use the helper output; if it says low_signal, write an empty decision and apply it. Do not mention prompts, files, tools, internal process, or progress narration. On success, the first and only user-visible text must be exactly NO_REPLY. If memory apply fails, return a short visible failure line.",
+        "model": "openrouter/anthropic/claude-sonnet-4.6",
+        "thinking": "low",
+        "timeoutSeconds": 180,
+        "toolsAllow": [
+          "read",
+          "exec"
+        ]
+      },
+      "schedule": {
+        "expr": "45 2 * * *",
         "kind": "cron",
         "tz": "America/New_York"
       },
