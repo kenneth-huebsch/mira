@@ -71,6 +71,8 @@ behavior_files=(
   cron/email_triage_preflight.py
   cron/morning_brief_collect.py
   cron/UPCOMING_DATES.md
+  cron/ENGAGEMENT_FOLLOWUPS.md
+  cron/engagement_followups.py
   plugins/memory-plugin.ts
   skills/memory_manager.md
   skills/engagement_priorities_manager.md
@@ -88,6 +90,7 @@ seed_files=(
   memory/long_memory.jsonl
   memory/engagement_memory.jsonl
   memory/engagement_priorities.jsonl
+  memory/engagement_followups.jsonl
   memory/email_triage_state.jsonl
   memory/nightly_session_reflection_state.jsonl
   memory/rolling_summary.json

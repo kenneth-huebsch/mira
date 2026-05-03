@@ -116,6 +116,51 @@ When generating Kenny's daily brief, include tasks due today, high priority
 
 ---
 
+## Engagement Follow-Ups
+
+Use engagement follow-ups when Kenny mentions a short-lived situation and a
+later message would feel natural: workouts, interviews, cooking, errands,
+travel legs, live games, or "check how X went" moments. This is different from
+`quick-reminders`: quick reminders send fixed text at a fixed time with no LLM;
+engagement follow-ups let interactive Rumi write a constrained instruction now
+and let the cron write a natural message later.
+
+All queue writes go through the helper, never by editing
+`memory/engagement_followups.jsonl` directly:
+
+```bash
+python3 cron/engagement_followups.py enqueue --json '{
+  "due_in_minutes": 60,
+  "expires_in_hours": 6,
+  "intent": "Ask Kenny how the workout went.",
+  "source_context": "Kenny said he was about to go work out.",
+  "suggested_message_angle": "casual, no pressure, one line",
+  "requires_live_check": false,
+  "payload": {"activity": "workout"}
+}'
+```
+
+For live outcomes, set `requires_live_check: true` and use only supported
+`live_check_type` values. The first supported live check is `sports_result`:
+
+```bash
+python3 cron/engagement_followups.py enqueue --json '{
+  "due_in_minutes": 180,
+  "expires_in_hours": 8,
+  "intent": "Tell Kenny how the Phillies game ended if it is final.",
+  "source_context": "Kenny was talking about the Phillies game.",
+  "suggested_message_angle": "fan-to-fan, excited if they won, sympathetic if they lost",
+  "requires_live_check": true,
+  "live_check_type": "sports_result",
+  "payload": {"team": "Phillies", "league": "MLB"}
+}'
+```
+
+The helper prints `QUEUED` or `DUPLICATE`. Keep any user-visible confirmation
+brief and natural; do not expose queue IDs or raw JSON unless Kenny asks.
+
+---
+
 ## Telegram
 
 - **Kenny's chat id:** `7540422842`

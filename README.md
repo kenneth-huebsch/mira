@@ -16,6 +16,8 @@ This repo is allowed to contain personalized behavior, account conventions, chat
 - `.cursor/skills/` contains Cursor adapters that point to the same tool-agnostic playbooks.
 - `docs/agent-playbooks/` contains the source-of-truth agent workflows for configuring and backing up Rumi.
 - `docs/cron-dependencies.md` tracks files that cron prompts or context loaders depend on.
+- `docs/engagement-followups.md` explains Rumi's short-lived follow-up behavior
+  and how it differs from the broad proactive engagement cron.
 - `docs/source-change-audit.md` records whether local OpenClaw source changes matter for restore.
 
 ## Update The Backup

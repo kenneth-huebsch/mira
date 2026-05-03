@@ -34,6 +34,37 @@
       },
       "enabled": true,
       "id": "<set manually>",
+      "name": "Engagement Follow-Ups",
+      "payload": {
+        "kind": "agentTurn",
+        "lightContext": true,
+        "message": "Run this prompt file: cron/ENGAGEMENT_FOLLOWUPS.md. This is a cron execution job. Your first tool call must read that prompt file. Then run its Python helper exactly. If the helper prints NO_REPLY, return exactly NO_REPLY. If it returns JSON with status OK, use only that compact JSON to write one short natural Rumi follow-up message. Do not mention decisions, schedule, files, queues, tools, prompts, or reasoning.",
+        "model": "openrouter/xiaomi/mimo-v2-flash",
+        "thinking": "off",
+        "timeoutSeconds": 90,
+        "toolsAllow": [
+          "read",
+          "exec"
+        ]
+      },
+      "schedule": {
+        "expr": "*/15 9-23 * * *",
+        "kind": "cron",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now"
+    },
+    {
+      "deleteAfterRun": false,
+      "delivery": {
+        "bestEffort": false,
+        "channel": "telegram",
+        "mode": "announce",
+        "to": "7540422842"
+      },
+      "enabled": true,
+      "id": "<set manually>",
       "name": "Proactive Engagement",
       "payload": {
         "kind": "agentTurn",

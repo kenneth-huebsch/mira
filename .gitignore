@@ -44,6 +44,7 @@ workspace/memory/.dreams/
 !workspace/memory/long_memory.jsonl
 !workspace/memory/engagement_memory.jsonl
 !workspace/memory/engagement_priorities.jsonl
+!workspace/memory/engagement_followups.jsonl
 !workspace/memory/email_triage_state.jsonl
 !workspace/memory/rolling_summary.json
 !workspace/memory/ACTIVE_PRIORITIES.md
