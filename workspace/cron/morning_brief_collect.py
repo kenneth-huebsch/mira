@@ -63,10 +63,33 @@ def text(value: Any, max_chars: int = 160) -> str:
     return compact[: max_chars - 1].rstrip() + "..."
 
 
+def parse_event_datetime(value: Any, timezone: Any = None) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+    if parsed.tzinfo is None:
+        zone_name = str(timezone or "").strip()
+        zone = ET
+        try:
+            zone = ZoneInfo(zone_name) if zone_name else ET
+        except Exception:
+            zone = ET
+        parsed = parsed.replace(tzinfo=zone)
+
+    return parsed.astimezone(ET)
+
+
 def event_time(value: Any) -> str:
     if isinstance(value, dict):
         if value.get("dateTime"):
-            return str(value["dateTime"])
+            parsed = parse_event_datetime(value.get("dateTime"), value.get("timeZone"))
+            return parsed.isoformat(timespec="seconds") if parsed else str(value["dateTime"])
         if value.get("date"):
             return str(value["date"])
     return str(value or "")
@@ -133,6 +156,7 @@ def main() -> int:
         "now_et": now.isoformat(timespec="seconds"),
         "date_et": today.isoformat(),
         "calendar": {
+            "timezone": "America/New_York",
             "events": calendar_results,
             "failures": calendar_failures,
             "failure_rule": "Never claim no events when any calendar source is listed in failures.",
