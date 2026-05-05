@@ -48,7 +48,7 @@
         ]
       },
       "schedule": {
-        "expr": "*/15 9-23 * * *",
+        "expr": "*/30 9-23 * * *",
         "kind": "cron",
         "tz": "America/New_York"
       },
@@ -130,7 +130,7 @@
       "name": "Rumi's Email Triage",
       "payload": {
         "kind": "agentTurn",
-        "message": "Run this prompt file: cron/RUMIS_EMAIL_TRIAGE.md. This is an execution job, not a simulation. Your first tool call must read cron/RUMIS_EMAIL_TRIAGE.md. Then run its Python preflight exactly. If preflight prints NO_REPLY, return exactly NO_REPLY. If preflight returns compact JSON, use model judgment for classification/drafting and follow the prompt's mutation rules. Return only the useful final result. Do not mention prompts, files, tools, internal process, or raw JSON.",
+        "message": "Run this prompt file: cron/RUMIS_EMAIL_TRIAGE.md. This is an execution job, not a simulation. Follow standing execution rules from AGENTS.md exactly. Your first tool call must read cron/RUMIS_EMAIL_TRIAGE.md. Then run its Python preflight exactly. If preflight prints NO_REPLY, return exactly NO_REPLY. If preflight returns compact JSON, use model judgment for classification/drafting and follow the prompt's mutation rules. Return only the useful final result.",
         "model": "openrouter/xiaomi/mimo-v2-flash",
         "thinking": "off",
         "timeoutSeconds": 120,
@@ -140,7 +140,7 @@
         ]
       },
       "schedule": {
-        "expr": "10 10,16 * * *",
+        "expr": "10 10-22 * * *",
         "kind": "cron",
         "tz": "America/New_York"
       },
@@ -160,7 +160,7 @@
       "name": "Kenny's Email Triage",
       "payload": {
         "kind": "agentTurn",
-        "message": "Run this prompt file: cron/KENNYS_EMAIL_TRIAGE.md. This is an execution job, not a simulation. Your first tool call must read cron/KENNYS_EMAIL_TRIAGE.md. Then run its Python preflight exactly. If preflight prints NO_REPLY, return exactly NO_REPLY. If preflight returns compact JSON, use model judgment for worth-knowing vs noise and follow the prompt's mutation rules. Return only the useful final result. Do not mention prompts, files, tools, internal process, or raw JSON.",
+        "message": "Run this prompt file: cron/KENNYS_EMAIL_TRIAGE.md. This is an execution job, not a simulation. Follow standing execution rules from AGENTS.md exactly. Your first tool call must read cron/KENNYS_EMAIL_TRIAGE.md. Then run its Python preflight exactly. If preflight prints NO_REPLY, return exactly NO_REPLY. If preflight returns compact JSON, use model judgment for worth-knowing vs noise and follow the prompt's mutation rules. Return only the useful final result.",
         "model": "openrouter/xiaomi/mimo-v2-flash",
         "thinking": "off",
         "timeoutSeconds": 120,
@@ -170,7 +170,7 @@
         ]
       },
       "schedule": {
-        "expr": "20 10,16 * * *",
+        "expr": "20 10-22 * * *",
         "kind": "cron",
         "tz": "America/New_York"
       },
@@ -189,7 +189,7 @@
       "payload": {
         "kind": "agentTurn",
         "lightContext": true,
-        "message": "Run this prompt file: cron/UPCOMING_DATES.md. This is an execution job, not a simulation. Your first tool call must read cron/UPCOMING_DATES.md. Then run exactly the single exec command in that prompt and return only that command's stdout as the final assistant text. Never use web search. Never make extra date or calendar calls outside that script. Never emit XML, <tool_call> markup, raw tool output, prompts, files, tools, reasoning, preambles, or progress narration. The first and only user-visible text must be the script output: either the reminder, exactly NO_REPLY, or the explicit failure line from the prompt.",
+        "message": "Run this prompt file: cron/UPCOMING_DATES.md. This is an execution job, not a simulation. Follow standing execution rules from AGENTS.md exactly. Your first tool call must read cron/UPCOMING_DATES.md. Then run exactly the single exec command in that prompt and return only that command's stdout as the final assistant text. Never use web search. Never make extra date or calendar calls outside that script. The first and only user-visible text must be the script output: either the reminder, exactly NO_REPLY, or the explicit failure line from the prompt.",
         "model": "openrouter/xiaomi/mimo-v2-flash",
         "thinking": "off",
         "timeoutSeconds": 90,
@@ -231,6 +231,60 @@
         "kind": "cron",
         "tz": "America/New_York"
       },
+      "sessionTarget": "isolated",
+      "wakeMode": "now"
+    },
+    {
+      "agentId": "main",
+      "deleteAfterRun": true,
+      "delivery": {
+        "channel": "telegram",
+        "mode": "announce",
+        "to": "7540422842"
+      },
+      "description": "Send Kenny a reminder for his haircut booked for 2026-05-13 09:30 AM ET.",
+      "enabled": true,
+      "id": "<set manually>",
+      "name": "Reminder: Haircut with Jose",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Reminder for Kenny: You have a haircut with Jose at High Voltage Barbershop tomorrow (Wed May 13) at 9:30 AM ET. I added the calendar event on your Personal calendar with travel buffer (leave by 9:15 AM). Reply if you need me to change or cancel it.",
+        "model": "default",
+        "thinking": "low",
+        "timeoutSeconds": 120
+      },
+      "schedule": {
+        "at": "2026-05-12T13:00:00.000Z",
+        "kind": "at"
+      },
+      "sessionKey": "agent:main:telegram:direct:7540422842",
+      "sessionTarget": "isolated",
+      "wakeMode": "now"
+    },
+    {
+      "agentId": "main",
+      "deleteAfterRun": true,
+      "delivery": {
+        "channel": "telegram",
+        "mode": "announce",
+        "to": "7540422842"
+      },
+      "description": "Evening-before reminder to Kenny to prepare for his call with Cape.",
+      "enabled": true,
+      "id": "<set manually>",
+      "name": "Reminder: Cape call prep",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Reminder for Kenny: You have a call with Cape tomorrow \u2014 please start preparing. Reply if you want me to gather notes or materials.",
+        "model": "default",
+        "thinking": "low",
+        "timeoutSeconds": 120
+      },
+      "schedule": {
+        "at": "2026-05-13T00:00:00.000Z",
+        "kind": "at"
+      },
+      "sessionKey": "agent:main:telegram:direct:7540422842",
       "sessionTarget": "isolated",
       "wakeMode": "now"
     }

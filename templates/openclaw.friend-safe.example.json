@@ -1,6 +1,9 @@
 {
   "agents": {
     "defaults": {
+      "compaction": {
+        "mode": "safeguard"
+      },
       "heartbeat": {
         "activeHours": {
           "end": "23:30",
@@ -11,7 +14,7 @@
         "target": "last"
       },
       "model": {
-        "primary": "openrouter/anthropic/claude-sonnet-4.6"
+        "primary": "openrouter/openai/gpt-5-mini"
       },
       "sandbox": {
         "mode": "off"
@@ -114,7 +117,7 @@
     }
   },
   "meta": {
-    "lastTouchedAt": "2026-05-01T22:18:29.874Z",
+    "lastTouchedAt": "2026-05-04T21:35:13.620Z",
     "lastTouchedVersion": "2026.4.4"
   },
   "plugins": {
@@ -131,12 +134,21 @@
       "openrouter": {
         "enabled": true
       },
+      "output-hygiene-plugin": {
+        "enabled": true
+      },
       "stepfun": {
         "enabled": true
       },
       "xiaomi": {
         "enabled": true
       }
+    },
+    "installs": {},
+    "load": {
+      "paths": [
+        "~/.openclaw/extensions/output-hygiene-plugin"
+      ]
     }
   },
   "session": {
@@ -145,6 +157,9 @@
   "skills": {
     "entries": {
       "1password": "<set manually>",
+      "agent-browser": {
+        "enabled": true
+      },
       "apple-notes": {
         "enabled": false
       },

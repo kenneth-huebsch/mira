@@ -20,6 +20,9 @@ Important files:
 - `plugins/` - workspace plugin code.
 - `skills/` - workspace-local skills.
 - `assets/` - local persona assets such as `assets/rumi.jpg`.
+- `templates/openclaw.friend-safe.example.json` - restore-safe config shape.
+  Keep `skills.entries.agent-browser.enabled` true so Interactive loads the
+  CLI browser workflow instead of falling back to generic web fetches.
 
 ## Editing Rules
 

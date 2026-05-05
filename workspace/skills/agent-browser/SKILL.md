@@ -1,17 +1,18 @@
 ---
 name: agent-browser
-description: Use the agent-browser CLI for browser automation instead of ad hoc Playwright, Node scripts, or generic web fetches. Prefer it when the user asks to open a site, inspect a live page, get a page title, click, type, fill forms, scrape rendered content, take screenshots, or do browser testing.
+description: Use the agent-browser CLI before web_fetch/web_search for any live web task: opening a site, inspecting a page, getting page text or title, clicking, typing, filling forms, scraping rendered content, checking sports/e-commerce/news pages, taking screenshots, or browser testing.
 metadata: {"openclaw":{"requires":{"bins":["agent-browser"]},"homepage":"https://github.com/vercel-labs/agent-browser"}}
 ---
 
 # agent-browser
 
-Use `agent-browser` as the default browser automation interface.
+Use `agent-browser` as the default interface for live web work.
 
 ## Rules
 
-- Prefer `agent-browser` over generating one-off Node or Playwright scripts.
-- Prefer `agent-browser` over `web_fetch` and `web_search` when the task is about a live website, rendered page state, clicking, forms, or page metadata like the title.
+- Use `agent-browser` before `web_fetch` or `web_search` for any live website task.
+- Use `agent-browser` instead of generating one-off Node or Playwright scripts.
+- Only use `web_fetch` when the user explicitly asks for a raw/static URL fetch, or when `agent-browser` is unavailable or fails after one retry.
 - Do not narrate that you are using `agent-browser` unless the user explicitly asks for implementation details.
 - If the user asks for only the final result, do the browser work silently and return only that result.
 - Do not say things like "I'll use agent-browser", "I'll open the page", or "I'll get the title" before doing the work.

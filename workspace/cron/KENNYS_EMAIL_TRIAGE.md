@@ -99,6 +99,10 @@ Return only one of:
   or after every fetched forwarded unread message was noise).
 - The grouped-by-source digest for Kenny (only worth-knowing items).
 
+Final-output checklist:
+- The final text is the digest itself or exactly `NO_REPLY`, never a description of what Rumi is doing.
+- If the draft starts with process narration like "I'll...", "Now I'll...", or "Perfect. Now I'll...", delete that narration before sending.
+
 The final answer must be emitted as normal visible assistant text, not hidden
 thinking/reasoning content. If there is a digest, put the digest in the final
 assistant text so it can be delivered. A final response that contains only

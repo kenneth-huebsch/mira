@@ -6,6 +6,23 @@ Audited source checkout: `/home/kenny/openclaw`
 
 The restore path should still start from latest upstream OpenClaw. Most behavior needed to recreate Rumi belongs in this blueprint repo under `workspace/`.
 
+## Standing Source Boundary
+
+Future Rumi coding work must not edit upstream OpenClaw source files under
+`/home/kenny/openclaw/src/`. Keep the OpenClaw checkout pullable from upstream.
+
+Use Rumi-owned behavior surfaces instead:
+
+- `workspace/` prompts, docs, skills, helpers, and templates.
+- `workspace/plugins/` for plugin-based runtime behavior when OpenClaw exposes
+  the needed hook.
+- Live cron/config changes through OpenClaw CLI commands, mirrored back into the
+  blueprint when behavior-bearing.
+
+If a behavior change appears to require an upstream source patch, stop and
+document the limitation. Only use an OpenClaw fork or patch branch after Kenny
+explicitly approves it.
+
 Two local source areas are worth preserving separately:
 
 - `skills/quick-reminders/` is behavior-bearing and has been copied into `workspace/skills/quick-reminders/` in this blueprint.

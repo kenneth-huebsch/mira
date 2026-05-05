@@ -183,16 +183,21 @@ of the same name:
   after each interactive turn to decide whether to append a priority.
 - `skills/agent-browser/SKILL.md` — browser automation skill for Rumi.
 
-Bundled skills currently enabled (see `~/.openclaw/openclaw.json`
-`skills.entries`): `gog`, `quick-reminders`, `browser`. Everything else is
+Enabled skills (see `~/.openclaw/openclaw.json` `skills.entries`): `gog`,
+`quick-reminders`, and the workspace-local `agent-browser`. Everything else is
 disabled by default.
 
 ## `agent-browser` CLI (web browsing)
 
-`agent-browser` is the preferred tool for fetching live web content, especially
-for sites that block `web_fetch` (eBay, ESPN, most major news/sports sites).
+`agent-browser` is Rumi's default tool for live web work. Use it before
+`web_fetch` whenever Kenny asks Rumi to open, inspect, search within, click
+around, scrape, or verify a webpage, especially sites that block simple fetches
+(eBay, ESPN, most major news/sports sites).
 
-**Always prefer `agent-browser` over `web_fetch` for:**
+Use `web_fetch` only when Kenny explicitly asks for a raw URL fetch/static page
+read, or when `agent-browser` is unavailable or fails after one retry.
+
+**Always use `agent-browser` first for:**
 - Web browsing
 - Sports scores, schedules, live data (ESPN, NBA, NFL sites)
 - E-commerce searches (eBay, Amazon, etc.)

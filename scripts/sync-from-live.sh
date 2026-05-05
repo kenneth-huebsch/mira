@@ -74,6 +74,7 @@ behavior_files=(
   cron/ENGAGEMENT_FOLLOWUPS.md
   cron/engagement_followups.py
   plugins/memory-plugin.ts
+  plugins/output-hygiene-plugin.ts
   skills/memory_manager.md
   skills/engagement_priorities_manager.md
   skills/agent-browser/SKILL.md

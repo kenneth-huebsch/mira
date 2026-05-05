@@ -57,6 +57,43 @@ copy_dir() {
   echo "restored dir: $rel"
 }
 
+install_output_hygiene_extension() {
+  local src="$TARGET_WORKSPACE/plugins/output-hygiene-plugin.ts"
+  local openclaw_home
+  openclaw_home="$(cd "$TARGET_WORKSPACE/.." && pwd)"
+  local dst_dir="$openclaw_home/extensions/output-hygiene-plugin"
+
+  if [[ ! -f "$src" ]]; then
+    echo "missing live plugin source: plugins/output-hygiene-plugin.ts" >&2
+    return 1
+  fi
+
+  mkdir -p "$dst_dir"
+  cp -p "$src" "$dst_dir/index.ts"
+  cat > "$dst_dir/package.json" <<'JSON'
+{
+  "name": "output-hygiene-plugin",
+  "version": "1.0.0",
+  "type": "module",
+  "openclaw": {
+    "extensions": ["./index.ts"]
+  }
+}
+JSON
+  cat > "$dst_dir/openclaw.plugin.json" <<'JSON'
+{
+  "id": "output-hygiene-plugin",
+  "name": "Rumi Output Hygiene",
+  "description": "Filters obvious tool-call markup and process narration before Telegram delivery",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false
+  }
+}
+JSON
+  echo "installed extension: output-hygiene-plugin"
+}
+
 behavior_files=(
   AGENTS.md
   SOUL.md
@@ -80,6 +117,7 @@ behavior_files=(
   cron/morning_brief_collect.py
   cron/UPCOMING_DATES.md
   plugins/memory-plugin.ts
+  plugins/output-hygiene-plugin.ts
   skills/memory_manager.md
   skills/engagement_priorities_manager.md
   skills/agent-browser/SKILL.md
@@ -88,6 +126,8 @@ behavior_files=(
 for rel in "${behavior_files[@]}"; do
   copy_file "$rel"
 done
+
+install_output_hygiene_extension
 
 copy_dir "skills/quick-reminders"
 
