@@ -116,6 +116,38 @@ When generating Kenny's daily brief, include tasks due today, high priority
 
 ---
 
+## OpenClaw Crons
+
+Use OpenClaw crons for recurring scheduled agent work. For one-shot simple
+reminders under 48 hours, prefer the `quick-reminders` skill. For natural
+short-lived follow-ups, prefer the engagement follow-up helper below.
+
+When creating or editing an LLM-backed cron:
+
+- Use the OpenClaw cron CLI rather than editing cron JSON files directly.
+- Never set `payload.model` to `default`. In cron payloads, `default` is treated
+  as a literal OpenRouter model id and fails as `openrouter/default`.
+- For ordinary cron/tool workflows, set `payload.model` to
+  `openrouter/xiaomi/mimo-v2-flash` and `payload.thinking` to `off`.
+- Use Eastern time (`America/New_York`) for user-facing schedules unless Kenny
+  explicitly asks otherwise.
+- For `delivery.mode: announce` crons, the payload should return the message as
+  final visible text. Do not tell the model to send Telegram itself.
+- If a cron should be silent when there is nothing useful, make the payload say
+  `return exactly NO_REPLY`; do not say only "do nothing".
+- After creating or editing a cron, verify it with `openclaw cron list --json`
+  or `openclaw cron runs <job-id>` before telling Kenny it is done.
+
+Container-safe pattern:
+
+```bash
+docker exec openclaw-openclaw-gateway-1 openclaw cron edit <job-id> \
+  --model openrouter/xiaomi/mimo-v2-flash \
+  --thinking off
+```
+
+---
+
 ## Engagement Follow-Ups
 
 Use engagement follow-ups when Kenny mentions a short-lived situation and a

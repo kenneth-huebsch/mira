@@ -12,6 +12,7 @@ Use this policy when selecting models for Kenny's Rumi/OpenClaw setup.
 - **Interactive Rumi:** `openrouter/deepseek/deepseek-v3.2`
 - **Cron/tool workflows:** `openrouter/xiaomi/mimo-v2-flash`
 - **Judgment-heavy durable state work:** evaluate separately; do not blindly use cheap cron defaults.
+- **Invalid cron value:** never use `default` as a cron payload model; it fails as `openrouter/default`.
 
 ## Selection Policy
 
@@ -45,3 +46,4 @@ Use reasoning-capable or stronger models cautiously for:
 - Do not use a cheap model just because the job is cheap if it must feel emotionally real.
 - Do not use a reasoning model for simple scheduled tool work unless it has proven reliable with visible final output.
 - Do not assume a model change took effect after editing JSON directly; use the relevant OpenClaw CLI and verify.
+- Do not write `default` into an OpenClaw cron payload. Use a fully qualified model id.

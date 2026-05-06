@@ -43,6 +43,9 @@ Important files:
     enforce eligibility, dedupe, write files safely, construct compact context,
     and handle obvious `NO_REPLY` exits. The model should handle judgment,
     prioritization, warmth, and varied final prose for human-facing crons.
+13. For cron creation and edits, follow `workspace/TOOLS.md`'s OpenClaw cron
+    rules. In particular, never use `default` as a cron payload model; use a
+    fully qualified model id such as `openrouter/xiaomi/mimo-v2-flash`.
 
 ## After Changes
 

@@ -17,7 +17,7 @@ This file documents behavior-bearing files that cron jobs or cron context inject
 
 - `workspace/AGENTS.md` (present) - Standing execution rules and schemas referenced by cron prompts.
 - `workspace/USER.md` (present) - Shared non-tool, non-rule preferences and context. Cron jobs that draft, summarize, or proactively message using personal context should honor relevant preferences here.
-- `workspace/TOOLS.md` (present) - Tool account, calendar, Gmail, Todoist, Telegram, and skill conventions.
+- `workspace/TOOLS.md` (present) - Tool account, calendar, Gmail, Todoist, Telegram, OpenClaw cron creation, and skill conventions.
 - `workspace/cron/memory_consolidation.py` (present) - Helper used by Memory Consolidation to perform deterministic JSONL hygiene and sidecar compaction.
 - `workspace/cron/proactive_engagement.py` (present) - Helper used by Proactive Engagement to enforce eligibility, select a topic/style, and append engagement state.
 - `workspace/cron/engagement_followups.py` (present) - Helper used by Engagement Follow-Ups to validate queued instructions, process due follow-ups, run supported live checks, and append engagement state.

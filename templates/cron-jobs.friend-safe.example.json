@@ -249,8 +249,8 @@
       "payload": {
         "kind": "agentTurn",
         "message": "Reminder for Kenny: You have a haircut with Jose at High Voltage Barbershop tomorrow (Wed May 13) at 9:30 AM ET. I added the calendar event on your Personal calendar with travel buffer (leave by 9:15 AM). Reply if you need me to change or cancel it.",
-        "model": "default",
-        "thinking": "low",
+        "model": "openrouter/xiaomi/mimo-v2-flash",
+        "thinking": "off",
         "timeoutSeconds": 120
       },
       "schedule": {
@@ -276,8 +276,8 @@
       "payload": {
         "kind": "agentTurn",
         "message": "Reminder for Kenny: You have a call with Cape tomorrow \u2014 please start preparing. Reply if you want me to gather notes or materials.",
-        "model": "default",
-        "thinking": "low",
+        "model": "openrouter/xiaomi/mimo-v2-flash",
+        "thinking": "off",
         "timeoutSeconds": 120
       },
       "schedule": {
@@ -301,9 +301,9 @@
       "name": "Playoffs: Philly teams evening-game reminder",
       "payload": {
         "kind": "agentTurn",
-        "message": "Check whether the Philadelphia Flyers or Philadelphia 76ers have a game scheduled this evening. If either team plays, send Kenny (telegram:7540422842) a short reminder now: e.g. \u201cFlyers game tonight vs [opponent] at [time ET]. Reminder at 5 PM \u2014 grab snacks!\u201d or \u201cSixers game tonight vs [opponent] at [time ET]. Reminder at 5 PM \u2014 tip-off at [time ET].\u201d Include team name, opponent, and local ET start time. If neither team plays, do nothing. Stop sending reminders for a team after it is eliminated or its season ends.",
-        "model": "default",
-        "thinking": "low",
+        "message": "Check whether the Philadelphia Flyers or Philadelphia 76ers have a game scheduled this evening. If either team plays, return one short reminder for Kenny as the final visible text, including team name, opponent, and local ET start time. Examples: \"Flyers game tonight vs [opponent] at [time ET] \u2014 5 PM reminder, grab snacks.\" or \"Sixers game tonight vs [opponent] at [time ET] \u2014 tip-off at [time ET].\" If neither team plays, return exactly NO_REPLY. Stop sending reminders for a team after it is eliminated or its season ends. Do not mention tools, searches, schedules, cron, or internal process.",
+        "model": "openrouter/xiaomi/mimo-v2-flash",
+        "thinking": "off",
         "timeoutSeconds": 120
       },
       "schedule": {

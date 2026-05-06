@@ -42,6 +42,18 @@ function stripToolCallMarkup(content: string): { content: string; changed: boole
   };
 }
 
+function isProcessNarrationParagraph(content: string): boolean {
+  const mentionsInternalSidecar = /\bsidecar\b/i.test(content);
+  const startsLikeProcessNarration =
+    /^(?:Perfect\.\s*)?(?:Now\s+)?(?:I(?:'ll| will)|Let me)\b/i.test(content);
+  const describesWork =
+    /\b(?:mark|record|build|classif|digest|check|read|fetch|search|run|use|call|handle|draft|summariz|process)\b/i.test(
+      content,
+    );
+
+  return mentionsInternalSidecar || (startsLikeProcessNarration && describesWork);
+}
+
 function stripLeadingProcessNarration(content: string): { content: string; changed: boolean } {
   const trimmed = content.trim();
   const directPrefixPatterns = [
@@ -59,20 +71,13 @@ function stripLeadingProcessNarration(content: string): { content: string; chang
   }
 
   const paragraphs = trimmed.split(/\n{2,}/);
-  if (paragraphs.length < 2) {
+  const [firstParagraph, ...rest] = paragraphs;
+  if (!isProcessNarrationParagraph(firstParagraph)) {
     return { content, changed: false };
   }
 
-  const [firstParagraph, ...rest] = paragraphs;
-  const startsLikeProcessNarration =
-    /^(?:Perfect\.\s*)?(?:Now\s+)?(?:I(?:'ll| will)|Let me)\b/i.test(firstParagraph);
-  const describesWork =
-    /\b(?:mark|record|build|classif|digest|check|read|fetch|search|run|use|call|handle|draft|summariz|process)\b/i.test(
-      firstParagraph,
-    );
-
-  if (!startsLikeProcessNarration || !describesWork) {
-    return { content, changed: false };
+  if (paragraphs.length < 2) {
+    return { content: "", changed: true };
   }
 
   const next = rest.join("\n\n").trim();
@@ -89,6 +94,10 @@ function cleanOutboundContent(content: string): HygieneResult {
   const finalContent = withoutNarration.content.trim();
 
   if (finalContent.length === 0) {
+    if (withoutNarration.changed) {
+      return { cancel: true };
+    }
+
     return undefined;
   }
 
