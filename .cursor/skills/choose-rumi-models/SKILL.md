@@ -9,7 +9,7 @@ Use this policy when selecting models for Kenny's Rumi/OpenClaw setup.
 
 ## Defaults
 
-- **Interactive Rumi:** `openrouter/anthropic/claude-sonnet-4.6`
+- **Interactive Rumi:** `openrouter/deepseek/deepseek-v3.2`
 - **Cron/tool workflows:** `openrouter/xiaomi/mimo-v2-flash`
 - **Judgment-heavy durable state work:** evaluate separately; do not blindly use cheap cron defaults.
 
@@ -21,7 +21,7 @@ Use `openrouter/xiaomi/mimo-v2-flash` for:
 - Scheduled workflows that must call tools, follow a recipe, and produce visible final text.
 - Cost-sensitive jobs where reliable tool execution matters more than deep emotional nuance.
 
-Use `openrouter/anthropic/claude-sonnet-4.6` for:
+Use `openrouter/deepseek/deepseek-v3.2` for:
 
 - Interactive Rumi chat with Kenny.
 - Emotionally responsive conversation, warmth, humor, relational presence, and nuanced judgment.

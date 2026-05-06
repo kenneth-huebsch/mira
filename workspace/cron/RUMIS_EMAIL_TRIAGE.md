@@ -65,9 +65,18 @@ Step 3: Record important emails in the sidecar.
 - For this cron, `source` is always `rumi.openclaw@gmail.com`.
 - Append-only. Do not rewrite existing lines.
 - Create the file if it does not exist.
-- Do not read the full sidecar before appending. Use one shell append that first
-  ensures the existing file ends with a newline, then appends the JSON line. Do
-  not concatenate two JSON objects onto one physical line.
+- Use only `exec` with the helper below for sidecar writes. Do not call `edit`,
+  `write`, or `apply_patch`; a failed file-edit tool call marks the cron run as
+  failed even if a later append succeeds.
+
+```bash
+python3 cron/email_triage_record.py <<'JSON'
+{"run_at":"<ISO timestamp, UTC>","class":"actionable_reply","source":"rumi.openclaw@gmail.com","from":"<display name or email>","from_email":"<plain email address>","subject":"<subject>","message_id":"<Gmail messageId>","thread_id":"<Gmail threadId>","rfc_message_id":"<RFC Message-ID header, if present>","gist":"<one short line>","drafted":false,"draft_id":null,"sent":false,"sent_at":null,"note":null}
+JSON
+```
+
+- Use `"class":"info_only"` when no reply is needed; set `drafted`, `draft_id`, and `note` to match the draft attempt.
+- If the helper exits non-zero, note it for the summary's failures line and continue.
 
 Step 4: Tell Kenny what came in, in your own voice.
 
@@ -87,6 +96,7 @@ Step 4: Tell Kenny what came in, in your own voice.
 - Never send mail. Only draft.
 - Always write as Rumi. Never sign as Kenny, never impersonate Kenny, never speak for Kenny on things he hasn't decided.
 - The only label change you may make is removing `UNREAD`.
+- Never use file-edit tools for sidecar writes; call `python3 cron/email_triage_record.py` through `exec`.
 - Only triage and draft for mail sent directly to `rumi.openclaw@gmail.com`. Forwarded mail from `kenny@dripr.ai` / `kenny@0trust.email` is handled by a separate cron — leave it alone.
 - Do not fabricate content, commitments, or facts in drafts.
 - Only surface important emails. Noise is handled silently.

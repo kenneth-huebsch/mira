@@ -69,6 +69,7 @@ behavior_files=(
   cron/PROACTIVE_ENGAGEMENT.md
   cron/proactive_engagement.py
   cron/email_triage_preflight.py
+  cron/email_triage_record.py
   cron/morning_brief_collect.py
   cron/UPCOMING_DATES.md
   cron/ENGAGEMENT_FOLLOWUPS.md

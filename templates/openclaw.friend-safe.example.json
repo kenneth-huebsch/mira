@@ -14,7 +14,7 @@
         "target": "last"
       },
       "model": {
-        "primary": "openrouter/openai/gpt-5-mini"
+        "primary": "openrouter/deepseek/deepseek-v3.2"
       },
       "sandbox": {
         "mode": "off"
@@ -117,7 +117,7 @@
     }
   },
   "meta": {
-    "lastTouchedAt": "2026-05-04T21:35:13.620Z",
+    "lastTouchedAt": "2026-05-06T03:52:48.587Z",
     "lastTouchedVersion": "2026.4.4"
   },
   "plugins": {

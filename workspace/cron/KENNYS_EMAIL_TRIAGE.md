@@ -60,8 +60,15 @@ Step 3: Record `worth_knowing` items in the sidecar.
 - `source` is the resolved source address (one of the two forwarding addresses).
 - `gist` is one short line summarizing the email — terser than the digest line, but conveying the same essential point. Aim for a form a future agent could match against (e.g., "Stripe receipt for $42 to GitHub on Apr 27").
 - Append-only. Do not rewrite existing lines. Create the file if it does not exist.
-- Do not read the full sidecar before appending. Use one shell append that first ensures the existing file ends with a newline, then appends the JSON line. Do not concatenate two JSON objects onto one physical line.
-- If the append fails, note it for the digest's failures line and continue.
+- Use only `exec` with the helper below for sidecar writes. Do not call `edit`, `write`, or `apply_patch`; a failed file-edit tool call marks the cron run as failed even if a later append succeeds.
+
+```bash
+python3 cron/email_triage_record.py <<'JSON'
+{"run_at":"<ISO timestamp, UTC>","class":"forwarded_info","source":"<source>","from":"<display name or email>","from_email":"<plain email address>","subject":"<subject>","message_id":"<Gmail messageId>","thread_id":"<Gmail threadId>","rfc_message_id":"<RFC Message-ID header, if present>","gist":"<one short line>","drafted":false,"draft_id":null,"sent":false,"sent_at":null,"note":null}
+JSON
+```
+
+- If the helper exits non-zero, note it for the digest's failures line and continue.
 
 Step 4: Build the digest, grouped by source address.
 
@@ -84,6 +91,7 @@ Step 4: Build the digest, grouped by source address.
 
 - Never send mail. Never create drafts. The only Gmail mutation is removing the `UNREAD` label.
 - The only file this job writes to is `memory/email_triage_state.jsonl`, append-only for `worth_knowing` items.
+- Never use file-edit tools for sidecar writes; call `python3 cron/email_triage_record.py` through `exec`.
 - Always write as Rumi. Never speak as Kenny.
 - Only touch mail whose resolved source address is `kenny@dripr.ai` or `kenny@0trust.email`. Mail addressed directly to `rumi.openclaw@gmail.com` belongs to Rumi's Email Triage.
 - Mark **every** message you process as read, including noise — that's how the inbox stays clean between runs.

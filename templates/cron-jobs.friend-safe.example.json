@@ -218,7 +218,7 @@
       "payload": {
         "kind": "agentTurn",
         "message": "Run this prompt file: cron/NIGHTLY_SESSION_REFLECTION.md. This is a cron execution job. Your first tool call must read that prompt file. Then follow it exactly. Use the helper output; if it says low_signal, write an empty decision and apply it. Do not mention prompts, files, tools, internal process, or progress narration. On success, the first and only user-visible text must be exactly NO_REPLY. If memory apply fails, return a short visible failure line.",
-        "model": "openrouter/anthropic/claude-sonnet-4.6",
+        "model": "openrouter/openai/gpt-5-mini",
         "thinking": "low",
         "timeoutSeconds": 180,
         "toolsAllow": [
@@ -283,6 +283,33 @@
       "schedule": {
         "at": "2026-05-13T00:00:00.000Z",
         "kind": "at"
+      },
+      "sessionKey": "agent:main:telegram:direct:7540422842",
+      "sessionTarget": "isolated",
+      "wakeMode": "now"
+    },
+    {
+      "agentId": "main",
+      "delivery": {
+        "channel": "telegram",
+        "mode": "announce",
+        "to": "7540422842"
+      },
+      "description": "Daily 5 PM ET check and notify Kenny if Flyers or Sixers have games that evening; stop when seasons end.",
+      "enabled": true,
+      "id": "<set manually>",
+      "name": "Playoffs: Philly teams evening-game reminder",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Check whether the Philadelphia Flyers or Philadelphia 76ers have a game scheduled this evening. If either team plays, send Kenny (telegram:7540422842) a short reminder now: e.g. \u201cFlyers game tonight vs [opponent] at [time ET]. Reminder at 5 PM \u2014 grab snacks!\u201d or \u201cSixers game tonight vs [opponent] at [time ET]. Reminder at 5 PM \u2014 tip-off at [time ET].\u201d Include team name, opponent, and local ET start time. If neither team plays, do nothing. Stop sending reminders for a team after it is eliminated or its season ends.",
+        "model": "default",
+        "thinking": "low",
+        "timeoutSeconds": 120
+      },
+      "schedule": {
+        "expr": "0 17 * * *",
+        "kind": "cron",
+        "tz": "America/New_York"
       },
       "sessionKey": "agent:main:telegram:direct:7540422842",
       "sessionTarget": "isolated",
