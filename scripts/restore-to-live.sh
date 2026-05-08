@@ -113,7 +113,10 @@ behavior_files=(
   cron/nightly_session_reflection.py
   cron/PROACTIVE_ENGAGEMENT.md
   cron/proactive_engagement.py
+  cron/ENGAGEMENT_FOLLOWUPS.md
+  cron/engagement_followups.py
   cron/email_triage_preflight.py
+  cron/email_triage_record.py
   cron/morning_brief_collect.py
   cron/UPCOMING_DATES.md
   plugins/memory-plugin.ts
@@ -136,6 +139,7 @@ seed_files=(
   memory/long_memory.jsonl
   memory/engagement_memory.jsonl
   memory/engagement_priorities.jsonl
+  memory/engagement_followups.jsonl
   memory/email_triage_state.jsonl
   memory/nightly_session_reflection_state.jsonl
   memory/rolling_summary.json

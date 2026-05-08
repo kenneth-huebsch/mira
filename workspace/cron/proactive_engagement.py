@@ -3,14 +3,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
 ET = ZoneInfo("America/New_York")
-WORKSPACE_ROOT = Path("/home/node/.openclaw/workspace")
+WORKSPACE_ROOT = Path(os.environ.get("OPENCLAW_WORKSPACE_DIR", "/home/node/.openclaw/workspace"))
 MEMORY_DIR = WORKSPACE_ROOT / "memory"
 ENGAGEMENT_MEMORY = MEMORY_DIR / "engagement_memory.jsonl"
 ENGAGEMENT_PRIORITIES = MEMORY_DIR / "engagement_priorities.jsonl"
@@ -22,6 +23,7 @@ STYLES = ["question", "encouragement", "playful"]
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Select a proactive engagement topic and record it.")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--now", help="Override current time for tests (ISO-8601).")
     return parser.parse_args()
 
 
@@ -77,6 +79,49 @@ def parse_at(raw: Any) -> datetime | None:
     return parsed.astimezone(ET)
 
 
+def today_from(now: datetime) -> str:
+    return now.date().isoformat()
+
+
+def parse_date(raw: Any) -> date | None:
+    try:
+        return date.fromisoformat(str(raw or "").strip()[:10])
+    except ValueError:
+        return None
+
+
+def token_set(value: str) -> set[str]:
+    stop_words = {
+        "a",
+        "an",
+        "and",
+        "about",
+        "for",
+        "he",
+        "his",
+        "how",
+        "if",
+        "is",
+        "it",
+        "of",
+        "on",
+        "or",
+        "the",
+        "to",
+        "today",
+        "with",
+    }
+    return {token for token in re.split(r"[^a-z0-9]+", value.lower()) if token and token not in stop_words}
+
+
+def similarity(left: str, right: str) -> float:
+    left_tokens = token_set(left)
+    right_tokens = token_set(right)
+    if not left_tokens or not right_tokens:
+        return 0.0
+    return len(left_tokens & right_tokens) / len(left_tokens | right_tokens)
+
+
 def candidate_from_priority(record: dict[str, Any]) -> dict[str, str] | None:
     prompt = short(record.get("prompt"))
     if not prompt:
@@ -89,6 +134,8 @@ def candidate_from_priority(record: dict[str, Any]) -> dict[str, str] | None:
         "topic_family": kind,
         "prompt": prompt,
         "source": "engagement_priority",
+        "created_at": short(record.get("created_at"), 20),
+        "expires_at": short(record.get("expires_at"), 20),
     }
 
 
@@ -101,25 +148,46 @@ def candidate_from_memory(record: dict[str, Any]) -> dict[str, str] | None:
         "topic_family": "medium_memory",
         "prompt": f"Check in naturally about this current context: {summary}",
         "source": "medium_memory",
+        "created_at": short(record.get("created_at"), 20),
+        "expires_at": short(record.get("expires_at"), 20),
     }
 
 
-def choose_candidate(candidates: list[dict[str, str]], history: list[dict[str, Any]], today_count: int) -> dict[str, str] | None:
+def choose_candidate(
+    candidates: list[dict[str, str]],
+    history: list[dict[str, Any]],
+    today_count: int,
+    now: datetime,
+) -> dict[str, str] | None:
     if not candidates:
         return None
-    recent_topics = [str(record.get("topic") or "") for record in history[-3:]]
+    recent_topics = [str(record.get("topic") or "") for record in history[-6:]]
     recent_families = [str(record.get("topic_family") or "") for record in history[-6:]]
-    today_families = [str(record.get("topic_family") or "") for record in history if record.get("date_et") == datetime.now(ET).date().isoformat()]
+    recent_prompts = [str(record.get("topic") or "") for record in history[-10:]]
+    today_families = [
+        str(record.get("topic_family") or "")
+        for record in history
+        if record.get("date_et") == today_from(now)
+    ]
 
     def score(candidate: dict[str, str]) -> tuple[int, int, str]:
         score_value = 0
         if candidate["topic"] in recent_topics:
-            score_value += 100
+            score_value += 120
         if today_count and candidate["topic_family"] in today_families:
-            score_value += 25
-        score_value += recent_families.count(candidate["topic_family"]) * 5
+            score_value += 35
+        score_value += recent_families.count(candidate["topic_family"]) * 8
         if candidate["source"] == "medium_memory":
-            score_value += 10
+            score_value += 12
+        if any(similarity(candidate["topic"], recent) >= 0.45 for recent in recent_prompts):
+            score_value += 45
+        expires_at = parse_date(candidate.get("expires_at"))
+        if expires_at:
+            days_until_expiry = (expires_at - now.date()).days
+            if days_until_expiry < 0:
+                score_value += 200
+            elif days_until_expiry <= 3:
+                score_value -= 12
         return (score_value, len(candidate["prompt"]), candidate["topic"])
 
     return sorted(candidates, key=score)[0]
@@ -141,8 +209,11 @@ def choose_style(history: list[dict[str, Any]], topic_family: str) -> str:
 
 def main() -> int:
     args = parse_args()
-    now = datetime.now(ET)
-    today = now.date().isoformat()
+    now = parse_at(args.now) if args.now else datetime.now(ET)
+    if now is None:
+        print("NO_REPLY")
+        return 0
+    today = today_from(now)
     slot = f"{now.hour:02d}"
 
     if slot not in SLOTS or not (9 <= now.hour < 22):
@@ -172,7 +243,7 @@ def main() -> int:
             if candidate:
                 candidates.append(candidate)
 
-    selected = choose_candidate(candidates, history, len(today_records))
+    selected = choose_candidate(candidates, history, len(today_records), now)
     if selected is None:
         print("NO_REPLY")
         return 0

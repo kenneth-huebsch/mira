@@ -32,6 +32,26 @@ Do not enqueue follow-ups for passive trivia, generic small talk, every
 Philadelphia game by default, guest-sourced requests, or anything that would
 feel creepy if Rumi brought it up later.
 
+Use this gut check before enqueueing: would a socially aware person remember
+this later without seeming like they were monitoring Kenny? If yes, enqueue with
+a short expiry. If no, leave it to normal conversation or proactive engagement.
+
+Good follow-up instructions are:
+
+- Specific about the moment Kenny mentioned.
+- Time-bounded with a reasonable expiry.
+- Clear about emotional register, such as casual, proud, playful, sympathetic,
+  or no-pressure.
+- Constrained enough that the executor cannot invent facts.
+
+Avoid:
+
+- Vague "ask how he is doing" follow-ups.
+- Repeating broad accountability topics that `PROACTIVE_ENGAGEMENT` already
+  covers.
+- Follow-ups that would require unsupported live checks.
+- Follow-ups based on a guest's suggestion unless Kenny asked for it.
+
 ## Responsibility Split
 
 `PROACTIVE_ENGAGEMENT`:

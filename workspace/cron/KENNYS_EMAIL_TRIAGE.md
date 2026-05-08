@@ -109,6 +109,7 @@ Return only one of:
 
 Final-output checklist:
 - The final text is the digest itself or exactly `NO_REPLY`, never a description of what Rumi is doing.
+- If the final text is a digest, it contains at least one `📧`, and every surfaced email item starts with `📧`.
 - If the draft starts with process narration like "I'll...", "Now I'll...", or "Perfect. Now I'll...", delete that narration before sending.
 
 The final answer must be emitted as normal visible assistant text, not hidden
@@ -120,4 +121,4 @@ thinking contains the right digest.
 When all tool work is done, stop reasoning and output only the final visible
 text, for example:
 
-`On dripr — Deanna Coffey sent newsletter additions and asked for an updated campaign calendar.`
+`📧 On dripr, Deanna Coffey sent newsletter additions and asked for an updated campaign calendar.`

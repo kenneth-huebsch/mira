@@ -42,6 +42,13 @@ function stripToolCallMarkup(content: string): { content: string; changed: boole
   };
 }
 
+function isClassifierVerdictParagraph(content: string): boolean {
+  return (
+    /^Classifying:\s+/i.test(content) &&
+    /\b(?:worth_knowing|not_worth_knowing|NO_REPLY)\b/i.test(content)
+  );
+}
+
 function isProcessNarrationParagraph(content: string): boolean {
   const mentionsInternalSidecar = /\bsidecar\b/i.test(content);
   const startsLikeProcessNarration =
@@ -51,7 +58,11 @@ function isProcessNarrationParagraph(content: string): boolean {
       content,
     );
 
-  return mentionsInternalSidecar || (startsLikeProcessNarration && describesWork);
+  return (
+    mentionsInternalSidecar ||
+    isClassifierVerdictParagraph(content) ||
+    (startsLikeProcessNarration && describesWork)
+  );
 }
 
 function stripLeadingProcessNarration(content: string): { content: string; changed: boolean } {
@@ -61,6 +72,7 @@ function stripLeadingProcessNarration(content: string): { content: string; chang
     /^Now I(?:'ll| will)\s+build the digest\.[\s\S]*?:\s*/i,
     /^I(?:'ll| will)\s+mark[\s\S]*?digest\.[\s\S]*?(?=(?:NO_REPLY\b|On\s+|\u{1F4E7}))/iu,
     /^Now I(?:'ll| will)\s+classify[\s\S]*?(?=(?:NO_REPLY\b|On\s+|\u{1F4E7}))/iu,
+    /^Classifying:[\s\S]*?\b(?:worth_knowing|not_worth_knowing|NO_REPLY)\b\.?\s*(?=(?:NO_REPLY\b|On\s+|\u{1F4E7}))/iu,
   ];
 
   for (const pattern of directPrefixPatterns) {

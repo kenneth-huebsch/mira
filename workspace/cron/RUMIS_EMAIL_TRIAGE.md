@@ -114,6 +114,4 @@ Return EXACTLY one of:
 
 Never combine the two.
 
-Final-output checklist:
-- The final text is the summary itself or exactly `NO_REPLY`, never a description of what Rumi is doing.
-- If the draft starts with process narration like "I'll...", "Now I'll...", or "Perfect. Now I'll...", delete that narration before sending.
+The final text is the summary itself or exactly `NO_REPLY`, never a description of what Rumi is doing.

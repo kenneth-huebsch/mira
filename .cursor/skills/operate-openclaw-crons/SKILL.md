@@ -31,7 +31,7 @@ Direct edits to `/home/kenny/.openclaw/cron/jobs.json` can be overwritten by the
 
 - Never set a cron payload model to `default`; OpenClaw treats it as a literal OpenRouter id and the run fails as `openrouter/default`.
 - Use `openrouter/xiaomi/mimo-v2-flash` with `thinking: off` for ordinary cron/tool workflows.
-- Use stronger models only when the cron's prompt documents why it needs judgment beyond normal tool execution.
+- Use `openrouter/openai/gpt-5-mini` when the cron's prompt documents why it needs judgment beyond normal tool execution.
 
 ## Missing Output Checklist
 

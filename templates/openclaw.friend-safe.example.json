@@ -5,12 +5,17 @@
         "mode": "safeguard"
       },
       "heartbeat": {
+        "ackMaxChars": 300,
         "activeHours": {
-          "end": "23:30",
-          "start": "07:30",
+          "end": "22:30",
+          "start": "09:30",
           "timezone": "America/New_York"
         },
-        "every": "0m",
+        "every": "120m",
+        "isolatedSession": true,
+        "lightContext": true,
+        "model": "openrouter/deepseek/deepseek-v3.2",
+        "suppressToolErrorWarnings": true,
         "target": "last"
       },
       "model": {
@@ -117,7 +122,7 @@
     }
   },
   "meta": {
-    "lastTouchedAt": "2026-05-06T03:52:48.587Z",
+    "lastTouchedAt": "2026-05-06T22:08:18.102Z",
     "lastTouchedVersion": "2026.4.4"
   },
   "plugins": {

@@ -65,6 +65,12 @@ const MAX_TOPIC_LENGTH = 80;
 const MAX_PRIORITY_PROMPT_LENGTH = 160;
 const INTERACTIVE_MEDIUM_LIMIT = 8;
 const INTERACTIVE_LONG_LIMIT = 4;
+const HEARTBEAT_ENGAGEMENT_HISTORY_LIMIT = 6;
+const HEARTBEAT_ENGAGEMENT_PRIORITIES_LIMIT = 6;
+const HEARTBEAT_MEDIUM_MEMORY_LIMIT = 2;
+const HEARTBEAT_HISTORY_MAX_CHARS = 1200;
+const HEARTBEAT_PRIORITIES_MAX_CHARS = 800;
+const HEARTBEAT_MEDIUM_MEMORY_MAX_CHARS = 360;
 const PROACTIVE_ENGAGEMENT_HISTORY_LIMIT = 20;
 const PROACTIVE_MEDIUM_LIMIT = 10;
 // OpenClaw's bootstrap auto-injects AGENTS.md, SOUL.md, IDENTITY.md, USER.md,
@@ -508,6 +514,26 @@ function renderBullets(title: string, lines: string[]): string | undefined {
   return renderSection(title, lines.map((line) => `- ${line}`).join("\n"));
 }
 
+function keepRecentLinesWithinBudget(lines: string[], maxChars?: number): string[] {
+  if (!maxChars || maxChars <= 0) {
+    return lines;
+  }
+
+  const kept: string[] = [];
+  let usedChars = 0;
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    const line = lines[index];
+    const separatorChars = kept.length > 0 ? 1 : 0;
+    const nextUsedChars = usedChars + separatorChars + line.length;
+    if (nextUsedChars > maxChars) {
+      continue;
+    }
+    kept.unshift(line);
+    usedChars = nextUsedChars;
+  }
+  return kept;
+}
+
 async function readTextIfExists(filePath: string): Promise<string | null> {
   try {
     const raw = await readFile(filePath, "utf8");
@@ -580,6 +606,7 @@ async function loadRecentJsonlLines(
   relativePath: string,
   limit: number,
   title: string,
+  maxChars?: number,
 ): Promise<string | undefined> {
   const absolutePath = path.join(workspaceDir, relativePath);
   const content = await readTextIfExists(absolutePath);
@@ -592,11 +619,12 @@ async function loadRecentJsonlLines(
     .map((line) => line.trim())
     .filter(Boolean)
     .slice(-limit);
-  if (lines.length === 0) {
+  const budgetedLines = keepRecentLinesWithinBudget(lines, maxChars);
+  if (budgetedLines.length === 0) {
     return undefined;
   }
 
-  return renderSection(title, lines.join("\n"));
+  return renderSection(title, budgetedLines.join("\n"));
 }
 
 async function loadRollingSummary(workspaceDir: string): Promise<string | undefined> {
@@ -638,6 +666,49 @@ async function loadInteractiveMemory(workspaceDir: string): Promise<string | und
     return undefined;
   }
   return sections.join("\n\n");
+}
+
+async function loadHeartbeatContext(workspaceDir: string): Promise<string | undefined> {
+  const sections = (
+    await Promise.all([
+      loadRecentJsonlLines(
+        workspaceDir,
+        ENGAGEMENT_MEMORY_FILE,
+        HEARTBEAT_ENGAGEMENT_HISTORY_LIMIT,
+        "Recent Engagement Sends",
+        HEARTBEAT_HISTORY_MAX_CHARS,
+      ),
+      loadRecentJsonlLines(
+        workspaceDir,
+        ENGAGEMENT_PRIORITIES_FILE,
+        HEARTBEAT_ENGAGEMENT_PRIORITIES_LIMIT,
+        "Active Engagement Priorities",
+        HEARTBEAT_PRIORITIES_MAX_CHARS,
+      ),
+      loadHeartbeatMediumMemory(workspaceDir),
+    ])
+  ).filter((section): section is string => Boolean(section));
+
+  if (sections.length === 0) {
+    return undefined;
+  }
+
+  return [
+    "Heartbeat Context:\nUse this tiny snapshot only for warmth, relevance, and dedupe. Recent engagement sends mean Rumi should usually stay quiet. Fresh medium memory is only a small hint; do not turn it into a reminder unless it clearly makes the note feel more human.",
+    ...sections,
+  ].join("\n\n");
+}
+
+async function loadHeartbeatMediumMemory(workspaceDir: string): Promise<string | undefined> {
+  const mediumMemoryPath = path.join(workspaceDir, MEDIUM_MEMORY_FILE);
+  const mediumMemory = takeRecentEntries(
+    (await loadMemory(mediumMemoryPath)).filter((entry) => !isExpired(entry)),
+    HEARTBEAT_MEDIUM_MEMORY_LIMIT,
+  );
+  return renderBullets(
+    "Fresh Medium Memory Hints",
+    mediumMemory.map((entry) => entry.summary),
+  )?.slice(0, HEARTBEAT_MEDIUM_MEMORY_MAX_CHARS);
 }
 
 async function loadProactiveMediumMemory(workspaceDir: string): Promise<string | undefined> {
@@ -762,6 +833,10 @@ async function buildPromptInjection(event: unknown, context: unknown) {
 
   if (mode === "heartbeat") {
     systemSections.push(...(await buildSystemSections(workspaceDir, HEARTBEAT_SYSTEM_FILES)));
+    const heartbeatContext = await loadHeartbeatContext(workspaceDir);
+    if (heartbeatContext) {
+      contextSections.push(heartbeatContext);
+    }
   }
 
   if (mode === "cron") {

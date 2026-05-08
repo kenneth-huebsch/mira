@@ -41,7 +41,7 @@
         "message": "Run this prompt file: cron/ENGAGEMENT_FOLLOWUPS.md. This is a cron execution job. Your first tool call must read that prompt file. Then run its Python helper exactly. If the helper prints NO_REPLY, return exactly NO_REPLY. If it returns JSON with status OK, use only that compact JSON to write one short natural Rumi follow-up message. Do not mention decisions, schedule, files, queues, tools, prompts, or reasoning.",
         "model": "openrouter/xiaomi/mimo-v2-flash",
         "thinking": "off",
-        "timeoutSeconds": 90,
+        "timeoutSeconds": 180,
         "toolsAllow": [
           "read",
           "exec"
@@ -310,6 +310,33 @@
         "expr": "0 17 * * *",
         "kind": "cron",
         "tz": "America/New_York"
+      },
+      "sessionKey": "agent:main:telegram:direct:7540422842",
+      "sessionTarget": "isolated",
+      "wakeMode": "now"
+    },
+    {
+      "agentId": "main",
+      "deleteAfterRun": true,
+      "delivery": {
+        "channel": "telegram",
+        "mode": "announce",
+        "to": "7540422842"
+      },
+      "description": "Remind Kenny to hang the big map his parents gave him before they arrive Saturday morning",
+      "enabled": true,
+      "id": "<set manually>",
+      "name": "Reminder: Hang parents' map",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Reminder for Kenny: Hang the big map your parents gave you before they arrive today. They're coming this morning/afternoon for Mother's Day weekend.",
+        "model": "openrouter/xiaomi/mimo-v2-flash",
+        "thinking": "off",
+        "timeoutSeconds": 120
+      },
+      "schedule": {
+        "at": "2026-05-09T14:00:00.000Z",
+        "kind": "at"
       },
       "sessionKey": "agent:main:telegram:direct:7540422842",
       "sessionTarget": "isolated",
