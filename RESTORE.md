@@ -25,6 +25,10 @@ cd ~/rumi
 ./scripts/restore-to-live.sh
 ```
 
+This also restores `openclaw/entrypoint.sh` into the OpenClaw checkout so the
+Docker gateway can install/link `gog`, QMD, and `agent-browser` at startup when
+the compose file mounts that entrypoint.
+
 5. Manually configure credentials and runtime secrets:
 
 - OpenClaw provider auth and model credentials.
@@ -33,6 +37,8 @@ cd ~/rumi
 - Gmail/Google OAuth credentials for `gog`.
 - Todoist MCP credentials.
 - Device pairing/auth state as needed.
+- Docker Compose env and volume mounts, including the restored
+  `~/openclaw/entrypoint.sh` if using the container runtime.
 
 Use `templates/openclaw.friend-safe.example.json` and `templates/cron-jobs.friend-safe.example.json` as structure references, but do not copy placeholder credential values into production.
 
@@ -44,11 +50,15 @@ Use `templates/openclaw.friend-safe.example.json` and `templates/cron-jobs.frien
 - Cron prompts exist under `workspace/cron/`.
 - Required cron dependency files exist under `workspace/memory/`.
 - The memory plugin is installed and can read `skills/memory_manager.md` and `skills/engagement_priorities_manager.md`.
+- QMD memory search is available with `openclaw memory status --agent main` and
+  can search selected markdown docs. Historical JSONL memory is not backfilled,
+  and session indexing should remain off unless intentionally enabled.
 - Gmail, Calendar, Todoist, and Telegram commands work after credentials are restored.
 
 ## What This Does Not Restore
 
 - Live memory history.
+- QMD indexes, downloaded models, session exports, or `~/.openclaw/agents/*/qmd/`.
 - Existing reminders.
 - Gmail OAuth tokens or Google credentials.
 - Telegram bot token or gateway token.

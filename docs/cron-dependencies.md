@@ -36,6 +36,20 @@ This file documents behavior-bearing files that cron jobs or cron context inject
 - `workspace/skills/memory_manager.md` (present) - Used by the memory plugin after interactive turns.
 - `workspace/skills/engagement_priorities_manager.md` (present) - Used by the memory plugin after interactive turns.
 
+## QMD Recall Backend
+
+QMD is configured in `templates/openclaw.friend-safe.example.json` as a
+read-only memory search backend over selected markdown sources:
+
+- root workspace docs (`workspace/*.md`)
+- cron prompts (`workspace/cron/*.md`)
+- workspace skills (`workspace/skills/**/*.md`)
+
+QMD does not replace the curated JSONL files above. Historical JSONL memory is
+not backfilled into QMD, and session transcript indexing is disabled by default.
+Do not add QMD indexes, session exports, or `~/.openclaw/agents/*/qmd/` runtime
+state to this dependency map or to the backup allowlist.
+
 ## Sync Rule
 
 Run `scripts/sync-from-live.sh` after changing Rumi behavior. It copies the allowlisted behavior files and reseeds memory/state files without copying accumulated private history.

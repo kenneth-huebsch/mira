@@ -23,6 +23,8 @@ Important files:
 - `templates/openclaw.friend-safe.example.json` - restore-safe config shape.
   Keep `skills.entries.agent-browser.enabled` true so Interactive loads the
   CLI browser workflow instead of falling back to generic web fetches.
+- `openclaw/entrypoint.sh` - host-level Docker entrypoint restored into the
+  OpenClaw checkout; currently installs/links `gog`, QMD, and `agent-browser`.
 
 ## Editing Rules
 
@@ -33,17 +35,24 @@ Important files:
 5. Keep hard rules and workflow policy in `AGENTS.md`: safety lines, mode policy, memory write policy, email confirmation rules, and instructions telling Rumi where durable shared preferences belong.
 6. Keep nightly reflection and memory consolidation responsibilities separate:
    `cron/NIGHTLY_SESSION_REFLECTION.md` extracts tomorrow-useful interactive context and durable facts Kenny explicitly revealed; `cron/MEMORY_CONSOLIDATION.md` performs hygiene only.
-7. If a cron prompt references a file, make sure the backup includes that path or a restore seed for it.
-8. If a cron must use shared preferences from `USER.md`, verify whether its cron payload uses `lightContext: true`. Light-context cron runs intentionally strip default bootstrap files; either remove `lightContext` for that job or make the job explicitly read/load `USER.md`.
-9. When adding a new local asset or helper script, update both `scripts/sync-from-live.sh` and `scripts/restore-to-live.sh`.
-10. Keep Rumi's persona consistent with `IDENTITY.md` and `SOUL.md`: she should speak as Rumi, with continuity and personality, not as a generic tool.
-11. Preserve explicit confirmation rules around external actions such as sending email.
-12. For crons, keep deterministic plumbing in helpers and human-visible language
+7. Treat QMD as read-only recall over selected markdown docs, not as the
+   curated memory source. Do not backfill historical JSONL memory or enable
+   session transcript indexing unless Kenny explicitly asks.
+8. When changing QMD behavior, update `templates/openclaw.friend-safe.example.json`,
+   `workspace/TOOLS.md`, and restore docs as needed. Never add QMD indexes,
+   session exports, or `~/.openclaw/agents/*/qmd/` runtime state to the backup.
+9. If a cron prompt references a file, make sure the backup includes that path or a restore seed for it.
+10. If a cron must use shared preferences from `USER.md`, verify whether its cron payload uses `lightContext: true`. Light-context cron runs intentionally strip default bootstrap files; either remove `lightContext` for that job or make the job explicitly read/load `USER.md`.
+11. When adding a new local asset, helper script, or host-level OpenClaw file,
+    update both `scripts/sync-from-live.sh` and `scripts/restore-to-live.sh`.
+12. Keep Rumi's persona consistent with `IDENTITY.md` and `SOUL.md`: she should speak as Rumi, with continuity and personality, not as a generic tool.
+13. Preserve explicit confirmation rules around external actions such as sending email.
+14. For crons, keep deterministic plumbing in helpers and human-visible language
     with Rumi. Helper scripts should fetch data, parse JSON, route sources,
     enforce eligibility, dedupe, write files safely, construct compact context,
     and handle obvious `NO_REPLY` exits. The model should handle judgment,
     prioritization, warmth, and varied final prose for human-facing crons.
-13. For cron creation and edits, follow `workspace/TOOLS.md`'s OpenClaw cron
+15. For cron creation and edits, follow `workspace/TOOLS.md`'s OpenClaw cron
     rules. In particular, never use `default` as a cron payload model; use a
     fully qualified model id such as `openrouter/xiaomi/mimo-v2-flash`.
 

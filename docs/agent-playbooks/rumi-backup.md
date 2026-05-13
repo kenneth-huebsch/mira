@@ -11,6 +11,8 @@ Allowed friend-safe content:
 - Cron prompts and cron dependency seed files.
 - Workspace-local plugins and skills.
 - Local persona assets such as `workspace/assets/rumi.jpg`.
+- Host-level OpenClaw restore assets under `openclaw/`, currently
+  `openclaw/entrypoint.sh`.
 - Friend-safe config templates with credentials redacted.
 - Restore docs and agent playbooks.
 
@@ -20,6 +22,8 @@ Never include:
 - `~/.openclaw/credentials/**`, `gcal-tokens/**`, `gogcli/credentials.json`, device auth, or auth profiles.
 - Sessions, logs, browser/chromium state, delivery queues, cron run history, or dependency folders.
 - Accumulated private memory history unless Kenny explicitly asks for it.
+- QMD runtime state, indexes, downloaded models, or session exports, including
+  `~/.openclaw/agents/*/qmd/` and `~/.openclaw/runtime/qmd/`.
 
 ## Sync Workflow
 
@@ -30,8 +34,9 @@ git status --short
 git diff --stat
 ```
 
-The sync script is allowlist-based. It copies behavior files and local assets,
-then reseeds required memory paths without copying live memory history.
+The sync script is allowlist-based. It copies behavior files, local assets, and
+approved host-level OpenClaw files, then reseeds required memory paths without
+copying live memory history or QMD runtime state.
 
 ## Review Checklist
 
@@ -70,4 +75,6 @@ cd /home/kenny/rumi
 ```
 
 After restore, manually configure credentials, cron schedules/delivery, provider
-auth, Gmail/Google/Todoist/Telegram auth, and device pairing as needed.
+auth, Gmail/Google/Todoist/Telegram auth, Docker Compose mounts/env, and device
+pairing as needed. QMD is installed at container startup by the restored
+entrypoint when Docker is configured to mount it.

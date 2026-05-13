@@ -46,6 +46,8 @@ The `pi-embedded-runner` changes look like upstream source fixes for suppressing
   - Prepares runtime dirs for `gogcli`, npm, and browser automation.
   - Installs QMD into the mounted OpenClaw config dir (`runtime/qmd`) and links
     it into `.openclaw/bin` so the QMD binary survives container recreation.
+  - Does not preserve QMD indexes, downloaded packages, or session exports in
+    the blueprint; those remain runtime state.
   - Drops back to the `node` user for the OpenClaw command.
 - `src/agents/pi-embedded-runner/run.ts`
 - `src/agents/pi-embedded-runner/run/attempt.ts`

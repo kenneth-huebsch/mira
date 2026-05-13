@@ -18,6 +18,10 @@ Memory-system changes must keep these files in sync:
 - `AGENTS.md` for memory ownership policy.
 - `docs/cron-dependencies.md` and `docs/agent-playbooks/configure-rumi.md`.
 - `scripts/sync-from-live.sh` and `scripts/restore-to-live.sh` when adding prompts or helper scripts.
+- `templates/openclaw.friend-safe.example.json`, `workspace/TOOLS.md`, and
+  restore docs when changing QMD recall behavior. QMD is read-only recall over
+  selected markdown docs, not the curated JSONL source of truth; do not backfill
+  historical JSONL memory or enable session indexing unless Kenny asks.
 
 After changing live behavior, run:
 

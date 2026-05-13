@@ -22,6 +22,22 @@ This repo is allowed to contain personalized behavior, account conventions, chat
   and how it differs from the broad proactive engagement cron.
 - `docs/source-change-audit.md` records whether local OpenClaw source changes matter for restore.
 
+## Memory System
+
+Rumi uses two complementary memory layers:
+
+- Curated memory lives in `workspace/memory/*.jsonl` and is governed by
+  `workspace/AGENTS.md`, `workspace/plugins/memory-plugin.ts`, nightly
+  reflection, and memory consolidation. These files define what Rumi
+  intentionally remembers.
+- QMD is enabled in `templates/openclaw.friend-safe.example.json` as a local
+  read-only recall/search backend for selected markdown docs, cron prompts, and
+  workspace skills. It is intentionally not backfilled from historical JSONL
+  memory, and session transcript indexing is off by default.
+
+Do not commit QMD runtime state: `~/.openclaw/agents/*/qmd/`, QMD indexes,
+session exports, and accumulated memory history are private runtime data.
+
 ## Update The Backup
 
 After changing Rumi behavior on the live host:
