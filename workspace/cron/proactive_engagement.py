@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import random
 import re
 from datetime import date, datetime
 from pathlib import Path
@@ -24,6 +25,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Select a proactive engagement topic and record it.")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--now", help="Override current time for tests (ISO-8601).")
+    parser.add_argument("--seed", type=int, help="Seed topic selection for repeatable dry-run checks.")
     return parser.parse_args()
 
 
@@ -143,6 +145,23 @@ def candidate_from_memory(record: dict[str, Any]) -> dict[str, str] | None:
     summary = short(record.get("summary"))
     if not summary:
         return None
+    lowered = summary.lower()
+    operational_markers = [
+        "api",
+        "agent-browser",
+        "browser automation",
+        "calendar event added",
+        "cloud console",
+        "enabled on the current project",
+        "phone:",
+        "preferred haircut barber",
+        "reminder sc",
+        "reminder scheduled",
+        "scheduled and set to",
+        "spawn_failed",
+    ]
+    if any(marker in lowered for marker in operational_markers):
+        return None
     return {
         "topic": norm_topic(summary),
         "topic_family": "medium_memory",
@@ -158,29 +177,34 @@ def choose_candidate(
     history: list[dict[str, Any]],
     today_count: int,
     now: datetime,
+    rng: random.Random,
 ) -> dict[str, str] | None:
     if not candidates:
         return None
-    recent_topics = [str(record.get("topic") or "") for record in history[-6:]]
-    recent_families = [str(record.get("topic_family") or "") for record in history[-6:]]
-    recent_prompts = [str(record.get("topic") or "") for record in history[-10:]]
+    recent_topics = [str(record.get("topic") or "") for record in history[-10:]]
+    recent_families = [str(record.get("topic_family") or "") for record in history[-8:]]
+    recent_similar_topics = [str(record.get("topic") or "") for record in history[-14:]]
+    broader_topics = [str(record.get("topic") or "") for record in history[-30:]]
     today_families = [
         str(record.get("topic_family") or "")
         for record in history
         if record.get("date_et") == today_from(now)
     ]
 
-    def score(candidate: dict[str, str]) -> tuple[int, int, str]:
+    def score(candidate: dict[str, str]) -> int:
         score_value = 0
         if candidate["topic"] in recent_topics:
-            score_value += 120
+            score_value += 160
+        score_value += broader_topics.count(candidate["topic"]) * 18
         if today_count and candidate["topic_family"] in today_families:
-            score_value += 35
-        score_value += recent_families.count(candidate["topic_family"]) * 8
+            score_value += 60
+        score_value += recent_families.count(candidate["topic_family"]) * 10
         if candidate["source"] == "medium_memory":
-            score_value += 12
-        if any(similarity(candidate["topic"], recent) >= 0.45 for recent in recent_prompts):
-            score_value += 45
+            score_value += 8
+        if any(similarity(candidate["topic"], recent) >= 0.45 for recent in recent_similar_topics):
+            score_value += 70
+        if candidate["topic"] == "phone_box_after_work" and now.hour < 16:
+            score_value += 90
         expires_at = parse_date(candidate.get("expires_at"))
         if expires_at:
             days_until_expiry = (expires_at - now.date()).days
@@ -188,9 +212,16 @@ def choose_candidate(
                 score_value += 200
             elif days_until_expiry <= 3:
                 score_value -= 12
-        return (score_value, len(candidate["prompt"]), candidate["topic"])
+        return score_value
 
-    return sorted(candidates, key=score)[0]
+    scored = sorted(
+        (score(candidate), candidate["topic"], candidate)
+        for candidate in candidates
+    )
+    best_score = scored[0][0]
+    pool = [(value, candidate) for value, _topic, candidate in scored if value <= best_score + 55][:6]
+    weights = [max(1, 70 - (value - best_score)) for value, _candidate in pool]
+    return rng.choices([candidate for _value, candidate in pool], weights=weights, k=1)[0]
 
 
 def choose_style(history: list[dict[str, Any]], topic_family: str) -> str:
@@ -243,7 +274,8 @@ def main() -> int:
             if candidate:
                 candidates.append(candidate)
 
-    selected = choose_candidate(candidates, history, len(today_records), now)
+    rng = random.Random(args.seed) if args.seed is not None else random.SystemRandom()
+    selected = choose_candidate(candidates, history, len(today_records), now, rng)
     if selected is None:
         print("NO_REPLY")
         return 0

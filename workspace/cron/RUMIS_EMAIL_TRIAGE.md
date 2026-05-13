@@ -24,6 +24,18 @@ schema lives in `AGENTS.md` under "Email Handling".
 
 ## TASK
 
+Allowed tools/operations for this run:
+
+- Use only `read` and `exec`. Do not call file-edit/write tools, Todoist/task
+  tools, calendar tools, Telegram tools, or any other integration.
+- Do not edit this prompt, `AGENTS.md`, `TOOLS.md`, cron config, or any other
+  behavior file. If the prompt seems wrong, finish this run using the rules here;
+  Kenny can fix the prompt later.
+- The only file write allowed is appending important direct Rumi-mail records to
+  `memory/email_triage_state.jsonl` through `python3 cron/email_triage_record.py`.
+- Do not create tasks or reminders. A drafted email is surfaced only in the final
+  summary.
+
 Step 1: Run the compact Gmail preflight.
 
 ```bash
@@ -32,7 +44,9 @@ python3 cron/email_triage_preflight.py rumis
 
 The helper owns deterministic plumbing only: Gmail search, full-message fetch,
 header/source extraction, body excerpts, and mechanical routing of forwarded
-Kenny mail. It does not make final importance or reply decisions.
+Kenny mail. In this `rumis` mode, it omits forwarded Kenny mail from the compact
+JSON entirely so this cron cannot record or mutate it. It does not make final
+importance or reply decisions.
 
 - If the helper output is exactly `NO_REPLY`, return exactly `NO_REPLY` and stop.
 - If the helper exits non-zero, return `Rumi email triage failed: mailbox unavailable.`
@@ -63,6 +77,8 @@ Step 3: Record important emails in the sidecar.
 
 - For each email classified as `actionable_reply` or `info_only` (never `noise`), append one JSON line to `memory/email_triage_state.jsonl` using the schema in `AGENTS.md` → "Email Handling" → "Sidecar schema".
 - For this cron, `source` is always `rumi.openclaw@gmail.com`.
+- Never record forwarded Kenny mail in this cron. If a forwarded item somehow
+  appears, skip it completely.
 - Append-only. Do not rewrite existing lines.
 - Create the file if it does not exist.
 - Use only `exec` with the helper below for sidecar writes. Do not call `edit`,

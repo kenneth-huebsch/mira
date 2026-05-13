@@ -121,6 +121,50 @@
       }
     }
   },
+  "memory": {
+    "backend": "qmd",
+    "citations": "auto",
+    "qmd": {
+      "command": "/home/node/.openclaw/bin/qmd",
+      "includeDefaultMemory": true,
+      "limits": {
+        "maxResults": 6,
+        "timeoutMs": 4000
+      },
+      "paths": [
+        {
+          "name": "rumi-root-docs",
+          "path": "/home/node/.openclaw/workspace",
+          "pattern": "*.md"
+        },
+        {
+          "name": "rumi-cron-prompts",
+          "path": "/home/node/.openclaw/workspace/cron",
+          "pattern": "*.md"
+        },
+        {
+          "name": "rumi-skills",
+          "path": "/home/node/.openclaw/workspace/skills",
+          "pattern": "**/*.md"
+        }
+      ],
+      "scope": {
+        "default": "deny",
+        "rules": [
+          {
+            "action": "allow",
+            "match": {
+              "chatType": "direct"
+            }
+          }
+        ]
+      },
+      "searchMode": "search",
+      "sessions": {
+        "enabled": false
+      }
+    }
+  },
   "meta": {
     "lastTouchedAt": "2026-05-06T22:08:18.102Z",
     "lastTouchedVersion": "2026.4.4"

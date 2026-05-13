@@ -21,6 +21,8 @@ FOLLOWUPS = MEMORY_DIR / "engagement_followups.jsonl"
 ENGAGEMENT_MEMORY = MEMORY_DIR / "engagement_memory.jsonl"
 MAX_FOLLOWUP_DAYS = 14
 MAX_ATTEMPTS = 8
+COMPLETED_RETENTION = timedelta(days=3)
+TERMINAL_STATUSES = {"delivered", "expired", "failed"}
 SUPPORTED_LIVE_CHECKS = {"sports_result"}
 ESPN_SPORTS = {
     "MLB": ("baseball", "mlb"),
@@ -88,6 +90,31 @@ def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(text, encoding="utf-8")
     tmp.replace(path)
+
+
+def compact_followups(records: list[dict[str, Any]], now: datetime) -> tuple[list[dict[str, Any]], bool]:
+    cutoff = now - COMPLETED_RETENTION
+    kept: list[dict[str, Any]] = []
+    changed = False
+
+    for record in records:
+        if record.get("status") not in TERMINAL_STATUSES:
+            kept.append(record)
+            continue
+
+        reference_time = (
+            parse_dt(record.get("delivered_at"))
+            or parse_dt(record.get("last_checked_at"))
+            or parse_dt(record.get("expires_at"))
+            or parse_dt(record.get("due_at"))
+            or parse_dt(record.get("created_at"))
+        )
+        if reference_time and reference_time < cutoff:
+            changed = True
+            continue
+        kept.append(record)
+
+    return kept, changed
 
 
 def append_jsonl(path: Path, record: dict[str, Any]) -> None:
@@ -410,8 +437,7 @@ def run_due(args: argparse.Namespace) -> int:
     now = parse_dt(args.now) if args.now else now_et()
     if now is None:
         raise ValueError("invalid --now")
-    records = load_jsonl(FOLLOWUPS)
-    changed = False
+    records, changed = compact_followups(load_jsonl(FOLLOWUPS), now)
     due_index = None
     for index, record in enumerate(records):
         if record.get("status") != "pending":

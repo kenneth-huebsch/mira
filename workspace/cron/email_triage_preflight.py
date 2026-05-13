@@ -158,9 +158,13 @@ def main() -> int:
         return 0
 
     messages = [compact_message(stub, args.mode) for stub in stubs]
-    if args.mode == "rumis" and all(msg.get("mechanical_route") == "skip_forwarded_for_kennys_cron" for msg in messages):
-        print("NO_REPLY")
-        return 0
+    if args.mode == "rumis":
+        messages = [
+            msg for msg in messages if msg.get("mechanical_route") != "skip_forwarded_for_kennys_cron"
+        ]
+        if not messages:
+            print("NO_REPLY")
+            return 0
 
     payload = {
         "status": "OK",

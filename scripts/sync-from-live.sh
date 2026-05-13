@@ -49,6 +49,21 @@ copy_dir() {
   echo "copied dir: ${dst#$BLUEPRINT_ROOT/}"
 }
 
+copy_openclaw_file() {
+  local rel="$1"
+  local src="$OPENCLAW_SOURCE/$rel"
+  local dst="$BLUEPRINT_ROOT/openclaw/$rel"
+
+  if [[ ! -f "$src" ]]; then
+    echo "missing openclaw file: $rel" >&2
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$dst")"
+  cp -p "$src" "$dst"
+  echo "copied openclaw: $rel"
+}
+
 behavior_files=(
   AGENTS.md
   SOUL.md
@@ -105,5 +120,6 @@ done
 
 # Local skill currently lives in the OpenClaw source checkout, not the workspace.
 copy_dir "$OPENCLAW_SOURCE/skills/quick-reminders" "$BLUEPRINT_WORKSPACE/skills/quick-reminders"
+copy_openclaw_file "entrypoint.sh"
 
 "$BLUEPRINT_ROOT/scripts/write-derived-files.sh"

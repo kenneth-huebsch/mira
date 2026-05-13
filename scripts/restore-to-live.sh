@@ -4,6 +4,7 @@ set -euo pipefail
 TARGET_WORKSPACE="${TARGET_WORKSPACE:-$HOME/.openclaw/workspace}"
 BLUEPRINT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BLUEPRINT_WORKSPACE="$BLUEPRINT_ROOT/workspace"
+OPENCLAW_SOURCE="${OPENCLAW_SOURCE:-$HOME/openclaw}"
 
 copy_file() {
   local rel="$1"
@@ -55,6 +56,22 @@ copy_dir() {
   mkdir -p "$(dirname "$dst")"
   cp -a "$src" "$dst"
   echo "restored dir: $rel"
+}
+
+restore_openclaw_file() {
+  local rel="$1"
+  local src="$BLUEPRINT_ROOT/openclaw/$rel"
+  local dst="$OPENCLAW_SOURCE/$rel"
+
+  if [[ ! -f "$src" ]]; then
+    echo "missing in blueprint: openclaw/$rel" >&2
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$dst")"
+  cp -p "$src" "$dst"
+  chmod 755 "$dst"
+  echo "restored openclaw: $rel"
 }
 
 install_output_hygiene_extension() {
@@ -133,6 +150,7 @@ done
 install_output_hygiene_extension
 
 copy_dir "skills/quick-reminders"
+restore_openclaw_file "entrypoint.sh"
 
 seed_files=(
   memory/medium_memory.jsonl
@@ -156,4 +174,5 @@ Workspace behavior restored. Now manually configure:
 - ~/.openclaw/openclaw.json credentials and provider auth
 - ~/.openclaw/cron/jobs.json schedules/delivery, using templates/cron-jobs.friend-safe.example.json as a guide
 - Gmail/Google/Todoist/Telegram credentials and OAuth tokens
+- Docker compose mounts for openclaw/entrypoint.sh if using the container runtime
 MSG

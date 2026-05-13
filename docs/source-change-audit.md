@@ -23,10 +23,14 @@ If a behavior change appears to require an upstream source patch, stop and
 document the limitation. Only use an OpenClaw fork or patch branch after Kenny
 explicitly approves it.
 
-Two local source areas are worth preserving separately:
+Two local source areas are preserved separately:
 
 - `skills/quick-reminders/` is behavior-bearing and has been copied into `workspace/skills/quick-reminders/` in this blueprint.
-- Container convenience changes in `docker-compose.yml` and `entrypoint.sh` may be useful on this host, but they are not part of Rumi's workspace behavior. Reapply manually or keep them in an OpenClaw fork if a fresh container needs the same gog/agent-browser setup.
+- `entrypoint.sh` is copied into `openclaw/entrypoint.sh` in this blueprint and
+  restored to the OpenClaw checkout by `scripts/restore-to-live.sh`.
+- Container convenience changes in `docker-compose.yml` are still host-local.
+  Reapply manually or keep them in an OpenClaw fork if a fresh container needs
+  the same volume/env setup.
 
 The `pi-embedded-runner` changes look like upstream source fixes for suppressing visible pre-tool narration in silent/tool-use runs. They are not captured by workspace restore. If that behavior is required and not merged upstream, preserve it in an OpenClaw fork or patch branch.
 
@@ -38,8 +42,10 @@ The `pi-embedded-runner` changes look like upstream source fixes for suppressing
   - Mounts `entrypoint.sh` and `skills/quick-reminders`.
   - Exposes port `3500`.
 - `entrypoint.sh`
-  - Installs/links `gog` and `agent-browser`.
+  - Installs/links `gog`, QMD, and `agent-browser`.
   - Prepares runtime dirs for `gogcli`, npm, and browser automation.
+  - Installs QMD into the mounted OpenClaw config dir (`runtime/qmd`) and links
+    it into `.openclaw/bin` so the QMD binary survives container recreation.
   - Drops back to the `node` user for the OpenClaw command.
 - `src/agents/pi-embedded-runner/run.ts`
 - `src/agents/pi-embedded-runner/run/attempt.ts`
@@ -51,6 +57,10 @@ The `pi-embedded-runner` changes look like upstream source fixes for suppressing
 
 ## Restore Decision
 
-For now, this blueprint does not fork OpenClaw source. It documents the source changes and preserves `quick-reminders` as workspace behavior.
+For now, this blueprint does not fork OpenClaw source. It documents source
+changes, preserves `quick-reminders` as workspace behavior, and preserves the
+container entrypoint as `openclaw/entrypoint.sh`.
 
-If a future restore from latest upstream OpenClaw does not behave correctly, check whether the `suppressToolUseVisibleOutput` patch or the container `entrypoint.sh` setup needs to be reapplied.
+If a future restore from latest upstream OpenClaw does not behave correctly,
+check whether the `suppressToolUseVisibleOutput` patch or the Docker Compose
+mount/env setup needs to be reapplied.

@@ -34,7 +34,8 @@ feel creepy if Rumi brought it up later.
 
 Use this gut check before enqueueing: would a socially aware person remember
 this later without seeming like they were monitoring Kenny? If yes, enqueue with
-a short expiry. If no, leave it to normal conversation or proactive engagement.
+a short expiry without asking permission. If the answer is borderline, ask Kenny
+first or leave it to normal conversation or proactive engagement.
 
 Good follow-up instructions are:
 

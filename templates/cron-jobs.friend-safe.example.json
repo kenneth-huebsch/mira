@@ -130,7 +130,7 @@
       "name": "Rumi's Email Triage",
       "payload": {
         "kind": "agentTurn",
-        "message": "Run this prompt file: cron/RUMIS_EMAIL_TRIAGE.md. This is an execution job, not a simulation. Follow standing execution rules from AGENTS.md exactly. Your first tool call must read cron/RUMIS_EMAIL_TRIAGE.md. Then run its Python preflight exactly. If preflight prints NO_REPLY, return exactly NO_REPLY. If preflight returns compact JSON, use model judgment for classification/drafting and follow the prompt's mutation rules. Return only the useful final result.",
+        "message": "Run this prompt file: cron/RUMIS_EMAIL_TRIAGE.md. This is an execution job, not a simulation. Allowed tool calls are read and exec only; never call edit, write, apply_patch, Todoist/task tools, calendar tools, Telegram tools, or any tool other than read/exec. Do not edit prompts, AGENTS.md, TOOLS.md, cron config, or create tasks/reminders. Your first tool call must read cron/RUMIS_EMAIL_TRIAGE.md. Then run python3 cron/email_triage_preflight.py rumis exactly. If preflight prints NO_REPLY, return exactly NO_REPLY. If preflight returns compact JSON, use model judgment for classification/drafting and follow the prompt's mutation rules. Return only the useful final result.",
         "model": "openrouter/xiaomi/mimo-v2-flash",
         "thinking": "off",
         "timeoutSeconds": 120,
@@ -236,60 +236,6 @@
     },
     {
       "agentId": "main",
-      "deleteAfterRun": true,
-      "delivery": {
-        "channel": "telegram",
-        "mode": "announce",
-        "to": "7540422842"
-      },
-      "description": "Send Kenny a reminder for his haircut booked for 2026-05-13 09:30 AM ET.",
-      "enabled": true,
-      "id": "<set manually>",
-      "name": "Reminder: Haircut with Jose",
-      "payload": {
-        "kind": "agentTurn",
-        "message": "Reminder for Kenny: You have a haircut with Jose at High Voltage Barbershop tomorrow (Wed May 13) at 9:30 AM ET. I added the calendar event on your Personal calendar with travel buffer (leave by 9:15 AM). Reply if you need me to change or cancel it.",
-        "model": "openrouter/xiaomi/mimo-v2-flash",
-        "thinking": "off",
-        "timeoutSeconds": 120
-      },
-      "schedule": {
-        "at": "2026-05-12T13:00:00.000Z",
-        "kind": "at"
-      },
-      "sessionKey": "agent:main:telegram:direct:7540422842",
-      "sessionTarget": "isolated",
-      "wakeMode": "now"
-    },
-    {
-      "agentId": "main",
-      "deleteAfterRun": true,
-      "delivery": {
-        "channel": "telegram",
-        "mode": "announce",
-        "to": "7540422842"
-      },
-      "description": "Evening-before reminder to Kenny to prepare for his call with Cape.",
-      "enabled": true,
-      "id": "<set manually>",
-      "name": "Reminder: Cape call prep",
-      "payload": {
-        "kind": "agentTurn",
-        "message": "Reminder for Kenny: You have a call with Cape tomorrow \u2014 please start preparing. Reply if you want me to gather notes or materials.",
-        "model": "openrouter/xiaomi/mimo-v2-flash",
-        "thinking": "off",
-        "timeoutSeconds": 120
-      },
-      "schedule": {
-        "at": "2026-05-13T00:00:00.000Z",
-        "kind": "at"
-      },
-      "sessionKey": "agent:main:telegram:direct:7540422842",
-      "sessionTarget": "isolated",
-      "wakeMode": "now"
-    },
-    {
-      "agentId": "main",
       "delivery": {
         "channel": "telegram",
         "mode": "announce",
@@ -310,33 +256,6 @@
         "expr": "0 17 * * *",
         "kind": "cron",
         "tz": "America/New_York"
-      },
-      "sessionKey": "agent:main:telegram:direct:7540422842",
-      "sessionTarget": "isolated",
-      "wakeMode": "now"
-    },
-    {
-      "agentId": "main",
-      "deleteAfterRun": true,
-      "delivery": {
-        "channel": "telegram",
-        "mode": "announce",
-        "to": "7540422842"
-      },
-      "description": "Remind Kenny to hang the big map his parents gave him before they arrive Saturday morning",
-      "enabled": true,
-      "id": "<set manually>",
-      "name": "Reminder: Hang parents' map",
-      "payload": {
-        "kind": "agentTurn",
-        "message": "Reminder for Kenny: Hang the big map your parents gave you before they arrive today. They're coming this morning/afternoon for Mother's Day weekend.",
-        "model": "openrouter/xiaomi/mimo-v2-flash",
-        "thinking": "off",
-        "timeoutSeconds": 120
-      },
-      "schedule": {
-        "at": "2026-05-09T14:00:00.000Z",
-        "kind": "at"
       },
       "sessionKey": "agent:main:telegram:direct:7540422842",
       "sessionTarget": "isolated",

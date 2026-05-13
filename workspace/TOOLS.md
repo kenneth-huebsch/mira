@@ -152,7 +152,9 @@ docker exec openclaw-openclaw-gateway-1 openclaw cron edit <job-id> \
 
 Use engagement follow-ups when Kenny mentions a short-lived situation and a
 later message would feel natural: workouts, interviews, cooking, errands,
-travel legs, live games, or "check how X went" moments. This is different from
+travel legs, live games, or "check how X went" moments. Default to queuing the
+follow-up when the moment is specific, time-bounded, and likely welcome; ask
+first only when the social fit is ambiguous. This is different from
 `quick-reminders`: quick reminders send fixed text at a fixed time with no LLM;
 engagement follow-ups let interactive Rumi write a constrained instruction now
 and let the cron write a natural message later.
@@ -201,6 +203,19 @@ brief and natural; do not expose queue IDs or raw JSON unless Kenny asks.
 
 Group chats require a mention of the bot to trigger a reply
 (`channels.telegram.groups['*'].requireMention: true`).
+
+---
+
+## Memory Search
+
+OpenClaw memory search is backed by QMD when available. Use `memory_search`
+when the injected memory snapshot is not enough for searchable docs, future
+markdown memory, prior plans, or project context. Use `memory_get` to read a
+cited markdown source returned by search.
+
+Memory search is read-only recall. It does not change the write policy in
+`AGENTS.md`: only Kenny may cause writes to `memory/*.jsonl`, and curated JSONL
+memory remains the source of truth for what Rumi intentionally remembers.
 
 ---
 

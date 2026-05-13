@@ -10,6 +10,8 @@ This repo is allowed to contain personalized behavior, account conventions, chat
   Use `workspace/USER.md` for durable non-tool preferences/context, `workspace/TOOLS.md` for tool mechanics, and `workspace/AGENTS.md` for hard rules and workflow policy.
 - `workspace/assets/rumi.jpg` is Rumi's local visual reference.
 - `templates/` contains friend-safe examples of runtime config and cron jobs with credential fields redacted.
+- `openclaw/` contains host-level OpenClaw files needed to recreate this Docker
+  setup, currently `entrypoint.sh`.
 - `scripts/sync-from-live.sh` updates the blueprint from the running host.
 - `scripts/restore-to-live.sh` copies the blueprint into a new OpenClaw workspace.
 - `AGENTS.md`, `CLAUDE.md`, and `GEMINI.md` give coding agents tool-agnostic operating instructions.
