@@ -16,6 +16,8 @@ type HygieneResult =
     }
   | undefined;
 
+const EMAIL_DIGEST_MARKER = "\u{1F4E7}";
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -52,9 +54,11 @@ function isClassifierVerdictParagraph(content: string): boolean {
 function isProcessNarrationParagraph(content: string): boolean {
   const mentionsInternalSidecar = /\bsidecar\b/i.test(content);
   const startsLikeProcessNarration =
-    /^(?:Perfect\.\s*)?(?:Now\s+)?(?:I(?:'ll| will)|Let me)\b/i.test(content);
+    /^(?:Good\.\s+I can see|(?:Now\s+)?I\s+need\b|I found\b|Looking at\b|The search\b|This email\b|This is\b|Since\b|(?:Perfect\.\s*)?(?:Now\s+)?(?:I(?:'ll| will)|Let me)\b)/i.test(
+      content,
+    );
   const describesWork =
-    /\b(?:mark|record|build|classif|digest|check|read|fetch|search|run|use|call|handle|draft|summariz|process)\b/i.test(
+    /\b(?:mark|record|build|classif|digest|check|read|fetch|search|run|use|call|handle|draft|summariz|process|preflight|header|mailbox|triage|state file|tool|cron|heartbeat|finali[sz]e|skip|verify)\b/i.test(
       content,
     );
 
@@ -65,9 +69,46 @@ function isProcessNarrationParagraph(content: string): boolean {
   );
 }
 
+function hasProcessNarration(content: string): boolean {
+  if (
+    /\b(?:Good\.\s+I can see|I need to|Now I need|Let me finali[sz]e|Now let me|Looking at the headers|build the digest|tool_call|function_call|sidecar|preflight|state file|cron wake)\b/i.test(
+      content,
+    )
+  ) {
+    return true;
+  }
+
+  return content
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .some(isProcessNarrationParagraph);
+}
+
+function stripBeforeFinalMarker(content: string): { content: string; changed: boolean } {
+  for (const marker of [`NO_REPLY`, EMAIL_DIGEST_MARKER]) {
+    const markerIndex = content.indexOf(marker);
+    if (markerIndex <= 0) {
+      continue;
+    }
+
+    const prefix = content.slice(0, markerIndex).trim();
+    const candidate = content.slice(markerIndex).trim();
+    if (prefix.length > 0 && candidate.length > 0 && hasProcessNarration(prefix)) {
+      return { content: candidate, changed: true };
+    }
+  }
+
+  return { content, changed: false };
+}
+
 function stripLeadingProcessNarration(content: string): { content: string; changed: boolean } {
   const trimmed = content.trim();
   const directPrefixPatterns = [
+    /^Good\.\s+I can see[\s\S]*?(?=(?:NO_REPLY\b|\u{1F4E7}))/iu,
+    /^(?:Now\s+)?I\s+need[\s\S]*?(?=(?:NO_REPLY\b|\u{1F4E7}))/iu,
+    /^Looking at the headers[\s\S]*?(?=(?:NO_REPLY\b|\u{1F4E7}))/iu,
+    /^Let me finali[sz]e[\s\S]*?(?=(?:NO_REPLY\b|\u{1F4E7}))/iu,
     /^Perfect\.\s+Now I(?:'ll| will)\s+build the digest\.[\s\S]*?:\s*/i,
     /^Now I(?:'ll| will)\s+build the digest\.[\s\S]*?:\s*/i,
     /^I(?:'ll| will)\s+mark[\s\S]*?digest\.[\s\S]*?(?=(?:NO_REPLY\b|On\s+|\u{1F4E7}))/iu,
@@ -80,6 +121,11 @@ function stripLeadingProcessNarration(content: string): { content: string; chang
     if (next !== trimmed && next.length > 0) {
       return { content: next, changed: true };
     }
+  }
+
+  const markerStripped = stripBeforeFinalMarker(trimmed);
+  if (markerStripped.changed) {
+    return markerStripped;
   }
 
   const paragraphs = trimmed.split(/\n{2,}/);

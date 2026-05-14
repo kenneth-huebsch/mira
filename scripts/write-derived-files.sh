@@ -54,6 +54,9 @@ def cron_restore_template(config):
     for job in config.get("jobs", []):
         if not isinstance(job, dict):
             continue
+        schedule = job.get("schedule") if isinstance(job.get("schedule"), dict) else {}
+        if job.get("deleteAfterRun") is True and schedule.get("kind") == "at":
+            continue
         cleaned = {
             key: redact(value)
             for key, value in job.items()
@@ -113,6 +116,20 @@ rows.append("")
 for dep, reason in known_dependencies.items():
     exists = "present" if (root / dep).exists() else "missing"
     rows.append(f"- `{dep}` ({exists}) - {reason}")
+rows.append("")
+rows.append("## QMD Recall Backend")
+rows.append("")
+rows.append("QMD is configured in `templates/openclaw.friend-safe.example.json` as a")
+rows.append("read-only memory search backend over selected markdown sources:")
+rows.append("")
+rows.append("- root workspace docs (`workspace/*.md`)")
+rows.append("- cron prompts (`workspace/cron/*.md`)")
+rows.append("- workspace skills (`workspace/skills/**/*.md`)")
+rows.append("")
+rows.append("QMD does not replace the curated JSONL files above. Historical JSONL memory is")
+rows.append("not backfilled into QMD, and session transcript indexing is disabled by default.")
+rows.append("Do not add QMD indexes, session exports, or `~/.openclaw/agents/*/qmd/` runtime")
+rows.append("state to this dependency map or to the backup allowlist.")
 rows.append("")
 rows.append("## Sync Rule")
 rows.append("")

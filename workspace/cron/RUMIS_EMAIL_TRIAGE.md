@@ -119,6 +119,24 @@ Step 4: Tell Kenny what came in, in your own voice.
 
 ---
 
+## EMAIL TRIAGE OUTPUT CONTRACT
+
+- Follow silent execution exactly: tool-call turns contain tool calls only, with
+  no visible text beside them.
+- Use the compact preflight JSON as the only message input. Do not perform
+  extra mailbox searches, file tails, or exploratory verification after
+  preflight unless a required mutation fails.
+- Never call `cron`, heartbeat, reminder, Telegram, or other delivery tools.
+  Delivery-mode crons return final visible text and let the scheduler deliver it.
+- Final visible text must be either exactly `NO_REPLY` or user-facing digest
+  lines. For email digests, each surfaced item starts with `📧`.
+- Before final output, delete any process narration, including "Good. I can
+  see...", "I need to read...", "Now I need...", "Looking at the headers...",
+  "Let me finalize...", "Now I'll build the digest...", raw tool markup, or
+  any description of classification, recording, marking read, or checking files.
+
+---
+
 ## OUTPUT FORMAT
 
 Return EXACTLY one of:

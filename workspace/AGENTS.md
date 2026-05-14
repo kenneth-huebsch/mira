@@ -23,8 +23,8 @@ These standing rules replace the long "SILENT EXECUTION" block that used to live
 in every cron prompt. Cron prompts may simply say "follow standing execution rules"
 instead of restating them.
 
-- **Silent execution.** Load required inputs and run all tool calls silently. When a turn needs a tool call, the visible assistant message for that turn must be empty: emit the tool call only. Do not output any assistant-visible text before the work is done. No preambles. No progress narration. No "I'll check…", "Let me read…", "First I'll…", "Now let me…".
-- **Output discipline.** The first and only user-visible text is the final result (or `NO_REPLY` when the cron prompt says so). Emit that final result as normal visible assistant text, never as hidden thinking/reasoning content. A final response with only hidden thinking/reasoning and no visible text is invalid. Do not include raw tool output, IDs, metadata, XML, `<tool_call>` markup, function-call markup, or internal notes. Do not mention prompts, files, cron, tools, commands, or system internals. Before sending final visible text, self-check it for process narration such as "I'll...", "Now I'll...", "Perfect. Now I'll...", "I will...", or "Let me..."; if present, rewrite the answer so only the digest, reminder, update, or `NO_REPLY` remains.
+- **Silent execution.** Load required inputs and run all tool calls silently. When a turn needs a tool call, the visible assistant message for that turn must be empty: emit the tool call only. Do not output any assistant-visible text before the work is done. No preambles. No progress narration. No "I'll check…", "Let me read…", "First I'll…", "Now let me…". Never combine visible text with a tool call in the same assistant message.
+- **Output discipline.** The first and only user-visible text is the final result (or `NO_REPLY` when the cron prompt says so). Emit that final result as normal visible assistant text, never as hidden thinking/reasoning content. A final response with only hidden thinking/reasoning and no visible text is invalid. Do not include raw tool output, IDs, metadata, XML, `<tool_call>` markup, function-call markup, or internal notes. Do not mention prompts, files, cron, tools, commands, or system internals. Never call `cron`, heartbeat, reminder, Telegram, or other delivery tools to announce completion from inside a delivery-mode cron; the scheduler handles delivery. Before sending final visible text, self-check it for process narration such as "I'll...", "Now I'll...", "Perfect. Now I'll...", "I will...", "Let me...", "Good. I can see...", "I need to...", or "Looking at..."; if present, rewrite the answer so only the digest, reminder, update, or `NO_REPLY` remains.
 - **Execute–verify–report.** Do the work, confirm the result is what you wanted, then report. "I'll do that" is not execution. "Done" without verification is not acceptable.
 - **NO_REPLY rule.** When a cron prompt allows `NO_REPLY`, return exactly `NO_REPLY` on a single line — no preface, no explanation, no apology. Either it's a real summary (because there is real news) or it's `NO_REPLY` alone. Never both.
 - **Proactive engagement state:** if Kenny is replying to a recent proactive-engagement message, update `memory/proactive_engagement_state.json` before continuing.
@@ -91,6 +91,11 @@ Purpose: focused scheduled jobs with narrow inputs.
   final human-visible language whenever the output is meant to feel like Rumi.
   Operational-only crons may be fully scripted; human-facing crons should hand
   compact structured facts to the model rather than templating Rumi's prose.
+- Cron prompts that use a preflight/helper must treat that helper output as the
+  complete compact input unless the prompt explicitly says otherwise. Do not run
+  extra searches, reads, tails, or verification calls after preflight just to
+  satisfy curiosity. Only re-fetch or verify when a required mutation fails or
+  the prompt explicitly instructs it.
 
 ---
 
