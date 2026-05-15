@@ -3,7 +3,7 @@
 Rumi has two engagement systems with different jobs:
 
 - `PROACTIVE_ENGAGEMENT` is for broad, low-frequency check-ins based on memory
-  and engagement priorities.
+  and occasional relationship-building presence.
 - `ENGAGEMENT_FOLLOWUPS` is for short-lived situations that interactive Rumi
   noticed in the moment and intentionally queued for later.
 
@@ -58,8 +58,10 @@ Avoid:
 `PROACTIVE_ENGAGEMENT`:
 
 - Runs at a few fixed daily slots.
+- Runs once per day at a randomized time between 10am and 9pm Eastern.
 - Does not browse or fetch live data.
-- Selects from `memory/engagement_priorities.jsonl` and recent medium memory.
+- Selects from medium memory, long memory, and a small relationship-building
+  pool.
 - Is best for relationship/accountability nudges and general "thinking of you"
   messages.
 - Appends to `memory/engagement_memory.jsonl` when it sends something.

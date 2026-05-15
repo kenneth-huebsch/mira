@@ -6,7 +6,7 @@ import json
 import os
 import random
 import re
-from datetime import date, datetime
+from datetime import date, datetime, time
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -15,9 +15,11 @@ ET = ZoneInfo("America/New_York")
 WORKSPACE_ROOT = Path(os.environ.get("OPENCLAW_WORKSPACE_DIR", "/home/node/.openclaw/workspace"))
 MEMORY_DIR = WORKSPACE_ROOT / "memory"
 ENGAGEMENT_MEMORY = MEMORY_DIR / "engagement_memory.jsonl"
-ENGAGEMENT_PRIORITIES = MEMORY_DIR / "engagement_priorities.jsonl"
 MEDIUM_MEMORY = MEMORY_DIR / "medium_memory.jsonl"
-SLOTS = {"10", "15", "21"}
+LONG_MEMORY = MEMORY_DIR / "long_memory.jsonl"
+ACTIVE_START = time(10, 0)
+ACTIVE_END = time(21, 0)
+WINDOW_MINUTES = (21 - 10) * 60
 STYLES = ["question", "encouragement", "playful"]
 
 
@@ -124,24 +126,7 @@ def similarity(left: str, right: str) -> float:
     return len(left_tokens & right_tokens) / len(left_tokens | right_tokens)
 
 
-def candidate_from_priority(record: dict[str, Any]) -> dict[str, str] | None:
-    prompt = short(record.get("prompt"))
-    if not prompt:
-        return None
-    kind = str(record.get("kind") or "general").strip().lower()
-    if kind not in {"accountability", "relationship", "general"}:
-        kind = "general"
-    return {
-        "topic": norm_topic(record.get("topic")),
-        "topic_family": kind,
-        "prompt": prompt,
-        "source": "engagement_priority",
-        "created_at": short(record.get("created_at"), 20),
-        "expires_at": short(record.get("expires_at"), 20),
-    }
-
-
-def candidate_from_memory(record: dict[str, Any]) -> dict[str, str] | None:
+def candidate_from_memory(record: dict[str, Any], source: str) -> dict[str, str] | None:
     summary = short(record.get("summary"))
     if not summary:
         return None
@@ -158,18 +143,109 @@ def candidate_from_memory(record: dict[str, Any]) -> dict[str, str] | None:
         "reminder sc",
         "reminder scheduled",
         "scheduled and set to",
+        "session key:",
         "spawn_failed",
+        "telegram user id",
     ]
     if any(marker in lowered for marker in operational_markers):
         return None
+    family = "medium_memory" if source == "medium_memory" else "relationship"
+    prompt_prefix = (
+        "Check in naturally about this current context"
+        if source == "medium_memory"
+        else "Use this durable context for a warm, human note"
+    )
     return {
         "topic": norm_topic(summary),
-        "topic_family": "medium_memory",
-        "prompt": f"Check in naturally about this current context: {summary}",
-        "source": "medium_memory",
+        "topic_family": family,
+        "prompt": f"{prompt_prefix}: {summary}",
+        "source": source,
         "created_at": short(record.get("created_at"), 20),
         "expires_at": short(record.get("expires_at"), 20),
     }
+
+
+def relationship_candidates(memory_summaries: list[str]) -> list[dict[str, str]]:
+    joined = " ".join(memory_summaries).lower()
+    candidates = [
+        {
+            "topic": "day_presence",
+            "topic_family": "relationship",
+            "prompt": "Send a short, specific note that feels like Rumi is present in Kenny's day, not checking a box.",
+            "source": "relationship_pool",
+            "created_at": "",
+            "expires_at": "",
+        },
+        {
+            "topic": "grounded_encouragement",
+            "topic_family": "relationship",
+            "prompt": "Offer one grounded bit of encouragement tied loosely to Kenny's current life, without advice or pressure.",
+            "source": "relationship_pool",
+            "created_at": "",
+            "expires_at": "",
+        },
+        {
+            "topic": "curiosity",
+            "topic_family": "relationship",
+            "prompt": "Ask one thoughtful, easy-to-answer question that helps Rumi know Kenny better.",
+            "source": "relationship_pool",
+            "created_at": "",
+            "expires_at": "",
+        },
+        {
+            "topic": "playful_warmth",
+            "topic_family": "relationship",
+            "prompt": "Use a little playful warmth or teasing, only if it stays kind and phone-sized.",
+            "source": "relationship_pool",
+            "created_at": "",
+            "expires_at": "",
+        },
+    ]
+    if "wife" in joined or "cayce" in joined:
+        candidates.append(
+            {
+                "topic": "wife_warmth",
+                "topic_family": "relationship",
+                "prompt": "Nudge toward one small warm thought or gesture for Cayce, with no guilt or checklist tone.",
+                "source": "relationship_pool",
+                "created_at": "",
+                "expires_at": "",
+            }
+        )
+    if "sports" in joined or "philadelphia" in joined or "phillies" in joined:
+        candidates.append(
+            {
+                "topic": "philly_sports",
+                "topic_family": "relationship",
+                "prompt": "Make a light fan-to-fan Philadelphia sports note without pretending to know live scores.",
+                "source": "relationship_pool",
+                "created_at": "",
+                "expires_at": "",
+            }
+        )
+    if "portugal" in joined:
+        candidates.append(
+            {
+                "topic": "portugal_anticipation",
+                "topic_family": "relationship",
+                "prompt": "Say something warm about Portugal getting closer, without turning it into a task list.",
+                "source": "relationship_pool",
+                "created_at": "",
+                "expires_at": "",
+            }
+        )
+    if "plant" in joined or "monstera" in joined or "lemon tree" in joined:
+        candidates.append(
+            {
+                "topic": "plant_person",
+                "topic_family": "relationship",
+                "prompt": "Make a small affectionate note about Kenny's plants and how much they seem to matter to him.",
+                "source": "relationship_pool",
+                "created_at": "",
+                "expires_at": "",
+            }
+        )
+    return candidates
 
 
 def choose_candidate(
@@ -201,6 +277,8 @@ def choose_candidate(
         score_value += recent_families.count(candidate["topic_family"]) * 10
         if candidate["source"] == "medium_memory":
             score_value += 8
+        if candidate["source"] == "relationship_pool":
+            score_value += 22
         if any(similarity(candidate["topic"], recent) >= 0.45 for recent in recent_similar_topics):
             score_value += 70
         if candidate["topic"] == "phone_box_after_work" and now.hour < 16:
@@ -224,6 +302,37 @@ def choose_candidate(
     return rng.choices([candidate for _value, candidate in pool], weights=weights, k=1)[0]
 
 
+def random_target_for_day(today: str, seed: int | None = None) -> str:
+    seed_value = f"{today}:{seed}" if seed is not None else today
+    rng = random.Random(seed_value)
+    minute_offset = rng.randint(0, WINDOW_MINUTES)
+    hour = 10 + minute_offset // 60
+    minute = minute_offset % 60
+    return f"{hour:02d}:{minute:02d}"
+
+
+def target_reached(now: datetime, target: str) -> bool:
+    hour, minute = (int(part) for part in target.split(":", 1))
+    target_dt = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    return now >= target_dt
+
+
+def dry_no_reply(reason: str, today: str, now: datetime, target: str) -> None:
+    print(
+        json.dumps(
+            {
+                "status": "NO_REPLY",
+                "reason": reason,
+                "date_et": today,
+                "now_et": now.isoformat(timespec="seconds"),
+                "target_time_et": target,
+            },
+            separators=(",", ":"),
+            ensure_ascii=False,
+        )
+    )
+
+
 def choose_style(history: list[dict[str, Any]], topic_family: str) -> str:
     last_style = str(history[-1].get("style") or "") if history else ""
     if topic_family == "relationship":
@@ -245,34 +354,44 @@ def main() -> int:
         print("NO_REPLY")
         return 0
     today = today_from(now)
-    slot = f"{now.hour:02d}"
+    target = random_target_for_day(today, args.seed)
 
-    if slot not in SLOTS or not (9 <= now.hour < 22):
-        print("NO_REPLY")
+    if not (ACTIVE_START <= now.timetz().replace(tzinfo=None) <= ACTIVE_END):
+        if args.dry_run:
+            dry_no_reply("outside_active_window", today, now, target)
+        else:
+            print("NO_REPLY")
+        return 0
+    if not target_reached(now, target):
+        if args.dry_run:
+            dry_no_reply("before_daily_target", today, now, target)
+        else:
+            print("NO_REPLY")
         return 0
 
     history = load_jsonl(ENGAGEMENT_MEMORY)
     today_records = [record for record in history if record.get("date_et") == today]
-    if len(today_records) >= 2 or any(str(record.get("slot_et", "")).zfill(2) == slot for record in today_records):
-        print("NO_REPLY")
-        return 0
     if today_records:
-        last = parse_at(today_records[-1].get("at"))
-        if last and (now - last).total_seconds() < 4 * 60 * 60:
+        if args.dry_run:
+            dry_no_reply("already_sent_today", today, now, target)
+        else:
             print("NO_REPLY")
-            return 0
+        return 0
 
     candidates: list[dict[str, str]] = []
-    for record in load_jsonl(ENGAGEMENT_PRIORITIES):
-        if valid_today(record, today):
-            candidate = candidate_from_priority(record)
-            if candidate:
-                candidates.append(candidate)
+    memory_summaries: list[str] = []
     for record in load_jsonl(MEDIUM_MEMORY):
         if valid_today(record, today):
-            candidate = candidate_from_memory(record)
+            memory_summaries.append(short(record.get("summary")))
+            candidate = candidate_from_memory(record, "medium_memory")
             if candidate:
                 candidates.append(candidate)
+    for record in load_jsonl(LONG_MEMORY):
+        memory_summaries.append(short(record.get("summary")))
+        candidate = candidate_from_memory(record, "long_memory")
+        if candidate:
+            candidates.append(candidate)
+    candidates.extend(relationship_candidates(memory_summaries))
 
     rng = random.Random(args.seed) if args.seed is not None else random.SystemRandom()
     selected = choose_candidate(candidates, history, len(today_records), now, rng)
@@ -284,7 +403,7 @@ def main() -> int:
     record = {
         "at": now.isoformat(timespec="seconds"),
         "date_et": today,
-        "slot_et": slot,
+        "target_time_et": target,
         "topic_family": selected["topic_family"],
         "topic": selected["topic"],
         "style": style,
@@ -294,13 +413,20 @@ def main() -> int:
     payload = {
         "status": "OK",
         "now_et": now.isoformat(timespec="seconds"),
+        "target_time_et": target,
         "selected": selected,
         "style": style,
         "message_contract": {
             "audience": "Kenny",
             "length": "one short phone-sized message",
-            "voice": "Rumi: warm, natural, human, not templated",
-            "avoid": ["guilt", "pressure", "checklist tone", "mentioning files/prompts/tools"],
+            "voice": "Rumi: warm, natural, human, emotionally intelligent, not templated",
+            "allow": [
+                "occasional relationship-building presence",
+                "warm curiosity",
+                "light playful teasing",
+                "grounded encouragement",
+            ],
+            "avoid": ["guilt", "pressure", "checklist tone", "generic checking in", "mentioning files/prompts/tools"],
         },
     }
     print(json.dumps(payload, separators=(",", ":"), ensure_ascii=False))

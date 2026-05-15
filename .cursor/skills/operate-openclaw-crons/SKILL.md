@@ -31,6 +31,7 @@ Direct edits to `/home/kenny/.openclaw/cron/jobs.json` can be overwritten by the
 
 - Never set a cron payload model to `default`; OpenClaw treats it as a literal OpenRouter id and the run fails as `openrouter/default`.
 - Use `openrouter/xiaomi/mimo-v2-flash` with `thinking: off` for ordinary cron/tool workflows.
+- Use `openrouter/deepseek/deepseek-v3.2` with `thinking: off` for proactive engagement and other relationship-building prose where emotional nuance matters.
 - Use `openrouter/openai/gpt-5-mini` when the cron's prompt documents why it needs judgment beyond normal tool execution.
 
 ## Missing Output Checklist
@@ -54,7 +55,7 @@ For `Nightly Session Reflection`:
 - Dry-run the helper before enabling or manually running the cron:
 
 ```bash
-docker exec openclaw-openclaw-gateway-1 sh -lc 'cd /home/node/.openclaw/workspace && python3 cron/nightly_session_reflection.py collect --date yesterday --out /tmp/nightly-session-context.json && printf "%s\n" "{\"medium_memory\":[],\"long_memory\":[],\"engagement_priorities\":[],\"reset_recommended\":false,\"notes\":[]}" >/tmp/nightly-session-decision.json && python3 cron/nightly_session_reflection.py apply --date yesterday --json-file /tmp/nightly-session-decision.json --dry-run'
+docker exec openclaw-openclaw-gateway-1 sh -lc 'cd /home/node/.openclaw/workspace && python3 cron/nightly_session_reflection.py collect --date yesterday --out /tmp/nightly-session-context.json && printf "%s\n" "{\"medium_memory\":[],\"long_memory\":[],\"reset_recommended\":false,\"notes\":[]}" >/tmp/nightly-session-decision.json && python3 cron/nightly_session_reflection.py apply --date yesterday --json-file /tmp/nightly-session-decision.json --dry-run'
 ```
 
 - Inspect `memory/nightly_session_reflection_state.jsonl` after real runs. It should contain counts and reset status only, not transcript excerpts.

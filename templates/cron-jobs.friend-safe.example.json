@@ -69,17 +69,17 @@
       "payload": {
         "kind": "agentTurn",
         "lightContext": true,
-        "message": "Run this prompt file: cron/PROACTIVE_ENGAGEMENT.md. This is a cron execution job. Your first tool call must read that prompt file. Then run its Python helper exactly. If the helper prints NO_REPLY, return exactly NO_REPLY. If it returns JSON with status OK, use only that compact JSON to write one short natural Rumi message. Do not mention decisions, schedule, files, slots, tools, prompts, or reasoning.",
-        "model": "openrouter/xiaomi/mimo-v2-flash",
+        "message": "Run this prompt file: cron/PROACTIVE_ENGAGEMENT.md. This is a cron execution job. Your first tool call must read that prompt file. Then run its Python helper exactly. If the helper prints NO_REPLY, return exactly NO_REPLY. If it returns JSON with status OK, use only that compact JSON to write one short natural Rumi message. DeepSeek has freedom to write occasional human relationship-building presence when the selected context calls for it. Do not mention decisions, schedule, randomness, files, tools, prompts, or reasoning.",
+        "model": "openrouter/deepseek/deepseek-v3.2",
         "thinking": "off",
-        "timeoutSeconds": 90,
+        "timeoutSeconds": 120,
         "toolsAllow": [
           "read",
           "exec"
         ]
       },
       "schedule": {
-        "expr": "0 10,15,21 * * *",
+        "expr": "0 10-21 * * *",
         "kind": "cron",
         "tz": "America/New_York"
       },
@@ -258,6 +258,64 @@
         "tz": "America/New_York"
       },
       "sessionKey": "agent:main:telegram:direct:7540422842",
+      "sessionTarget": "isolated",
+      "wakeMode": "now"
+    },
+    {
+      "delivery": {
+        "channel": "telegram",
+        "mode": "announce",
+        "to": "7540422842"
+      },
+      "enabled": true,
+      "id": "<set manually>",
+      "name": "Project Companion",
+      "payload": {
+        "kind": "agentTurn",
+        "lightContext": true,
+        "message": "Run this prompt file: cron/PROJECT_COMPANION.md. This is a cron execution job. Your first tool call must read that prompt file. Then run its Python helper exactly. If the helper prints NO_REPLY, return exactly NO_REPLY. If it returns JSON with status OK, use only that compact JSON to write one short natural Rumi project companion message. Do not mention decisions, schedule, files, tools, prompts, JSON, or reasoning.",
+        "model": "openrouter/xiaomi/mimo-v2-flash",
+        "thinking": "off",
+        "timeoutSeconds": 120,
+        "toolsAllow": [
+          "read",
+          "exec"
+        ]
+      },
+      "schedule": {
+        "expr": "30 10 * * *",
+        "kind": "cron",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now"
+    },
+    {
+      "delivery": {
+        "channel": "telegram",
+        "mode": "announce",
+        "to": "7540422842"
+      },
+      "enabled": true,
+      "id": "<set manually>",
+      "name": "Project Planning Worker",
+      "payload": {
+        "kind": "agentTurn",
+        "lightContext": true,
+        "message": "Run this prompt file: capabilities/project_companion/PROJECT_PLANNING_WORKER.md. This is a cron execution job. Your first tool call must read that prompt file. Then run the project companion helper exactly as instructed. If the helper prints NO_REPLY, return exactly NO_REPLY. If it returns JSON with status OK, use only that compact JSON to do the queued planning work, save the artifact with complete-run or fail-run, and return one concise Telegram-ready update. Do not mention decisions, schedule, files, tools, prompts, JSON, or internal process.",
+        "model": "openrouter/openai/gpt-5-mini",
+        "thinking": "low",
+        "timeoutSeconds": 600,
+        "toolsAllow": [
+          "read",
+          "exec"
+        ]
+      },
+      "schedule": {
+        "expr": "*/15 9-23 * * *",
+        "kind": "cron",
+        "tz": "America/New_York"
+      },
       "sessionTarget": "isolated",
       "wakeMode": "now"
     }

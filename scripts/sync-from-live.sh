@@ -83,6 +83,14 @@ behavior_files=(
   cron/nightly_session_reflection.py
   cron/PROACTIVE_ENGAGEMENT.md
   cron/proactive_engagement.py
+  cron/PROJECT_COMPANION.md
+  cron/project_companion.py
+  capabilities/project_companion/README.md
+  capabilities/project_companion/INTERACTIVE.md
+  capabilities/project_companion/PROJECT_COMPANION.md
+  capabilities/project_companion/PROJECT_PLANNING_WORKER.md
+  capabilities/project_companion/project_companion.py
+  capabilities/project_companion/schema.md
   cron/email_triage_preflight.py
   cron/email_triage_record.py
   cron/morning_brief_collect.py
@@ -92,7 +100,6 @@ behavior_files=(
   plugins/memory-plugin.ts
   plugins/output-hygiene-plugin.ts
   skills/memory_manager.md
-  skills/engagement_priorities_manager.md
   skills/agent-browser/SKILL.md
 )
 
@@ -105,8 +112,10 @@ done
 seed_files=(
   memory/medium_memory.jsonl
   memory/long_memory.jsonl
+  memory/projects.jsonl
+  memory/project_details.jsonl
+  memory/project_runs.jsonl
   memory/engagement_memory.jsonl
-  memory/engagement_priorities.jsonl
   memory/engagement_followups.jsonl
   memory/email_triage_state.jsonl
   memory/nightly_session_reflection_state.jsonl

@@ -108,7 +108,46 @@ JSON
   }
 }
 JSON
+  chown -R root:root "$dst_dir" 2>/dev/null || true
   echo "installed extension: output-hygiene-plugin"
+}
+
+install_memory_plugin_extension() {
+  local src="$TARGET_WORKSPACE/plugins/memory-plugin.ts"
+  local openclaw_home
+  openclaw_home="$(cd "$TARGET_WORKSPACE/.." && pwd)"
+  local dst_dir="$openclaw_home/extensions/workspace-medium-memory"
+
+  if [[ ! -f "$src" ]]; then
+    echo "missing live plugin source: plugins/memory-plugin.ts" >&2
+    return 1
+  fi
+
+  mkdir -p "$dst_dir"
+  cp -p "$src" "$dst_dir/index.ts"
+  cat > "$dst_dir/package.json" <<'JSON'
+{
+  "name": "workspace-medium-memory",
+  "version": "1.0.0",
+  "type": "module",
+  "openclaw": {
+    "extensions": ["./index.ts"]
+  }
+}
+JSON
+  cat > "$dst_dir/openclaw.plugin.json" <<'JSON'
+{
+  "id": "workspace-medium-memory",
+  "name": "Workspace Context Loader",
+  "description": "Loads Rumi workspace memory and capability context into agent runs",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false
+  }
+}
+JSON
+  chown -R root:root "$dst_dir" 2>/dev/null || true
+  echo "installed extension: workspace-medium-memory"
 }
 
 behavior_files=(
@@ -130,6 +169,14 @@ behavior_files=(
   cron/nightly_session_reflection.py
   cron/PROACTIVE_ENGAGEMENT.md
   cron/proactive_engagement.py
+  cron/PROJECT_COMPANION.md
+  cron/project_companion.py
+  capabilities/project_companion/README.md
+  capabilities/project_companion/INTERACTIVE.md
+  capabilities/project_companion/PROJECT_COMPANION.md
+  capabilities/project_companion/PROJECT_PLANNING_WORKER.md
+  capabilities/project_companion/project_companion.py
+  capabilities/project_companion/schema.md
   cron/ENGAGEMENT_FOLLOWUPS.md
   cron/engagement_followups.py
   cron/email_triage_preflight.py
@@ -139,7 +186,6 @@ behavior_files=(
   plugins/memory-plugin.ts
   plugins/output-hygiene-plugin.ts
   skills/memory_manager.md
-  skills/engagement_priorities_manager.md
   skills/agent-browser/SKILL.md
 )
 
@@ -148,6 +194,7 @@ for rel in "${behavior_files[@]}"; do
 done
 
 install_output_hygiene_extension
+install_memory_plugin_extension
 
 copy_dir "skills/quick-reminders"
 restore_openclaw_file "entrypoint.sh"
@@ -155,8 +202,10 @@ restore_openclaw_file "entrypoint.sh"
 seed_files=(
   memory/medium_memory.jsonl
   memory/long_memory.jsonl
+  memory/projects.jsonl
+  memory/project_details.jsonl
+  memory/project_runs.jsonl
   memory/engagement_memory.jsonl
-  memory/engagement_priorities.jsonl
   memory/engagement_followups.jsonl
   memory/email_triage_state.jsonl
   memory/nightly_session_reflection_state.jsonl

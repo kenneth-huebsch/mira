@@ -60,7 +60,6 @@ SESSIONS_DIR = STATE_ROOT / "agents/main/sessions"
 MEMORY_DIR = WORKSPACE_ROOT / "memory"
 MEDIUM_MEMORY = MEMORY_DIR / "medium_memory.jsonl"
 LONG_MEMORY = MEMORY_DIR / "long_memory.jsonl"
-ENGAGEMENT_PRIORITIES = MEMORY_DIR / "engagement_priorities.jsonl"
 AUDIT_FILE = MEMORY_DIR / "nightly_session_reflection_state.jsonl"
 
 
@@ -305,22 +304,11 @@ def collect(args: argparse.Namespace) -> int:
             "events": events,
             "existing_medium_memory": [] if low_signal else load_jsonl(MEDIUM_MEMORY)[-MAX_EXISTING_RECORDS:],
             "existing_long_memory": [] if low_signal else load_jsonl(LONG_MEMORY)[-MAX_EXISTING_RECORDS:],
-            "existing_engagement_priorities": []
-            if low_signal
-            else load_jsonl(ENGAGEMENT_PRIORITIES)[-MAX_EXISTING_RECORDS:],
             "decision_schema": {
                 "medium_memory": [
                     {"summary": "string", "expires_in_days": "3-30 or expires_at YYYY-MM-DD"}
                 ],
                 "long_memory": [{"summary": "string", "expires_at": "YYYY-MM-DD or 9999-12-31"}],
-                "engagement_priorities": [
-                    {
-                        "topic": "snake_case",
-                        "kind": "accountability|relationship|general",
-                        "prompt": "string",
-                        "expires_in_days": "3-90",
-                    }
-                ],
                 "reset_recommended": False,
                 "notes": ["optional short operational notes, no transcript dumps"],
             },
@@ -348,21 +336,14 @@ def apply(args: argparse.Namespace) -> int:
 
     existing_medium = load_jsonl(MEDIUM_MEMORY)
     existing_long = load_jsonl(LONG_MEMORY)
-    existing_priorities = load_jsonl(ENGAGEMENT_PRIORITIES)
     existing_summaries = {
         normalize_key(str(record.get("summary") or ""))
         for record in [*existing_medium, *existing_long]
         if record.get("summary")
     }
-    existing_topics = {
-        normalize_key(str(record.get("topic") or ""))
-        for record in existing_priorities
-        if record.get("topic")
-    }
 
     medium_to_append: list[dict[str, Any]] = []
     long_to_append: list[dict[str, Any]] = []
-    priorities_to_append: list[dict[str, Any]] = []
     skipped: list[dict[str, str]] = []
 
     for item in decision_list(decision, "medium_memory"):
@@ -392,36 +373,15 @@ def apply(args: argparse.Namespace) -> int:
         long_to_append.append(record)
         existing_summaries.add(key)
 
-    for item in decision_list(decision, "engagement_priorities"):
-        topic = re.sub(r"[^a-z0-9]+", "_", str(item.get("topic") or "").lower()).strip("_")[:80]
-        prompt = normalize_summary(item.get("prompt"), max_chars=160)
-        kind = str(item.get("kind") or "general").strip().lower()
-        if kind not in {"accountability", "relationship", "general"}:
-            kind = "general"
-        if not topic or not prompt or normalize_key(topic) in existing_topics:
-            skipped.append({"kind": "engagement_priority", "reason": "empty_or_duplicate"})
-            continue
-        record = {
-            "topic": topic,
-            "kind": kind,
-            "prompt": prompt,
-            "created_at": created_at,
-            "expires_at": add_days(created_at, clamp_int(item.get("expires_in_days"), 30, 3, 90)),
-        }
-        priorities_to_append.append(record)
-        existing_topics.add(normalize_key(topic))
-
     if not args.dry_run:
         append_jsonl(MEDIUM_MEMORY, medium_to_append)
         append_jsonl(LONG_MEMORY, long_to_append)
-        append_jsonl(ENGAGEMENT_PRIORITIES, priorities_to_append)
         audit = {
             "run_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "reflected_date_et": reflected_date,
             "session_key": args.session_key,
             "medium_appended": len(medium_to_append),
             "long_appended": len(long_to_append),
-            "engagement_priorities_appended": len(priorities_to_append),
             "skipped": skipped,
             "reset_recommended": bool(decision.get("reset_recommended")),
             "reset_enabled": os.environ.get("NIGHTLY_REFLECTION_ENABLE_RESET") == "1",
@@ -433,7 +393,6 @@ def apply(args: argparse.Namespace) -> int:
         "dry_run": args.dry_run,
         "medium_appended": len(medium_to_append),
         "long_appended": len(long_to_append),
-        "engagement_priorities_appended": len(priorities_to_append),
         "skipped": skipped,
         "reset_recommended": bool(decision.get("reset_recommended")),
     }

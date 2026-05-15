@@ -189,6 +189,12 @@
       "stepfun": {
         "enabled": true
       },
+      "workspace-medium-memory": {
+        "enabled": true,
+        "hooks": {
+          "allowPromptInjection": true
+        }
+      },
       "xiaomi": {
         "enabled": true
       }
@@ -196,7 +202,8 @@
     "installs": {},
     "load": {
       "paths": [
-        "~/.openclaw/extensions/output-hygiene-plugin"
+        "~/.openclaw/extensions/output-hygiene-plugin",
+        "~/.openclaw/extensions/workspace-medium-memory"
       ]
     }
   },

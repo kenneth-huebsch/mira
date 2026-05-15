@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 from datetime import datetime, time
@@ -11,8 +12,9 @@ from zoneinfo import ZoneInfo
 
 ET = ZoneInfo("America/New_York")
 ACCOUNT = "rumi.openclaw@gmail.com"
-WORKSPACE_ROOT = Path("/home/node/.openclaw/workspace")
+WORKSPACE_ROOT = Path(os.environ.get("OPENCLAW_WORKSPACE_DIR", "/home/node/.openclaw/workspace"))
 MEDIUM_MEMORY = WORKSPACE_ROOT / "memory/medium_memory.jsonl"
+PROJECTS_FILE = WORKSPACE_ROOT / "memory/projects.jsonl"
 CALENDARS = [
     ("personal", "kenneth.huebsch@gmail.com"),
     ("work", "o9k4ud8ocv356bk0e65kb59s0mjcisaq@import.calendar.google.com"),
@@ -122,6 +124,43 @@ def current_memory(today: str) -> list[dict[str, str]]:
     return records[:12]
 
 
+def active_projects(today: str) -> list[dict[str, Any]]:
+    projects = []
+    for record in load_jsonl(PROJECTS_FILE):
+        if str(record.get("status") or "") != "active":
+            continue
+        title = text(record.get("title"), 120)
+        if not title:
+            continue
+        next_actions = [
+            text(item, 120)
+            for item in record.get("next_actions", [])
+            if text(item, 120)
+        ][:5] if isinstance(record.get("next_actions"), list) else []
+        blockers = [
+            text(item, 120)
+            for item in record.get("blockers", [])
+            if text(item, 120)
+        ][:3] if isinstance(record.get("blockers"), list) else []
+        next_checkin_after = str(record.get("next_checkin_after") or "")
+        relevant_today = not next_checkin_after or next_checkin_after <= today
+        projects.append(
+            {
+                "id": text(record.get("id"), 80),
+                "title": title,
+                "category": text(record.get("category"), 50),
+                "current_phase": text(record.get("current_phase"), 80),
+                "starts_at": str(record.get("starts_at") or ""),
+                "ends_at": str(record.get("ends_at") or ""),
+                "next_actions": next_actions,
+                "blockers": blockers,
+                "relevant_today": relevant_today,
+                "instruction": "Use as project context only; Todoist remains the source of truth for actual tasks.",
+            }
+        )
+    return projects[:6]
+
+
 def main() -> int:
     now = datetime.now(ET)
     today = now.date()
@@ -162,6 +201,7 @@ def main() -> int:
             "failure_rule": "Never claim no events when any calendar source is listed in failures.",
         },
         "memory": current_memory(today.isoformat()),
+        "projects": active_projects(today.isoformat()),
         "todoist": {
             "source": "MCP",
             "instruction": "Use Todoist MCP tools for due today, overdue, P1/P2, and important upcoming tasks from Kennys Personal Tasks and Kennys Work Todo List.",

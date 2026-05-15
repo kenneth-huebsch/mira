@@ -3,7 +3,6 @@ cron_id: nightly_session_reflection
 dynamic:
   - consolidation_medium_memory
   - consolidation_long_memory
-  - proactive_engagement_priorities
 ---
 
 # NIGHTLY SESSION REFLECTION
@@ -43,7 +42,6 @@ Eastern Time day, and includes existing memory so you can avoid duplicates.
 {
   "medium_memory": [],
   "long_memory": [],
-  "engagement_priorities": [],
   "reset_recommended": false,
   "notes": []
 }
@@ -89,9 +87,6 @@ Do not write durable behavior policy to `long_memory`. Durable behavior,
 persona, and shared preferences belong in `USER.md`, `AGENTS.md`, `TOOLS.md`,
 or other workspace docs.
 
-Optionally write `engagement_priorities` when the day clearly suggests a good
-future proactive check-in topic. Keep these sparse.
-
 ## What To Skip
 
 - Generic daily summaries.
@@ -118,14 +113,6 @@ Good:
     }
   ],
   "long_memory": [],
-  "engagement_priorities": [
-    {
-      "topic": "sixers_game_7",
-      "kind": "relationship",
-      "prompt": "Ask how the Sixers Game 7 went and match Kenny's energy.",
-      "expires_in_days": 7
-    }
-  ],
   "reset_recommended": true,
   "notes": []
 }
@@ -147,7 +134,6 @@ Bad:
       "expires_at": "9999-12-31"
     }
   ],
-  "engagement_priorities": [],
   "reset_recommended": true,
   "notes": []
 }

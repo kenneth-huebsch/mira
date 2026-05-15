@@ -29,16 +29,20 @@ python3 cron/morning_brief_collect.py
 ## TASK
 
 1. Use the collector JSON as the source of truth for current time, calendar
-   events, calendar failures, and current medium-memory context.
+   events, calendar failures, current medium-memory context, and active project
+   companion context.
 2. Query Todoist for tasks from `Kennys Personal Tasks` and `Kennys Work Todo List`.
 3. Summarize before reasoning:
    - List key events with time and title only. Highlight anything important or unusual.
    - For tasks, include those due today, high priority (`P1` / `P2`), and important upcoming items.
+   - For projects, include only active project context that is useful today; do
+     not turn every project into a task unless Todoist also supports it.
    - Apply the calendar failure handling from `TOOLS.md`. Never claim "no events" when retrieval failed.
 4. Generate the brief:
    - Key priorities for today.
    - Important events.
    - Urgent tasks.
+   - Active project next steps when relevant.
    - Suggested focus.
    - If calendar retrieval failed for either calendar, include one short line noting the access issue.
 

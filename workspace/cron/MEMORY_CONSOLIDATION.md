@@ -3,7 +3,6 @@ cron_id: memory_consolidation
 dynamic:
   - consolidation_medium_memory
   - consolidation_long_memory
-  - proactive_engagement_priorities
 ---
 
 # MEMORY HYGIENE CONSOLIDATION
@@ -21,8 +20,9 @@ python3 cron/memory_consolidation.py
 ```
 
 The helper owns all deterministic hygiene: parsing JSONL, dropping expired
-records, deduping exact memory summaries, aging engagement priorities,
-compacting email triage state, and safely writing or truncating files.
+records, deduping exact memory summaries, compacting email triage state,
+validating project companion state and project planning runs, and safely writing
+or truncating files.
 
 If the helper prints `NO_REPLY`, return exactly `NO_REPLY`.
 If the helper exits non-zero or prints anything else, return a short visible

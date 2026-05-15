@@ -129,6 +129,8 @@ When creating or editing an LLM-backed cron:
   as a literal OpenRouter model id and fails as `openrouter/default`.
 - For ordinary cron/tool workflows, set `payload.model` to
   `openrouter/xiaomi/mimo-v2-flash` and `payload.thinking` to `off`.
+- For proactive relationship-building engagement, use
+  `openrouter/deepseek/deepseek-v3.2` and `payload.thinking` to `off`.
 - Use Eastern time (`America/New_York`) for user-facing schedules unless Kenny
   explicitly asks otherwise.
 - For `delivery.mode: announce` crons, the payload should return the message as
@@ -226,8 +228,6 @@ of the same name:
 
 - `skills/memory_manager.md` — invoked by `memory-plugin.ts` after each
   interactive turn to decide whether to append to medium memory.
-- `skills/engagement_priorities_manager.md` — invoked by `memory-plugin.ts`
-  after each interactive turn to decide whether to append a priority.
 - `skills/agent-browser/SKILL.md` — browser automation skill for Rumi.
 
 Enabled skills (see `~/.openclaw/openclaw.json` `skills.entries`): `gog`,

@@ -49,7 +49,7 @@ Use `templates/openclaw.friend-safe.example.json` and `templates/cron-jobs.frien
 - Interactive chat loads `AGENTS.md`, `SOUL.md`, `IDENTITY.md`, `USER.md`, `TOOLS.md`, and `HEARTBEAT.md`.
 - Cron prompts exist under `workspace/cron/`.
 - Required cron dependency files exist under `workspace/memory/`.
-- The memory plugin is installed and can read `skills/memory_manager.md` and `skills/engagement_priorities_manager.md`.
+- The memory plugin is installed and can read `skills/memory_manager.md`.
 - QMD memory search is available with `openclaw memory status --agent main` and
   can search selected markdown docs. Historical JSONL memory is not backfilled,
   and session indexing should remain off unless intentionally enabled.

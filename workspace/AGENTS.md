@@ -62,6 +62,21 @@ appeared in chat. Prefer short expiry windows and include a
 `suggested_message_angle` that names the emotional register, not the exact
 wording.
 
+Detailed Project Companion behavior lives in
+`capabilities/project_companion/INTERACTIVE.md` and is injected into interactive
+startup context by the workspace memory plugin. Follow it when Kenny wants
+ongoing help with a multi-step project, when a worker has pending questions or
+proposals, or when project planning needs to be queued out of Telegram.
+
+Keep these global invariants regardless of capability instructions:
+
+- Do not let a Telegram turn become long, tool-heavy project planning when a
+  capability worker exists.
+- External writes such as Todoist task creation or Calendar event creation
+  require explicit Kenny confirmation in the current turn.
+- Todoist project-planning tasks must use existing task homes unless Kenny asks
+  for a new feature; do not create new Todoist projects by default.
+
 ### Heartbeat
 
 Purpose: fast, cheap, reactive background handling.
@@ -183,6 +198,32 @@ When Kenny references an email, draft, reply, inbox message, or sender:
 
 - `memory/long_memory.jsonl` — durable life context. One JSON object per line: `{"summary","created_at":"YYYY-MM-DD","expires_at":"YYYY-MM-DD"}`. Use `9999-12-31` for no expiration.
 - `memory/medium_memory.jsonl` — time-bounded focus, projects, or short-term goals. Same schema. Default `expires_at` to ~60 days from `created_at` unless Kenny implies otherwise.
+- `memory/projects.jsonl` — long-running project companion state. One JSON
+  object per line with `id`, `title`, `status`, `category`, optional
+  `starts_at`/`ends_at`, `cadence`, `current_phase`, `next_actions`,
+  `blockers`, `last_discussed_at`, `last_nudged_at`, `next_checkin_after`,
+  `tone`, optional planning-link fields, `created_at`, and `updated_at`. Use
+  `capabilities/project_companion/project_companion.py upsert`, `list`,
+  `review`, `complete`, `plan`, `propose`, `apply`, or `audit`; do not edit the
+  file directly.
+- `memory/project_details.jsonl` — project-scoped practical facts. One JSON
+  object per line with `detail_id`, `project_id`, `kind`, `title`, `value`,
+  optional `starts_at`/`ends_at`, `url`, `tags`, `metadata`, `source`, `status`,
+  `created_at`, and `updated_at`. Use
+  `capabilities/project_companion/project_companion.py detail-upsert`,
+  `detail-list`, or `detail-archive`; do not edit the file directly. Never
+  store secrets, confirmation codes, passport numbers, payment details, tokens,
+  or private document contents here.
+- `memory/project_runs.jsonl` — resumable project planning artifacts and audit
+  records. One JSON object per planning run with `run_id`, `project_id`,
+  `status`, `requested_at`, optional `claimed_at`/`completed_at`, `request`,
+  `task_home`, `summary`, `proposed_tasks`, `proposed_calendar_events`,
+  `questions`, `errors`, `applied_changes`, and `attempt_count`. This is
+  private runtime state and should be written through the project companion
+  helper.
+- `memory/engagement_memory.jsonl` — operational send history for proactive
+  engagement and engagement follow-ups. It is dedupe/rate-limit state, not
+  semantic memory.
 - `memory/engagement_followups.jsonl` — short-lived queue for human-feeling
   follow-ups that interactive Rumi intentionally enqueues. Use
   `cron/engagement_followups.py enqueue` rather than writing this file directly.
@@ -193,7 +234,7 @@ When Kenny references an email, draft, reply, inbox message, or sender:
 
 - Interactive turns may write immediate medium or long memory when Kenny clearly shares something worth remembering.
 - `cron/NIGHTLY_SESSION_REFLECTION.md` extracts selective next-day conversational context from Kenny's interactive session and may append durable facts Kenny explicitly revealed.
-- `cron/MEMORY_CONSOLIDATION.md` is hygiene-only: expire stale medium memory, dedupe existing records, age engagement priorities, and compact operational sidecars. It does not promote medium memory to long memory.
+- `cron/MEMORY_CONSOLIDATION.md` is hygiene-only: expire stale medium memory, dedupe existing records, validate project records, and compact operational sidecars. It does not promote medium memory to long memory.
 
 ### When to read (any sender)
 
@@ -205,12 +246,25 @@ If the sender is anyone else, skip this entire section.
 
 - **Append to `long_memory.jsonl`** when Kenny shares durable life context: vacations and trips, big plans, life events, ongoing commitments, family facts, work-role changes, important dates, recurring goals.
 - **Append to `medium_memory.jsonl`** when Kenny shares a time-bounded focus: a project, a presentation he's preparing, a short-term goal, a current emphasis.
+- **Create or update `projects.jsonl` through
+  `capabilities/project_companion/project_companion.py`** when Kenny wants
+  ongoing help working through a multi-step project over days or weeks. Prefer
+  updating an existing project over creating a near-duplicate.
+- **Create or update `project_details.jsonl` through the Project Companion
+  helper** when Kenny shares a useful fact for a tracked project, such as a
+  constraint, reservation, contact, link, decision, open question, travel leg,
+  or other scoped detail. Keep the detail generic enough to work for any project
+  type, not only travel.
 - **Skip** if a near-duplicate entry already exists. Prefer editing the existing line over adding a new one.
 - **Never** write trivia, transient moods, or small talk.
 
 ### When to auto-edit or remove — Kenny-only
 
 - If Kenny says something is "done", "no longer relevant", "canceled", or "I'm not focused on that anymore", locate the matching entry by topic and set `expires_at` to today's date so the next consolidation drops or promotes it.
+- If Kenny says a tracked project is "done", "paused", "canceled", or "not
+  relevant", use `python3 capabilities/project_companion/project_companion.py
+  complete --id <id> --status <completed|paused|canceled|archived>` instead of
+  editing `projects.jsonl` directly.
 - If Kenny explicitly says "forget X" or "remove X", delete that line outright.
 - Only act when the topic match is clear. If ambiguous, ask Kenny to disambiguate before editing.
 
@@ -231,6 +285,7 @@ After any memory write or edit (which only ever happens for Kenny), include a br
 Active scheduled prompts live in `cron/`:
 
 - `cron/PROACTIVE_ENGAGEMENT.md`
+- `cron/PROJECT_COMPANION.md`
 - `cron/ENGAGEMENT_FOLLOWUPS.md`
 - `cron/MEMORY_CONSOLIDATION.md`
 - `cron/NIGHTLY_SESSION_REFLECTION.md`
@@ -238,3 +293,17 @@ Active scheduled prompts live in `cron/`:
 - `cron/UPCOMING_DATES.md`
 - `cron/RUMIS_EMAIL_TRIAGE.md` — triages mail addressed directly to `rumi.openclaw@gmail.com`; drafts replies; writes to `memory/email_triage_state.jsonl`.
 - `cron/KENNYS_EMAIL_TRIAGE.md` — digests forwarded personal mail (`kenny@dripr.ai`, `kenny@0trust.email`); summary-only, never drafts, appends `forwarded_info` records to the state file.
+
+---
+
+## Capability Folders
+
+Large behavior systems live under `capabilities/<name>/`. The `cron/` directory
+remains the scheduler entrypoint layer; cron prompts may be thin wrappers that
+read capability prompts and call capability-owned helpers.
+
+Current capability folders:
+
+- `capabilities/project_companion/` — project state, planning runs, preview-first
+  proposals, daily project check-ins, injected interactive policy, and
+  large-project worker instructions.
