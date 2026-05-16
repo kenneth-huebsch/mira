@@ -178,7 +178,7 @@ Todoist tasks must use an existing task home. Do not create Todoist projects.
   "priority": "",
   "task_home": "personal",
   "todoist_project": "Personal Tasks",
-  "labels": ["project:project_id"],
+  "labels": ["project_family_trip_to_portugal"],
   "external_id": "",
   "status": "proposed"
 }
@@ -189,8 +189,10 @@ Allowed `task_home` values:
 - `personal` -> `Personal Tasks`
 - `work` -> `Work Tasks`
 
-Every Project Companion Todoist task must include `project:<project_id>` in
-`labels`.
+Every Project Companion Todoist task must include a descriptive project label in
+`labels`, formatted as `project_<descriptive_project_slug>`, for example
+`project_family_trip_to_portugal`. Do not use task homes such as `personal`,
+`personall`, or `work` as labels.
 
 ## Calendar Event Proposal
 

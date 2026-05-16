@@ -29,9 +29,14 @@ research, rewrite the plan, or infer extra work.
 
 - Use the existing task home from each task.
 - Resolve task homes through the helper-provided `todoist_task_homes`.
+- Personal project tasks MUST be created in Todoist project `Personal Tasks`.
+  Work project tasks MUST be created in Todoist project `Work Tasks`.
+- `personal`, `personall`, and `work` are task-home names, not labels. Never use
+  them as Todoist labels.
 - Do not create Todoist projects.
-- Include every task's labels. Every Project Companion task must carry the
-  helper-provided `project_label`, e.g. `project:family_trip_to_portugal`.
+- Include every task's labels. Every Project Companion task must carry exactly
+  the helper-provided descriptive `project_label`, e.g.
+  `project_family_trip_to_portugal`.
 - Preserve due dates and priorities from the task payload.
 - If this is a retry (`attempt_count` greater than 1), search Todoist for an
   existing matching task with the same project label and content before creating

@@ -382,8 +382,9 @@ def normalize_task_home(value: Any) -> str:
     return home if home in TASK_HOMES else "personal"
 
 
-def project_task_label(project_id: str) -> str:
-    return f"project:{slug(project_id, fallback='project')}"
+def project_task_label(project_id: str, project_title: str | None = None) -> str:
+    label_source = compact(project_title, 80) or project_id
+    return f"project_{slug(label_source, fallback='project')}"
 
 
 def append_unique(values: list[str], value: str) -> None:
@@ -391,12 +392,20 @@ def append_unique(values: list[str], value: str) -> None:
         values.append(value)
 
 
-def ensure_project_labels(tasks: list[dict[str, Any]], project_id: str) -> list[dict[str, Any]]:
-    label = project_task_label(project_id)
+def ensure_project_labels(
+    tasks: list[dict[str, Any]],
+    project_id: str,
+    project_title: str | None = None,
+) -> list[dict[str, Any]]:
+    label = project_task_label(project_id, project_title)
     labeled: list[dict[str, Any]] = []
     for task in tasks:
         next_task = dict(task)
-        labels = [compact(item, 50) for item in next_task.get("labels", []) if compact(item, 50)]
+        labels = [
+            compact(item, 50)
+            for item in next_task.get("labels", [])
+            if compact(item, 50).lower() not in {"personal", "personall", "work"}
+        ]
         append_unique(labels, label)
         next_task["labels"] = labels
         labeled.append(next_task)
@@ -820,7 +829,7 @@ def project_proposals(project: dict[str, Any], task_home: str) -> tuple[list[dic
         for action in project.get("next_actions", [])
     ]
     proposed_tasks = [task for task in proposed_tasks if task]
-    proposed_tasks = ensure_project_labels(proposed_tasks, project["id"])
+    proposed_tasks = ensure_project_labels(proposed_tasks, project["id"], project.get("title"))
     questions: list[str] = []
     if not proposed_tasks:
         questions.append("What are the next concrete actions for this project?")
@@ -943,7 +952,9 @@ def command_complete_run(args: argparse.Namespace, now: datetime) -> int:
         for item in parsed["proposed_tasks"]:
             if isinstance(item, dict) and (task := normalize_task(item, task_home)):
                 tasks.append(task)
-    tasks = ensure_project_labels(tasks, run["project_id"])
+    projects = load_projects(now)
+    project = next((item for item in projects if item["id"] == run["project_id"]), None)
+    tasks = ensure_project_labels(tasks, run["project_id"], project.get("title") if project else None)
     events = []
     if isinstance(parsed.get("proposed_calendar_events"), list):
         for item in parsed["proposed_calendar_events"]:
@@ -963,7 +974,6 @@ def command_complete_run(args: argparse.Namespace, now: datetime) -> int:
     run["updated_at"] = iso_from(now)
     save_runs(runs, args.dry_run)
 
-    projects = load_projects(now)
     set_project_run_state(projects, run, now)
     save_projects(projects, args.dry_run)
     print_json({"status": "OK", "run": run, "dry_run": args.dry_run})
@@ -1100,7 +1110,9 @@ def command_apply(args: argparse.Namespace, now: datetime) -> int:
     if not run:
         raise SystemExit(f"unknown run id: {args.run_id}")
     tasks, events = confirmed_subset(run, confirmed)
-    tasks = ensure_project_labels(tasks, run["project_id"])
+    projects = load_projects(now)
+    project = next((item for item in projects if item["id"] == run["project_id"]), None)
+    tasks = ensure_project_labels(tasks, run["project_id"], project.get("title") if project else None)
     run["proposed_tasks"] = tasks
     run["proposed_calendar_events"] = events
     errors: list[str] = []
@@ -1116,7 +1128,6 @@ def command_apply(args: argparse.Namespace, now: datetime) -> int:
     run["claimed_at"] = ""
     save_runs(runs, args.dry_run)
 
-    projects = load_projects(now)
     set_project_run_state(projects, run, now)
     save_projects(projects, args.dry_run)
 
@@ -1165,11 +1176,11 @@ def command_next_apply_run(args: argparse.Namespace, now: datetime) -> int:
             "kind": "project_apply_worker_run",
             "run": run,
             "project": project,
-            "todoist_tasks": ensure_project_labels(run["proposed_tasks"], run["project_id"]),
+            "todoist_tasks": ensure_project_labels(run["proposed_tasks"], run["project_id"], project.get("title")),
             "calendar_events": run["proposed_calendar_events"],
             "rules": {
                 "todoist_task_homes": TODOIST_HOME_NAMES,
-                "project_label": project_task_label(run["project_id"]),
+                "project_label": project_task_label(run["project_id"], project.get("title")),
                 "no_new_todoist_projects": True,
                 "external_changes_already_confirmed": True,
                 "write_output_with": "complete-apply-run",

@@ -155,6 +155,11 @@ Todoist tasks must go into one of the existing task homes:
 - `personal` -> `Personal Tasks`
 - `work` -> `Work Tasks`
 
+Task homes choose the Todoist destination project only. They are not labels.
+Project Companion tasks should be labeled by the apply worker with a descriptive
+project label such as `project_family_trip_to_portugal`, never `personal`,
+`personall`, or `work`.
+
 Do not create new Todoist projects in this workflow.
 
 Treat confirmation narrowly. A reply like "the car is rented already" updates

@@ -36,9 +36,12 @@ All confirmed project tasks go into one of:
 Use `task_home: "personal"` or `task_home: "work"` in proposals and store
 Todoist task IDs after creation.
 
-Every task created through Project Companion must include the project label from
-the helper, e.g. `project:family_trip_to_portugal`. The label is the stable
-audit/dedupe handle across Todoist and project state.
+Every task created through Project Companion must be labeled with the
+descriptive project label from the helper, e.g.
+`project_family_trip_to_portugal`. Do not label tasks with task-home names such
+as `personal`, `personall`, or `work`; those only choose the destination Todoist
+project. The project label is the stable audit/dedupe handle across Todoist and
+project state.
 
 ## Cron Boundary
 
