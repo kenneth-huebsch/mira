@@ -37,6 +37,18 @@ Optional coordination fields:
 - `pending_confirmation`
 - `last_audit_at`
 
+Project helper input accepts common aliases and normalizes them into the schema
+above without persisting alias fields:
+
+- `phase`, `stage` -> `current_phase`
+- `target_date`, `start_date`, `departure_date`, `due_date` -> `starts_at`
+- `end_date`, `return_date`, `finish_date` -> `ends_at`
+- `actions`, `tasks`, `todos` -> `next_actions`
+
+If `category` is omitted, the helper conservatively infers `travel` for obvious
+travel projects such as trips, vacations, Portugal, Airbnb, flights, or lodging.
+An explicit `category` always wins.
+
 ## `memory/project_details.jsonl`
 
 One JSON object per project-scoped detail. Details are the practical memory
@@ -76,6 +88,43 @@ clear, short, and reusable across projects.
 Do not store secrets, confirmation codes, passport numbers, payment details,
 tokens, or private document contents. Store pointers such as "confirmation is in
 Gmail" instead.
+
+Write one detail with:
+
+```bash
+python3 capabilities/project_companion/project_companion.py detail-upsert --json '{
+  "project_id": "family_trip_to_portugal",
+  "kind": "lodging",
+  "title": "Porto Airbnb",
+  "value": "Porto Airbnb from May 24 to May 30.",
+  "starts_at": "2026-05-24",
+  "ends_at": "2026-05-30",
+  "source": "long_memory"
+}'
+```
+
+Write multiple details with:
+
+```bash
+python3 capabilities/project_companion/project_companion.py details-upsert --json '[
+  {
+    "project_id": "family_trip_to_portugal",
+    "kind": "lodging",
+    "title": "Lisbon Airbnb",
+    "value": "Lisbon Airbnb from May 30 to Jun 2.",
+    "starts_at": "2026-05-30",
+    "ends_at": "2026-06-02",
+    "source": "long_memory"
+  },
+  {
+    "project_id": "family_trip_to_portugal",
+    "kind": "constraint",
+    "title": "Prescriptions",
+    "value": "Prescriptions need to be filled before departure.",
+    "source": "long_memory"
+  }
+]'
+```
 
 ## `memory/project_runs.jsonl`
 

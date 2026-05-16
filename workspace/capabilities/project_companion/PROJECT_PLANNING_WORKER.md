@@ -8,12 +8,19 @@ Use this worker for large, tool-heavy project planning. It should run in an
 isolated context, produce a compact planning artifact, and avoid making
 external changes until Kenny confirms the proposal.
 
+## Runtime Model
+
+This worker is intentionally more capable than ordinary lightweight crons. The
+live Project Planning Worker cron should run with `openrouter/openai/gpt-5-mini`
+and low thinking so it can use tools carefully, reason about constraints, and
+produce useful structured proposals.
+
 ## Workflow
 
 1. Claim exactly one queued planning run with:
 
 ```bash
-python3 capabilities/project_companion/project_companion.py next-worker-run
+python3 /home/node/.openclaw/workspace/capabilities/project_companion/project_companion.py next-worker-run
 ```
 
 If the helper prints exactly `NO_REPLY`, return exactly `NO_REPLY`.
@@ -21,6 +28,11 @@ If the helper prints exactly `NO_REPLY`, return exactly `NO_REPLY`.
 2. If the helper returns JSON with `"status":"OK"`, use only that compact JSON
    as the worker input. It contains the project, any active project details,
    the run, and the rules.
+
+Use direct absolute helper commands exactly like the examples here. Do not
+prefix helper calls with `cd`, shell pipelines, temporary wrapper scripts, or
+Python subprocess wrappers. If exec preflight rejects a helper call as a complex
+interpreter invocation, retry once with the absolute direct command form.
 
 3. Produce a practical planning artifact:
 
@@ -38,7 +50,9 @@ details; ask questions instead.
 4. Save the artifact with:
 
 ```bash
-python3 capabilities/project_companion/project_companion.py complete-run --run-id <run_id> --json '<worker-result-json>'
+python3 /home/node/.openclaw/workspace/capabilities/project_companion/project_companion.py complete-run --run-id <run_id> --json-stdin <<'JSON'
+<worker-result-json>
+JSON
 ```
 
 The JSON must be an object with any of:
@@ -54,14 +68,21 @@ The JSON must be an object with any of:
 }
 ```
 
+Use `--json-stdin` for complete-run artifacts. Do not pass the worker artifact as
+single-quoted shell JSON; apostrophes and long nested arrays can break shell
+quoting and waste the cron timeout window. Keep all calendar proposal fields in
+the helper schema (`starts_at` / `ends_at`, not `start` / `end`), or omit the
+calendar proposal and ask a question instead.
+
 5. Return one concise Rumi message for Kenny. The message should say what is
    ready or what information is needed. Do not include raw JSON, run ids, file
    paths, command names, or internal process unless Kenny asks.
 
-If saving fails, run:
+If saving fails once, do not retry with more complex shell commands. Record the
+failure with:
 
 ```bash
-python3 capabilities/project_companion/project_companion.py fail-run --run-id <run_id> --error "<short error>"
+python3 /home/node/.openclaw/workspace/capabilities/project_companion/project_companion.py fail-run --run-id <run_id> --error "<short error>"
 ```
 
 Then return a short failure note for Kenny.

@@ -17,12 +17,31 @@ guest-sourced requests, or vague topics with no actionable follow-through.
 Create or update project state only through the helper:
 
 ```bash
-python3 capabilities/project_companion/project_companion.py upsert --json '<project-json>'
+python3 /home/node/.openclaw/workspace/capabilities/project_companion/project_companion.py upsert --json '<project-json>'
 ```
 
 Keep project state practical: title, phase, next actions, blockers, cadence,
 target dates, and tone. Use Todoist and Calendar for actual tasks and events;
 project state is the narrative/context layer.
+
+For travel projects with known date ranges, set project-level `starts_at` to the
+earliest known trip date and `ends_at` to the latest known trip date. Keep the
+detailed lodging, flight, rental, and constraint facts in project details too.
+
+Use a direct helper command exactly like the examples here: `python3
+/home/node/.openclaw/workspace/capabilities/project_companion/project_companion.py
+<command> ...`. Do not prefix helper calls with `cd`, shell pipelines, `cat`,
+`grep`, `find`, temporary wrapper scripts, or Python subprocess wrappers. If exec
+preflight rejects a helper call as a complex interpreter invocation, retry once
+with the absolute direct command form above.
+
+When creating or updating a project:
+
+1. Upsert the canonical project record.
+2. Immediately write any known scoped facts with `detail-upsert` or
+   `details-upsert`.
+3. Only then reply to Kenny with ordinary visible assistant text. Do not put the
+   final user-facing reply in thinking/reasoning content.
 
 ## Project Details
 
@@ -34,13 +53,26 @@ project-specific notes.
 Write details only through the helper:
 
 ```bash
-python3 capabilities/project_companion/project_companion.py detail-upsert --json '<detail-json>'
+python3 /home/node/.openclaw/workspace/capabilities/project_companion/project_companion.py detail-upsert --json '<detail-json>'
+python3 /home/node/.openclaw/workspace/capabilities/project_companion/project_companion.py details-upsert --json '<detail-json-array>'
 ```
 
 The detail JSON must include `project_id` and either `title` or `value`.
 Recommended generic fields are `kind`, `title`, `value`, optional `starts_at`,
 `ends_at`, `url`, `tags`, and `metadata`. Keep details useful across project
 types; do not make travel-only assumptions.
+
+After upserting a project, if current context or memory already contains scoped
+facts for that project, write them immediately. Examples include `lodging` like
+"Porto Airbnb May 24-30", `lodging` like "Lisbon Airbnb May 30-Jun 2",
+`lodging` like "Martinhal resort Jun 2-8", or a `constraint` like
+"prescriptions must be filled before departure".
+
+If you mention a project fact in the user-visible reply as something you know,
+and that fact belongs to a tracked project, it should already have been written
+with `detail-upsert` or `details-upsert` unless it is unsafe to store. Do not
+promise to remember or add details in prose. Perform the helper write first,
+then confirm naturally.
 
 Do not store secrets, confirmation codes, passport numbers, payment details,
 tokens, or private document contents in project details. Store a pointer such as
@@ -49,7 +81,7 @@ tokens, or private document contents in project details. Store a pointer such as
 Inspect details with:
 
 ```bash
-python3 capabilities/project_companion/project_companion.py detail-list --id <project_id>
+python3 /home/node/.openclaw/workspace/capabilities/project_companion/project_companion.py detail-list --id <project_id>
 ```
 
 Before creating a project, make sure Kenny actually wants ongoing help. If he
@@ -59,18 +91,34 @@ desired cadence, or the first next action.
 
 ## Large Project Gate
 
-Keep the main Telegram turn small. If the request needs more than 2-3 tool
-calls, broad research, or external writes:
+Lightweight onboarding can create or update project state, capture known details,
+and ask one focused question or offer a few planning lanes. A first message like
+"help me with my planning for my family trip to Portugal" is lightweight
+onboarding unless Kenny explicitly asks for a concrete plan, checklist, research,
+or asks Rumi to figure out the work. Do not queue a worker for every project
+mention.
+
+The word "planning" alone is not a worker trigger. For first-turn requests like
+"help me plan my trip" or "help me with planning for my family trip to
+Portugal", do not call `plan`. Create/update the project, capture known details,
+then stop and reply with a short question or a few lanes Kenny could choose
+from.
+
+Keep the main Telegram turn small. If Kenny asks to "make me a plan", "research
+options", "build my checklist", or "figure out what I need", or if the request
+needs more than 2-3 tool calls, broad research, task generation, or external
+writes:
 
 1. Identify or create the project.
-2. Queue a planning run:
+2. Capture any known scoped details.
+3. Queue a planning run:
 
 ```bash
-python3 capabilities/project_companion/project_companion.py plan --id <project_id> --request "<short request>" --task-home <personal|work>
+python3 /home/node/.openclaw/workspace/capabilities/project_companion/project_companion.py plan --id <project_id> --request "<short request>" --task-home <personal|work>
 ```
 
-3. Stop tool-heavy work in the main session.
-4. Tell Kenny briefly that the planning run is queued and Rumi will come back
+4. Stop tool-heavy work in the main session.
+5. Tell Kenny briefly that the planning run is queued and Rumi will come back
    with a proposal.
 
 Do not keep adding tools in Telegram just because progress is possible.
@@ -90,9 +138,9 @@ brief disambiguating question before applying or updating anything.
 Useful commands:
 
 ```bash
-python3 capabilities/project_companion/project_companion.py audit --id <project_id>
-python3 capabilities/project_companion/project_companion.py propose --id <project_id>
-python3 capabilities/project_companion/project_companion.py propose --run-id <run_id>
+python3 /home/node/.openclaw/workspace/capabilities/project_companion/project_companion.py audit --id <project_id>
+python3 /home/node/.openclaw/workspace/capabilities/project_companion/project_companion.py propose --id <project_id>
+python3 /home/node/.openclaw/workspace/capabilities/project_companion/project_companion.py propose --run-id <run_id>
 ```
 
 ## External Changes
@@ -113,8 +161,16 @@ After Kenny confirms exact changes, use the helper to apply or record the
 confirmed subset:
 
 ```bash
-python3 capabilities/project_companion/project_companion.py apply --run-id <run_id> --confirmed-json '<confirmation-json>'
+python3 /home/node/.openclaw/workspace/capabilities/project_companion/project_companion.py apply --run-id <run_id> --confirmed-json-stdin <<'JSON'
+{"confirmed": true, "tasks": [], "calendar_events": []}
+JSON
 ```
+
+Use `--confirmed-json-stdin` for apply payloads. Do not pass long confirmed
+task/event lists as single-quoted shell JSON; apostrophes in names and notes can
+break the command. Include every confirmed task when Kenny adds items to a
+proposal, and include calendar events only when each event has explicit
+`starts_at` and `ends_at`.
 
 Todoist is MCP-only in this workspace. If the helper returns Todoist apply
 instructions, execute those with Todoist MCP after confirmation and record

@@ -6,6 +6,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 import uuid
 from datetime import date, datetime, timedelta
@@ -55,7 +56,10 @@ def parse_args() -> argparse.Namespace:
     complete.add_argument("--status", default="completed", choices=sorted(ACTIVE_STATUSES | TERMINAL_STATUSES))
 
     detail_upsert = subparsers.add_parser("detail-upsert", help="Create or update a project-scoped detail from JSON.")
-    detail_upsert.add_argument("--json", required=True, help="Project detail JSON object.")
+    detail_upsert.add_argument("--json", required=True, help="Project detail JSON object or array.")
+
+    details_upsert = subparsers.add_parser("details-upsert", help="Create or update one or more project-scoped details from JSON.")
+    details_upsert.add_argument("--json", required=True, help="Project detail JSON object or array.")
 
     detail_list = subparsers.add_parser("detail-list", help="List project-scoped details.")
     detail_list.add_argument("--id", help="Project id.")
@@ -74,7 +78,8 @@ def parse_args() -> argparse.Namespace:
 
     complete_run = subparsers.add_parser("complete-run", help="Save worker output for a claimed planning run.")
     complete_run.add_argument("--run-id", required=True, help="Planning run id.")
-    complete_run.add_argument("--json", required=True, help="Worker result JSON.")
+    complete_run.add_argument("--json", help="Worker result JSON.")
+    complete_run.add_argument("--json-stdin", action="store_true", help="Read worker result JSON from stdin.")
 
     fail_run = subparsers.add_parser("fail-run", help="Record a worker failure for a planning run.")
     fail_run.add_argument("--run-id", required=True, help="Planning run id.")
@@ -86,7 +91,8 @@ def parse_args() -> argparse.Namespace:
 
     apply = subparsers.add_parser("apply", help="Apply or record confirmed external changes for a planning run.")
     apply.add_argument("--run-id", required=True, help="Planning run id.")
-    apply.add_argument("--confirmed-json", required=True, help="JSON describing the confirmed subset to apply.")
+    apply.add_argument("--confirmed-json", help="JSON describing the confirmed subset to apply.")
+    apply.add_argument("--confirmed-json-stdin", action="store_true", help="Read confirmed subset JSON from stdin.")
 
     audit = subparsers.add_parser("audit", help="Show project and run state.")
     audit.add_argument("--id", help="Project id.")
@@ -140,6 +146,24 @@ def slug(value: Any, fallback: str = "project") -> str:
     text = compact(value, 80).lower()
     normalized = re.sub(r"[^a-z0-9]+", "_", text).strip("_")
     return normalized or fallback
+
+
+def first_present(raw: dict[str, Any], *keys: str) -> Any:
+    for key in keys:
+        value = raw.get(key)
+        if value is not None and value != "" and value != []:
+            return value
+    return None
+
+
+def infer_category(raw: dict[str, Any], title: str) -> str:
+    explicit = compact(raw.get("category"), 50)
+    if explicit:
+        return explicit
+    haystack = f"{title} {raw.get('id') or ''}".lower()
+    if any(term in haystack for term in ["trip", "travel", "vacation", "portugal", "airbnb", "flight", "lodging"]):
+        return "travel"
+    return "general"
 
 
 def valid_date(value: Any) -> str | None:
@@ -217,16 +241,20 @@ def normalize_project(raw: dict[str, Any], now: datetime) -> dict[str, Any] | No
     cadence = compact(raw.get("cadence"), 40).lower() or "daily_or_when_useful"
     todoist_task_ids = raw.get("todoist_task_ids") if isinstance(raw.get("todoist_task_ids"), list) else []
     calendar_event_ids = raw.get("calendar_event_ids") if isinstance(raw.get("calendar_event_ids"), list) else []
+    starts_at = first_present(raw, "starts_at", "start_date", "target_date", "departure_date", "due_date")
+    ends_at = first_present(raw, "ends_at", "end_date", "return_date", "finish_date")
+    current_phase = first_present(raw, "current_phase", "phase", "stage")
+    next_actions = first_present(raw, "next_actions", "actions", "tasks", "todos")
     return {
         "id": project_id,
         "title": title,
         "status": status,
-        "category": compact(raw.get("category"), 50) or "general",
-        "starts_at": valid_date(raw.get("starts_at")),
-        "ends_at": valid_date(raw.get("ends_at")),
+        "category": infer_category(raw, title),
+        "starts_at": valid_date(starts_at),
+        "ends_at": valid_date(ends_at),
         "cadence": cadence,
-        "current_phase": compact(raw.get("current_phase"), 80) or "planning",
-        "next_actions": string_list(raw.get("next_actions")),
+        "current_phase": compact(current_phase, 80) or "planning",
+        "next_actions": string_list(next_actions),
         "blockers": string_list(raw.get("blockers"), limit=6),
         "last_discussed_at": valid_date(raw.get("last_discussed_at")) or today,
         "last_nudged_at": valid_date(raw.get("last_nudged_at")),
@@ -363,8 +391,8 @@ def normalize_calendar_event(raw: dict[str, Any]) -> dict[str, Any] | None:
     return {
         "title": title,
         "calendar": compact(raw.get("calendar"), 120) or "kenneth.huebsch@gmail.com",
-        "starts_at": compact(raw.get("starts_at") or raw.get("from"), 80),
-        "ends_at": compact(raw.get("ends_at") or raw.get("to"), 80),
+        "starts_at": compact(raw.get("starts_at") or raw.get("start") or raw.get("from"), 80),
+        "ends_at": compact(raw.get("ends_at") or raw.get("end") or raw.get("to"), 80),
         "all_day": bool(raw.get("all_day", True)),
         "external_id": compact(raw.get("external_id") or raw.get("id"), 120),
         "status": compact(raw.get("status"), 30) or "proposed",
@@ -647,25 +675,49 @@ def command_complete(args: argparse.Namespace, now: datetime) -> int:
 
 
 def command_detail_upsert(args: argparse.Namespace, now: datetime) -> int:
+    return command_details_upsert(args, now, single_command=True)
+
+
+def parse_detail_payload(raw_json: str) -> list[dict[str, Any]]:
     try:
-        parsed = json.loads(args.json)
+        parsed = json.loads(raw_json)
     except json.JSONDecodeError as exc:
         raise SystemExit(f"invalid JSON: {exc}") from exc
-    if not isinstance(parsed, dict):
-        raise SystemExit("project detail payload must be a JSON object")
-    incoming = normalize_detail(parsed, now)
-    if incoming is None:
-        raise SystemExit("project detail payload requires project_id and title or value")
+    if isinstance(parsed, dict):
+        return [parsed]
+    if isinstance(parsed, list) and all(isinstance(item, dict) for item in parsed):
+        return parsed
+    raise SystemExit("project detail payload must be a JSON object or array of objects")
+
+
+def command_details_upsert(args: argparse.Namespace, now: datetime, single_command: bool = False) -> int:
+    parsed_items = parse_detail_payload(args.json)
+    incoming_details: list[dict[str, Any]] = []
+    for parsed in parsed_items:
+        incoming = normalize_detail(parsed, now)
+        if incoming is None:
+            raise SystemExit("project detail payload requires project_id and title or value")
+        incoming_details.append(incoming)
 
     projects = load_projects(now)
-    if not any(project["id"] == incoming["project_id"] for project in projects):
-        raise SystemExit(f"unknown project id: {incoming['project_id']}")
+    project_ids = {project["id"] for project in projects}
+    for incoming in incoming_details:
+        if incoming["project_id"] not in project_ids:
+            raise SystemExit(f"unknown project id: {incoming['project_id']}")
+
     details = load_details(now)
     existing_by_id = {detail["detail_id"]: detail for detail in details}
-    merged = merge_detail(existing_by_id.get(incoming["detail_id"]), incoming, now)
-    existing_by_id[merged["detail_id"]] = merged
+    merged_details: list[dict[str, Any]] = []
+    for incoming in incoming_details:
+        merged = merge_detail(existing_by_id.get(incoming["detail_id"]), incoming, now)
+        existing_by_id[merged["detail_id"]] = merged
+        merged_details.append(merged)
+
     save_details(list(existing_by_id.values()), args.dry_run)
-    print_json({"status": "OK", "detail": merged, "dry_run": args.dry_run})
+    if single_command and len(merged_details) == 1:
+        print_json({"status": "OK", "detail": merged_details[0], "dry_run": args.dry_run})
+    else:
+        print_json({"status": "OK", "details": merged_details, "dry_run": args.dry_run})
     return 0
 
 
@@ -803,8 +855,11 @@ def proposed_status(tasks: list[dict[str, Any]], events: list[dict[str, Any]], q
 
 
 def command_complete_run(args: argparse.Namespace, now: datetime) -> int:
+    raw_json = sys.stdin.read() if args.json_stdin else args.json
+    if not raw_json:
+        raise SystemExit("worker result requires --json or --json-stdin")
     try:
-        parsed = json.loads(args.json)
+        parsed = json.loads(raw_json)
     except json.JSONDecodeError as exc:
         raise SystemExit(f"invalid JSON: {exc}") from exc
     if not isinstance(parsed, dict):
@@ -939,6 +994,19 @@ def confirmed_subset(run: dict[str, Any], payload: dict[str, Any]) -> tuple[list
     event_indexes = payload.get("calendar_event_indexes")
     tasks = run["proposed_tasks"]
     events = run["proposed_calendar_events"]
+    task_home = normalize_task_home(payload.get("task_home") or run.get("task_home"))
+    if isinstance(payload.get("tasks"), list):
+        tasks = [
+            task
+            for item in payload["tasks"]
+            if isinstance(item, dict) and (task := normalize_task(item, task_home))
+        ]
+    if isinstance(payload.get("calendar_events"), list):
+        events = [
+            event
+            for item in payload["calendar_events"]
+            if isinstance(item, dict) and (event := normalize_calendar_event(item))
+        ]
     if isinstance(task_indexes, list):
         tasks = [task for index, task in enumerate(tasks) if index in task_indexes]
     if isinstance(event_indexes, list):
@@ -947,8 +1015,11 @@ def confirmed_subset(run: dict[str, Any], payload: dict[str, Any]) -> tuple[list
 
 
 def command_apply(args: argparse.Namespace, now: datetime) -> int:
+    raw_json = sys.stdin.read() if args.confirmed_json_stdin else args.confirmed_json
+    if not raw_json:
+        raise SystemExit("confirmed payload requires --confirmed-json or --confirmed-json-stdin")
     try:
-        confirmed = json.loads(args.confirmed_json)
+        confirmed = json.loads(raw_json)
     except json.JSONDecodeError as exc:
         raise SystemExit(f"invalid confirmed JSON: {exc}") from exc
     if not isinstance(confirmed, dict):
@@ -961,6 +1032,8 @@ def command_apply(args: argparse.Namespace, now: datetime) -> int:
     if not run:
         raise SystemExit(f"unknown run id: {args.run_id}")
     tasks, events = confirmed_subset(run, confirmed)
+    run["proposed_tasks"] = tasks
+    run["proposed_calendar_events"] = events
     applied_changes: list[dict[str, Any]] = []
     errors: list[str] = []
 
@@ -1044,6 +1117,8 @@ def main() -> int:
         return command_complete(args, now)
     if args.command == "detail-upsert":
         return command_detail_upsert(args, now)
+    if args.command == "details-upsert":
+        return command_details_upsert(args, now)
     if args.command == "detail-list":
         return command_detail_list(args, now)
     if args.command == "detail-archive":
