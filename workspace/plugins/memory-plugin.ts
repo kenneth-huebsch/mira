@@ -71,6 +71,9 @@ const PENDING_PROJECT_RUN_STATUSES = new Set([
   "in_progress",
   "pending_confirmation",
   "needs_input",
+  "apply_queued",
+  "apply_in_progress",
+  "applied_with_errors",
   "failed",
 ]);
 
@@ -754,6 +757,10 @@ async function loadPendingProjectRuns(workspaceDir: string): Promise<string | un
         ? "answer questions"
         : status === "pending_confirmation"
           ? "review/confirm proposal"
+          : status === "apply_queued" || status === "apply_in_progress"
+            ? "wait for apply worker"
+            : status === "applied_with_errors"
+              ? "review apply failure"
           : status === "failed"
             ? "review failure"
             : status === "queued" || status === "in_progress"

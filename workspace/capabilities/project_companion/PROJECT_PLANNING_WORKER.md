@@ -8,6 +8,10 @@ Use this worker for large, tool-heavy project planning. It should run in an
 isolated context, produce a compact planning artifact, and avoid making
 external changes until Kenny confirms the proposal.
 
+This worker is proposal-only. It must not call Todoist MCP, `gog calendar`, or
+any other external-write path. Confirmed external writes belong to the separate
+Project Apply Worker.
+
 ## Runtime Model
 
 This worker is intentionally more capable than ordinary lightweight crons. The
@@ -93,8 +97,8 @@ Do not create Todoist projects in this workflow.
 
 All proposed tasks must target one of:
 
-- `personal` -> `Kennys Personal Tasks`
-- `work` -> `Kennys Work Todo List`
+- `personal` -> `Personal Tasks`
+- `work` -> `Work Tasks`
 
 The project helper validates `task_home`; use that field instead of arbitrary
 Todoist project names.
@@ -106,11 +110,14 @@ Todoist project names.
   normalizes a useful scoped fact, but do not store secrets, confirmation codes,
   passport numbers, payment details, tokens, or private document contents.
 - Calendar and Todoist writes are preview-first.
-- Calendar events may only be created after a confirmed apply call.
-- Todoist is MCP-only in this workspace. The helper returns validated Todoist
-  apply instructions; Rumi should execute them with Todoist MCP only after
-  Kenny confirms the exact proposed task list.
-- Record per-item failures so retries do not duplicate successful work.
+- Do not create Todoist tasks or calendar events from this worker.
+- Calendar events may only be proposed when each event has explicit
+  `starts_at` and `ends_at`. If the timing is unclear, ask a question instead of
+  emitting an invalid event.
+- After Kenny confirms exact changes in Telegram, interactive Rumi queues the
+  Project Apply Worker. The apply worker owns Todoist MCP and `gog` calendar
+  writes and records per-item failures so retries do not duplicate successful
+  work.
 
 ## Message Rules
 

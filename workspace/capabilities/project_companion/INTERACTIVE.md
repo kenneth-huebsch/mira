@@ -143,7 +143,7 @@ python3 /home/node/.openclaw/workspace/capabilities/project_companion/project_co
 python3 /home/node/.openclaw/workspace/capabilities/project_companion/project_companion.py propose --run-id <run_id>
 ```
 
-## External Changes
+## Confirmed Apply Flow
 
 Project planning may write project state through the helper, but Todoist and
 Calendar writes are preview-first. Do not create Todoist tasks or calendar
@@ -152,13 +152,17 @@ changes in the current turn.
 
 Todoist tasks must go into one of the existing task homes:
 
-- `personal` -> `Kennys Personal Tasks`
-- `work` -> `Kennys Work Todo List`
+- `personal` -> `Personal Tasks`
+- `work` -> `Work Tasks`
 
 Do not create new Todoist projects in this workflow.
 
-After Kenny confirms exact changes, use the helper to apply or record the
-confirmed subset:
+Treat confirmation narrowly. A reply like "the car is rented already" updates
+project state only; it is not approval to create every pending task. Before
+applying a proposal, Kenny must clearly confirm all proposed tasks/events or name
+the exact subset to apply.
+
+After Kenny confirms exact changes, queue the apply worker with:
 
 ```bash
 python3 /home/node/.openclaw/workspace/capabilities/project_companion/project_companion.py apply --run-id <run_id> --confirmed-json-stdin <<'JSON'
@@ -172,6 +176,13 @@ break the command. Include every confirmed task when Kenny adds items to a
 proposal, and include calendar events only when each event has explicit
 `starts_at` and `ends_at`.
 
-Todoist is MCP-only in this workspace. If the helper returns Todoist apply
-instructions, execute those with Todoist MCP after confirmation and record
-per-item failures so retries do not duplicate successful work.
+The `apply` command only queues a confirmed apply run; it does not perform
+external writes. After it returns `"apply_status":"apply_queued"`, stop tool
+work in the Telegram turn and tell Kenny briefly that the confirmed changes are
+queued. The Project Apply Worker owns the Todoist MCP and `gog` calendar writes,
+records task/event ids, and reports back.
+
+After queuing a confirmed apply, do not continue into optional project
+bookkeeping, Todoist creation, calendar creation, or audit calls in the same
+Telegram turn. Do the confirmed queue step, verify the helper accepted it, then
+reply.

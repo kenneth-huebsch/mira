@@ -9,6 +9,7 @@ out of the main Telegram turn.
 - `PROJECT_COMPANION.md` - daily lightweight check-in behavior.
 - `INTERACTIVE.md` - interactive Project Companion policy injected by the memory plugin.
 - `PROJECT_PLANNING_WORKER.md` - isolated worker instructions for larger planning.
+- `PROJECT_APPLY_WORKER.md` - isolated worker instructions for confirmed Todoist and Calendar writes.
 - `project_companion.py` - deterministic state, queued worker run, proposal, audit, and apply helper.
 - `schema.md` - project and planning-run schemas.
 
@@ -29,16 +30,28 @@ Do not create Todoist projects in this capability.
 
 All confirmed project tasks go into one of:
 
-- `Kennys Personal Tasks`
-- `Kennys Work Todo List`
+- `Personal Tasks`
+- `Work Tasks`
 
 Use `task_home: "personal"` or `task_home: "work"` in proposals and store
 Todoist task IDs after creation.
+
+Every task created through Project Companion must include the project label from
+the helper, e.g. `project:family_trip_to_portugal`. The label is the stable
+audit/dedupe handle across Todoist and project state.
 
 ## Cron Boundary
 
 `workspace/cron/` remains the scheduler entrypoint folder. Cron files should be
 thin wrappers that call capability-owned prompts/helpers.
+
+Project Companion uses two worker boundaries:
+
+- **Project Planning Worker** - proposal-only. It writes planning artifacts and
+  never mutates Todoist or Calendar.
+- **Project Apply Worker** - confirmation-only. It claims already-confirmed
+  apply runs, uses the narrow Todoist/Calendar tool surface, records created IDs
+  and per-item failures, and returns one Telegram-ready update.
 
 Cron wrappers should declare capability-owned behavior through frontmatter
 instead of duplicating instructions:

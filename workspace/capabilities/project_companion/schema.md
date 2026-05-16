@@ -157,6 +157,10 @@ Run statuses:
 - `in_progress` - the worker has claimed the run.
 - `pending_confirmation` - a proposal is ready for Kenny to confirm.
 - `needs_input` - the worker needs an answer from Kenny before proposing or applying changes.
+- `apply_queued` - Kenny confirmed exact changes and the Project Apply Worker
+  should apply them.
+- `apply_in_progress` - the Project Apply Worker has claimed the confirmed
+  changes.
 - `failed` - the worker hit a useful failure that should be visible/retryable.
 - `completed` - the worker finished with no external proposal or open question.
 - `applied` / `applied_with_errors` - confirmed changes were applied or recorded.
@@ -173,7 +177,7 @@ Todoist tasks must use an existing task home. Do not create Todoist projects.
   "due": "May 18",
   "priority": "",
   "task_home": "personal",
-  "todoist_project": "Kennys Personal Tasks",
+  "todoist_project": "Personal Tasks",
   "labels": ["project:project_id"],
   "external_id": "",
   "status": "proposed"
@@ -182,8 +186,11 @@ Todoist tasks must use an existing task home. Do not create Todoist projects.
 
 Allowed `task_home` values:
 
-- `personal` -> `Kennys Personal Tasks`
-- `work` -> `Kennys Work Todo List`
+- `personal` -> `Personal Tasks`
+- `work` -> `Work Tasks`
+
+Every Project Companion Todoist task must include `project:<project_id>` in
+`labels`.
 
 ## Calendar Event Proposal
 

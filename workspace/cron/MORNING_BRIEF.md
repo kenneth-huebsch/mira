@@ -31,7 +31,7 @@ python3 cron/morning_brief_collect.py
 1. Use the collector JSON as the source of truth for current time, calendar
    events, calendar failures, current medium-memory context, and active project
    companion context.
-2. Query Todoist for tasks from `Kennys Personal Tasks` and `Kennys Work Todo List`.
+2. Query Todoist for tasks from `Personal Tasks` and `Work Tasks`.
 3. Summarize before reasoning:
    - List key events with time and title only. Highlight anything important or unusual.
    - For tasks, include those due today, high priority (`P1` / `P2`), and important upcoming items.

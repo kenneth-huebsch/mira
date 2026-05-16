@@ -23,15 +23,23 @@ PROJECT_DETAILS_FILE = MEMORY_DIR / "project_details.jsonl"
 
 ACTIVE_STATUSES = {"active", "paused"}
 TERMINAL_STATUSES = {"completed", "archived", "canceled"}
-RUN_PENDING_STATUSES = {"queued", "in_progress", "pending_confirmation", "needs_input", "failed"}
+RUN_PENDING_STATUSES = {
+    "queued",
+    "in_progress",
+    "pending_confirmation",
+    "needs_input",
+    "apply_queued",
+    "apply_in_progress",
+    "failed",
+}
 RUN_TERMINAL_STATUSES = {"completed", "applied", "applied_with_errors", "canceled"}
 DETAIL_STATUSES = {"active", "archived"}
 TASK_HOMES = {"personal", "work"}
 DEFAULT_TONE = "helpful, light, not naggy"
 DEFAULT_STALE_MINUTES = 90
 TODOIST_HOME_NAMES = {
-    "personal": "Kennys Personal Tasks",
-    "work": "Kennys Work Todo List",
+    "personal": "Personal Tasks",
+    "work": "Work Tasks",
 }
 
 
@@ -93,6 +101,14 @@ def parse_args() -> argparse.Namespace:
     apply.add_argument("--run-id", required=True, help="Planning run id.")
     apply.add_argument("--confirmed-json", help="JSON describing the confirmed subset to apply.")
     apply.add_argument("--confirmed-json-stdin", action="store_true", help="Read confirmed subset JSON from stdin.")
+
+    next_apply = subparsers.add_parser("next-apply-run", help="Claim the next confirmed project apply run.")
+    next_apply.add_argument("--stale-minutes", type=int, default=DEFAULT_STALE_MINUTES, help="Requeue in-progress apply runs older than this many minutes.")
+
+    complete_apply = subparsers.add_parser("complete-apply-run", help="Save Project Apply Worker results.")
+    complete_apply.add_argument("--run-id", required=True, help="Planning/apply run id.")
+    complete_apply.add_argument("--json", help="Apply result JSON.")
+    complete_apply.add_argument("--json-stdin", action="store_true", help="Read apply result JSON from stdin.")
 
     audit = subparsers.add_parser("audit", help="Show project and run state.")
     audit.add_argument("--id", help="Project id.")
@@ -366,6 +382,27 @@ def normalize_task_home(value: Any) -> str:
     return home if home in TASK_HOMES else "personal"
 
 
+def project_task_label(project_id: str) -> str:
+    return f"project:{slug(project_id, fallback='project')}"
+
+
+def append_unique(values: list[str], value: str) -> None:
+    if value and value not in values:
+        values.append(value)
+
+
+def ensure_project_labels(tasks: list[dict[str, Any]], project_id: str) -> list[dict[str, Any]]:
+    label = project_task_label(project_id)
+    labeled: list[dict[str, Any]] = []
+    for task in tasks:
+        next_task = dict(task)
+        labels = [compact(item, 50) for item in next_task.get("labels", []) if compact(item, 50)]
+        append_unique(labels, label)
+        next_task["labels"] = labels
+        labeled.append(next_task)
+    return labeled
+
+
 def normalize_task(raw: dict[str, Any], default_home: str = "personal") -> dict[str, Any] | None:
     content = compact(raw.get("content") or raw.get("title"), 180)
     if not content:
@@ -456,11 +493,19 @@ def latest_run_for_project(runs: list[dict[str, Any]], project_id: str) -> dict[
 
 
 def run_needs_attention(run: dict[str, Any]) -> bool:
-    return run.get("status") in {"queued", "in_progress", "pending_confirmation", "needs_input", "failed"}
+    return run.get("status") in {
+        "queued",
+        "in_progress",
+        "pending_confirmation",
+        "needs_input",
+        "apply_queued",
+        "apply_in_progress",
+        "failed",
+    }
 
 
 def run_has_pending_response(run: dict[str, Any]) -> bool:
-    return run.get("status") in {"pending_confirmation", "needs_input", "failed"}
+    return run.get("status") in {"pending_confirmation", "needs_input", "apply_queued", "apply_in_progress", "failed"}
 
 
 def requeue_stale_runs(runs: list[dict[str, Any]], now: datetime, stale_minutes: int) -> None:
@@ -482,6 +527,27 @@ def select_next_worker_run(runs: list[dict[str, Any]]) -> dict[str, Any] | None:
     if not queued:
         return None
     return sorted(queued, key=lambda item: item["requested_at"])[0]
+
+
+def requeue_stale_apply_runs(runs: list[dict[str, Any]], now: datetime, stale_minutes: int) -> None:
+    cutoff = now - timedelta(minutes=max(stale_minutes, 1))
+    for run in runs:
+        if run.get("status") != "apply_in_progress":
+            continue
+        claimed_at = parse_iso(run.get("claimed_at"))
+        if claimed_at and claimed_at >= cutoff:
+            continue
+        run["status"] = "apply_queued"
+        run["claimed_at"] = ""
+        run["updated_at"] = iso_from(now)
+        run["errors"].append("Apply worker run was requeued after going stale.")
+
+
+def select_next_apply_run(runs: list[dict[str, Any]]) -> dict[str, Any] | None:
+    queued = [run for run in runs if run.get("status") == "apply_queued"]
+    if not queued:
+        return None
+    return sorted(queued, key=lambda item: item["updated_at"] or item["requested_at"])[0]
 
 
 def set_project_run_state(projects: list[dict[str, Any]], run: dict[str, Any], now: datetime) -> None:
@@ -754,6 +820,7 @@ def project_proposals(project: dict[str, Any], task_home: str) -> tuple[list[dic
         for action in project.get("next_actions", [])
     ]
     proposed_tasks = [task for task in proposed_tasks if task]
+    proposed_tasks = ensure_project_labels(proposed_tasks, project["id"])
     questions: list[str] = []
     if not proposed_tasks:
         questions.append("What are the next concrete actions for this project?")
@@ -876,6 +943,7 @@ def command_complete_run(args: argparse.Namespace, now: datetime) -> int:
         for item in parsed["proposed_tasks"]:
             if isinstance(item, dict) and (task := normalize_task(item, task_home)):
                 tasks.append(task)
+    tasks = ensure_project_labels(tasks, run["project_id"])
     events = []
     if isinstance(parsed.get("proposed_calendar_events"), list):
         for item in parsed["proposed_calendar_events"]:
@@ -1032,35 +1100,151 @@ def command_apply(args: argparse.Namespace, now: datetime) -> int:
     if not run:
         raise SystemExit(f"unknown run id: {args.run_id}")
     tasks, events = confirmed_subset(run, confirmed)
+    tasks = ensure_project_labels(tasks, run["project_id"])
     run["proposed_tasks"] = tasks
     run["proposed_calendar_events"] = events
-    applied_changes: list[dict[str, Any]] = []
     errors: list[str] = []
-
-    for task in tasks:
-        # Todoist is MCP-only in this workspace. Record a validated apply instruction
-        # for Rumi to execute with Todoist MCP after explicit confirmation.
-        applied_changes.append(
-            {
-                "type": "todoist_task_instruction",
-                "content": task["content"],
-                "task_home": task["task_home"],
-                "todoist_project": task["todoist_project"],
-                "status": "ready_for_mcp_apply",
-            }
-        )
 
     for event in events:
         if not event.get("starts_at") or not event.get("ends_at"):
             errors.append(f"calendar event missing start/end: {event['title']}")
-            continue
-        try:
-            applied_changes.append(calendar_create(event) if not args.dry_run else {"type": "calendar_event", "title": event["title"], "dry_run": True})
-        except Exception as exc:  # noqa: BLE001 - preserve per-item failure for retry.
-            errors.append(f"{event['title']}: {exc}")
+
+    run["errors"] = errors
+    run["status"] = "applied_with_errors" if errors else "apply_queued"
+    run["updated_at"] = iso_from(now)
+    run["completed_at"] = ""
+    run["claimed_at"] = ""
+    save_runs(runs, args.dry_run)
+
+    projects = load_projects(now)
+    set_project_run_state(projects, run, now)
+    save_projects(projects, args.dry_run)
+
+    print_json(
+        {
+            "status": "OK",
+            "run_id": run["run_id"],
+            "project_id": run["project_id"],
+            "apply_status": run["status"],
+            "todoist_tasks": tasks,
+            "calendar_events": events,
+            "errors": errors,
+            "dry_run": args.dry_run,
+        }
+    )
+    return 0
+
+
+def command_next_apply_run(args: argparse.Namespace, now: datetime) -> int:
+    runs = load_runs(now)
+    requeue_stale_apply_runs(runs, now, args.stale_minutes)
+    run = select_next_apply_run(runs)
+    if run is None:
+        save_runs(runs, args.dry_run)
+        print("NO_REPLY")
+        return 0
+
+    projects = load_projects(now)
+    project = next((item for item in projects if item["id"] == run["project_id"]), None)
+    if project is None:
+        run["status"] = "failed"
+        run["errors"].append(f"Unknown project id: {run['project_id']}")
+        run["updated_at"] = iso_from(now)
+        save_runs(runs, args.dry_run)
+        print("NO_REPLY")
+        return 0
+
+    run["status"] = "apply_in_progress"
+    run["claimed_at"] = iso_from(now)
+    run["attempt_count"] = int(run.get("attempt_count") or 0) + 1
+    run["updated_at"] = iso_from(now)
+    save_runs(runs, args.dry_run)
+    print_json(
+        {
+            "status": "OK",
+            "kind": "project_apply_worker_run",
+            "run": run,
+            "project": project,
+            "todoist_tasks": ensure_project_labels(run["proposed_tasks"], run["project_id"]),
+            "calendar_events": run["proposed_calendar_events"],
+            "rules": {
+                "todoist_task_homes": TODOIST_HOME_NAMES,
+                "project_label": project_task_label(run["project_id"]),
+                "no_new_todoist_projects": True,
+                "external_changes_already_confirmed": True,
+                "write_output_with": "complete-apply-run",
+            },
+            "dry_run": args.dry_run,
+        }
+    )
+    return 0
+
+
+def task_apply_result(raw: dict[str, Any]) -> dict[str, Any] | None:
+    content = compact(raw.get("content") or raw.get("title"), 180)
+    external_id = compact(raw.get("external_id") or raw.get("id") or raw.get("task_id"), 100)
+    status = compact(raw.get("status"), 30) or ("created" if external_id else "failed")
+    error = compact(raw.get("error") or raw.get("note"), 300)
+    if not content and not external_id:
+        return None
+    return {
+        "type": "todoist_task",
+        "content": content,
+        "external_id": external_id,
+        "status": status,
+        "error": error,
+    }
+
+
+def calendar_apply_result(raw: dict[str, Any]) -> dict[str, Any] | None:
+    title = compact(raw.get("title") or raw.get("summary"), 180)
+    external_id = compact(raw.get("external_id") or raw.get("id") or raw.get("event_id"), 120)
+    calendar = compact(raw.get("calendar"), 120)
+    status = compact(raw.get("status"), 30) or ("created" if external_id else "failed")
+    error = compact(raw.get("error") or raw.get("note"), 300)
+    if not title and not external_id:
+        return None
+    return {
+        "type": "calendar_event",
+        "title": title,
+        "calendar": calendar,
+        "external_id": external_id,
+        "status": status,
+        "error": error,
+    }
+
+
+def command_complete_apply_run(args: argparse.Namespace, now: datetime) -> int:
+    raw_json = sys.stdin.read() if args.json_stdin else args.json
+    if not raw_json:
+        raise SystemExit("apply result requires --json or --json-stdin")
+    try:
+        parsed = json.loads(raw_json)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"invalid JSON: {exc}") from exc
+    if not isinstance(parsed, dict):
+        raise SystemExit("apply result must be a JSON object")
+
+    runs = load_runs(now)
+    run = next((item for item in runs if item["run_id"] == args.run_id), None)
+    if not run:
+        raise SystemExit(f"unknown run id: {args.run_id}")
+
+    applied_changes: list[dict[str, Any]] = []
+    errors = string_list(parsed.get("errors"), limit=20, max_chars=500)
+    for item in parsed.get("todoist_tasks", []):
+        if isinstance(item, dict) and (result := task_apply_result(item)):
+            applied_changes.append(result)
+            if result["status"] != "created" or not result.get("external_id"):
+                errors.append(result.get("error") or f"Todoist task failed: {result.get('content')}")
+    for item in parsed.get("calendar_events", []):
+        if isinstance(item, dict) and (result := calendar_apply_result(item)):
+            applied_changes.append(result)
+            if result["status"] != "created" or not result.get("external_id"):
+                errors.append(result.get("error") or f"Calendar event failed: {result.get('title')}")
 
     run["applied_changes"].extend(applied_changes)
-    run["errors"].extend(errors)
+    run["errors"].extend(error for error in errors if error)
     run["status"] = "applied_with_errors" if errors else "applied"
     run["updated_at"] = iso_from(now)
     run["completed_at"] = iso_from(now)
@@ -1075,12 +1259,24 @@ def command_apply(args: argparse.Namespace, now: datetime) -> int:
         project["last_audit_at"] = today_from(now)
         project["updated_at"] = today_from(now)
         for change in applied_changes:
+            if change.get("type") == "todoist_task" and change.get("external_id"):
+                append_unique(project["todoist_task_ids"], change["external_id"])
             if change.get("type") == "calendar_event" and change.get("external_id"):
-                project["calendar_event_ids"].append(change["external_id"])
+                append_unique(project["calendar_event_ids"], change["external_id"])
         break
     save_projects(projects, args.dry_run)
 
-    print_json({"status": "OK", "run_id": run["run_id"], "applied_changes": applied_changes, "errors": errors, "dry_run": args.dry_run})
+    print_json(
+        {
+            "status": "OK",
+            "run_id": run["run_id"],
+            "project_id": run["project_id"],
+            "apply_status": run["status"],
+            "applied_changes": applied_changes,
+            "errors": errors,
+            "dry_run": args.dry_run,
+        }
+    )
     return 0
 
 
@@ -1135,6 +1331,10 @@ def main() -> int:
         return command_propose(args, now)
     if args.command == "apply":
         return command_apply(args, now)
+    if args.command == "next-apply-run":
+        return command_next_apply_run(args, now)
+    if args.command == "complete-apply-run":
+        return command_complete_apply_run(args, now)
     if args.command == "audit":
         return command_audit(args, now)
     raise SystemExit(f"unsupported command: {args.command}")

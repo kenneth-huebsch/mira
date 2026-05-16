@@ -93,6 +93,7 @@ known_dependencies = {
     "workspace/capabilities/project_companion/INTERACTIVE.md": "Capability-owned Project Companion instructions injected into interactive startup context by the memory plugin.",
     "workspace/capabilities/project_companion/PROJECT_COMPANION.md": "Capability-owned daily project check-in behavior injected into the cron wrapper via system_files frontmatter.",
     "workspace/capabilities/project_companion/PROJECT_PLANNING_WORKER.md": "Capability-owned isolated worker instructions for large project planning.",
+    "workspace/capabilities/project_companion/PROJECT_APPLY_WORKER.md": "Capability-owned isolated worker instructions for confirmed Todoist and Calendar writes.",
     "workspace/capabilities/project_companion/project_companion.py": "Helper used by Project Companion to validate project records, manage planning runs, select due check-ins, and update project cadence state.",
     "workspace/capabilities/project_companion/schema.md": "Schema reference for project state, planning runs, Todoist proposals, and calendar proposals.",
     "workspace/cron/engagement_followups.py": "Helper used by Engagement Follow-Ups to validate queued instructions, process due follow-ups, run supported live checks, and append engagement state.",

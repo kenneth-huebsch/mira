@@ -204,7 +204,7 @@ def main() -> int:
         "projects": active_projects(today.isoformat()),
         "todoist": {
             "source": "MCP",
-            "instruction": "Use Todoist MCP tools for due today, overdue, P1/P2, and important upcoming tasks from Kennys Personal Tasks and Kennys Work Todo List.",
+            "instruction": "Use Todoist MCP tools for due today, overdue, P1/P2, and important upcoming tasks from Personal Tasks and Work Tasks.",
         },
         "model_contract": {
             "voice": "Rumi: concise, warm, human, varied",

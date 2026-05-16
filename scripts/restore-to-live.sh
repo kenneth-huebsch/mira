@@ -175,6 +175,7 @@ behavior_files=(
   capabilities/project_companion/INTERACTIVE.md
   capabilities/project_companion/PROJECT_COMPANION.md
   capabilities/project_companion/PROJECT_PLANNING_WORKER.md
+  capabilities/project_companion/PROJECT_APPLY_WORKER.md
   capabilities/project_companion/project_companion.py
   capabilities/project_companion/schema.md
   cron/ENGAGEMENT_FOLLOWUPS.md

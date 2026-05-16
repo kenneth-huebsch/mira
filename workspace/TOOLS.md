@@ -105,11 +105,12 @@ agent calls it via the standard MCP tool surface; no local CLI.
 
 Project conventions:
 
-- **Kennys Personal Tasks** — Kenny's personal todo project.
-- **Kennys Work Todo List** — Kenny's work todo project.
+- **Personal Tasks** — Kenny's personal todo project.
+- **Work Tasks** — Kenny's work todo project.
 
 If project names ever differ slightly, resolve by closest name match
-(`Personal Tasks`, `Work Tasks`).
+(`Personal Tasks`, `Work Tasks`, older docs may say `Kennys Personal Tasks` or
+`Kennys Work Todo List`).
 
 When generating Kenny's daily brief, include tasks due today, high priority
 (`P1` / `P2`), and important upcoming tasks from BOTH projects.

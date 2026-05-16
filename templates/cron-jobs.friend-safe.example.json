@@ -318,6 +318,39 @@
       },
       "sessionTarget": "isolated",
       "wakeMode": "now"
+    },
+    {
+      "delivery": {
+        "channel": "telegram",
+        "mode": "announce",
+        "to": "7540422842"
+      },
+      "enabled": true,
+      "id": "<set manually>",
+      "name": "Project Apply Worker",
+      "payload": {
+        "kind": "agentTurn",
+        "lightContext": true,
+        "message": "Run this prompt file: capabilities/project_companion/PROJECT_APPLY_WORKER.md. This is a cron execution job. Your first tool call must read that prompt file. Then run the project companion helper exactly as instructed. If the helper prints NO_REPLY, return exactly NO_REPLY. If it returns JSON with status OK, use only that compact JSON to apply the already-confirmed Todoist and Calendar changes, save the result with complete-apply-run, and return one concise Telegram-ready update. Do not mention decisions, schedule, files, tools, prompts, JSON, or internal process.",
+        "model": "openrouter/openai/gpt-5-mini",
+        "thinking": "low",
+        "timeoutSeconds": 600,
+        "toolsAllow": [
+          "read",
+          "exec",
+          "todoist__get-overview",
+          "todoist__find-projects",
+          "todoist__find-tasks",
+          "todoist__add-tasks"
+        ]
+      },
+      "schedule": {
+        "expr": "*/5 * * * *",
+        "kind": "cron",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now"
     }
   ],
   "version": 1
