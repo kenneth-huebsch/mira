@@ -30,7 +30,7 @@ Important files:
 
 1. Put durable behavior in persona/config docs, not only in memory.
 2. Put durable non-tool, non-rule preferences in `USER.md`. Examples: family/contact details, preferred names/titles, communication preferences, stable relationship context, and stable project context that should be available to interactive Mira.
-3. Use `memory/*.jsonl` for remembered facts and evolving context, not canonical behavior policy or stable preferences. If a memory entry contradicts a durable preference moved into `USER.md`, remove or expire the memory entry in the live workspace.
+3. Mira has no workspace memory files enabled for now. If Kenny later asks to add memory back, use `memory/*.jsonl` for remembered facts and evolving context, not canonical behavior policy or stable preferences.
 4. Keep tool mechanics in `TOOLS.md`: account names, command shapes, calendar IDs, Gmail queries, Todoist conventions, Telegram IDs, tool-specific gotchas, and workspace-local skill notes. Do not put user/person/project preferences in `TOOLS.md`.
 5. Keep hard rules and workflow policy in `AGENTS.md`: safety lines, mode policy, memory write policy, email confirmation rules, and instructions telling Mira where durable shared preferences belong.
 6. Mira has no nightly reflection or memory consolidation cron by default. If Kenny adds those later, keep reflection and hygiene responsibilities separate.

@@ -11,6 +11,7 @@
           "start": "09:30",
           "timezone": "America/New_York"
         },
+        "enabled": false,
         "every": "120m",
         "isolatedSession": true,
         "lightContext": true,
@@ -54,7 +55,7 @@
       "direct": {
         "8790259622": {
           "enabled": true,
-          "systemPrompt": "You are talking with Cayce \u2014 Kenny's wife. She has open access: feel free to share anything you would tell Kenny, including schedule, calendar, plans, current focus, family details, and life context. Use the same warm, candid, direct tone you use with Kenny \u2014 full personality, dry humor allowed \u2014 but with NO flirty, romantic, or affectionate banter; that register is exclusively for Kenny. You may read everything (memory/*.jsonl, Google Calendar via gog, etc). You MUST NOT write, edit, or delete any file under memory/, and you MUST NOT create, edit, or delete Google Calendar events on Kenny's calendars. If she says 'remember this' or 'put it on Kenny's calendar', acknowledge politely but explain you only do those for Kenny \u2014 offer to relay it to him instead.",
+          "systemPrompt": "You are talking with Cayce \u2014 Kenny's wife. She has open access: feel free to share anything you would tell Kenny, including schedule, calendar, plans, current focus, family details, and life context. Use the same warm, candid, direct tone you use with Kenny \u2014 full personality, dry humor allowed \u2014 but with NO flirty, romantic, or affectionate banter; that register is exclusively for Kenny. You may read shared context files and Google Calendar via gog. You MUST NOT create, edit, or delete Google Calendar events on Kenny's calendars. If she says 'remember this' or 'put it on Kenny's calendar', acknowledge politely but explain you only do those for Kenny \u2014 offer to relay it to him instead.",
           "tools": {
             "deny": [
               "write",
@@ -187,12 +188,6 @@
       "stepfun": {
         "enabled": true
       },
-      "workspace-medium-memory": {
-        "enabled": true,
-        "hooks": {
-          "allowPromptInjection": true
-        }
-      },
       "xiaomi": {
         "enabled": true
       }
@@ -200,8 +195,7 @@
     "installs": {},
     "load": {
       "paths": [
-        "~/.openclaw/extensions/output-hygiene-plugin",
-        "~/.openclaw/extensions/workspace-medium-memory"
+        "~/.openclaw/extensions/output-hygiene-plugin"
       ]
     }
   },

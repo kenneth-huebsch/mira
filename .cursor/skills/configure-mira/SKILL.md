@@ -8,7 +8,7 @@ description: Configure Mira's OpenClaw behavior, persona, identity, appearance, 
 Read and follow `docs/agent-playbooks/configure-mira.md`.
 
 Key rule: durable behavior belongs in Mira's workspace docs, skills, plugins,
-and assets. Do not rely only on `memory/*.jsonl` for canonical behavior policy.
+and assets. Mira has no workspace memory files enabled for now.
 
 Memory-system changes must keep these files in sync:
 

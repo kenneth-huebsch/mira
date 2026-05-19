@@ -48,7 +48,7 @@ Use `templates/openclaw.friend-safe.example.json` as a structure reference, but 
 
 - Interactive chat loads `AGENTS.md`, `SOUL.md`, `IDENTITY.md`, `USER.md`, `TOOLS.md`, and `HEARTBEAT.md`.
 - No inherited cron prompts or capability bundles are restored by default.
-- The memory plugin is installed and can read `skills/memory_manager.md`.
+- No workspace memory files or memory plugin are restored by default.
 - QMD memory search is available with `openclaw memory status --agent main` and
   can search selected markdown docs. Historical JSONL memory is not backfilled,
   and session indexing should remain off unless intentionally enabled.

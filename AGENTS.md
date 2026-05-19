@@ -8,7 +8,7 @@ It should be usable by any coding agent, not only Cursor.
 - Preserve the safety line: personalized instructions, account conventions, chat IDs, calendar IDs, and Mira's visual/persona details are allowed; credentials and tokens are not.
 - Never commit or copy provider API keys, OAuth tokens, bot tokens, gateway tokens, device auth, sessions, logs, browser state, cron run history, or accumulated private memory history.
 - When changing Mira's live behavior, update the live workspace first when possible, then sync this repo with `scripts/sync-from-live.sh`.
-- Do not treat `workspace/memory/*.jsonl` in this repo as real memory. They are restore seed files unless Kenny explicitly says otherwise.
+- Do not sync or restore `workspace/memory/*` unless Kenny explicitly asks to add memory back.
 - Treat QMD as a read-only recall backend over selected markdown docs, not as
   Mira's source of truth. Do not backfill historical JSONL memory into QMD
   unless Kenny explicitly asks. Never copy QMD indexes, session exports, or

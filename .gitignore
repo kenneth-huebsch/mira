@@ -39,10 +39,8 @@ auth-profiles.json
 workspace/.claude/settings.local.json
 workspace/.openclaw/workspace-state.json
 
-# Accumulated private memory is intentionally not synced.
-# Required restore seed files under workspace/memory are force-added below.
+# Workspace memory is intentionally not synced for Mira.
 workspace/memory/*.jsonl
 workspace/memory/.dreams/
-!workspace/memory/medium_memory.jsonl
-!workspace/memory/long_memory.jsonl
-!workspace/memory/rolling_summary.json
+workspace/memory/*.json
+workspace/memory/*.md

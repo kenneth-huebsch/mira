@@ -74,26 +74,12 @@ behavior_files=(
   HEARTBEAT.md
   package.json
   package-lock.json
-  plugins/memory-plugin.ts
   plugins/output-hygiene-plugin.ts
-  skills/memory_manager.md
   skills/agent-browser/SKILL.md
 )
 
 for rel in "${behavior_files[@]}"; do
   copy_file "$rel"
-done
-
-# These files are cron/plugin dependencies. Keep paths and schemas present,
-# but do not copy accumulated live memory/history into the blueprint.
-seed_files=(
-  memory/medium_memory.jsonl
-  memory/long_memory.jsonl
-  memory/rolling_summary.json
-)
-
-for rel in "${seed_files[@]}"; do
-  seed_file "$rel"
 done
 
 # Local skill currently lives in the OpenClaw source checkout, not the workspace.

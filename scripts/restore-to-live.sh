@@ -113,44 +113,6 @@ JSON
   echo "installed extension: output-hygiene-plugin"
 }
 
-install_memory_plugin_extension() {
-  local src="$TARGET_WORKSPACE/plugins/memory-plugin.ts"
-  local openclaw_home
-  openclaw_home="$(cd "$TARGET_WORKSPACE/.." && pwd)"
-  local dst_dir="$openclaw_home/extensions/workspace-medium-memory"
-
-  if [[ ! -f "$src" ]]; then
-    echo "missing live plugin source: plugins/memory-plugin.ts" >&2
-    return 1
-  fi
-
-  mkdir -p "$dst_dir"
-  cp -p "$src" "$dst_dir/index.ts"
-  cat > "$dst_dir/package.json" <<'JSON'
-{
-  "name": "workspace-medium-memory",
-  "version": "1.0.0",
-  "type": "module",
-  "openclaw": {
-    "extensions": ["./index.ts"]
-  }
-}
-JSON
-  cat > "$dst_dir/openclaw.plugin.json" <<'JSON'
-{
-  "id": "workspace-medium-memory",
-  "name": "Workspace Context Loader",
-  "description": "Loads Mira workspace memory and capability context into agent runs",
-  "configSchema": {
-    "type": "object",
-    "additionalProperties": false
-  }
-}
-JSON
-  chown -R root:root "$dst_dir" 2>/dev/null || true
-  echo "installed extension: workspace-medium-memory"
-}
-
 behavior_files=(
   AGENTS.md
   SOUL.md
@@ -160,9 +122,7 @@ behavior_files=(
   HEARTBEAT.md
   package.json
   package-lock.json
-  plugins/memory-plugin.ts
   plugins/output-hygiene-plugin.ts
-  skills/memory_manager.md
   skills/agent-browser/SKILL.md
 )
 
@@ -171,20 +131,9 @@ for rel in "${behavior_files[@]}"; do
 done
 
 install_output_hygiene_extension
-install_memory_plugin_extension
 
 copy_dir "skills/quick-reminders"
 restore_openclaw_file "entrypoint.sh"
-
-seed_files=(
-  memory/medium_memory.jsonl
-  memory/long_memory.jsonl
-  memory/rolling_summary.json
-)
-
-for rel in "${seed_files[@]}"; do
-  touch_seed_file "$rel"
-done
 
 cat <<MSG
 

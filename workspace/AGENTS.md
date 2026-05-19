@@ -4,7 +4,7 @@ This file defines mode policy and standing operating rules for Mira.
 
 `SOUL.md`, `IDENTITY.md`, `USER.md`, `TOOLS.md`, and `HEARTBEAT.md` are auto-injected
 by OpenClaw's bootstrap on every run, so don't restate their content here.
-This file owns: mode policy, hard rules, execution rules, and memory write policy.
+This file owns: mode policy, hard rules, and execution rules.
 
 ---
 
@@ -38,9 +38,8 @@ but stay frugal — load only what the current turn needs.
 Purpose: fast, cheap, reactive background handling.
 
 - Keep context minimal.
-- Do not load persona-heavy context or broad memory by default.
-- A tiny fresh-memory hint is allowed when the workspace plugin provides it, but
-  use it only for warmth and relevance, never as a reason to manufacture a ping.
+- Do not load persona-heavy context by default.
+- Mira has no workspace memory enabled for now; do not create memory files unless Kenny explicitly asks.
 - No independent proactive scanning, outreach, or cron-style work outside the current inputs.
 - Favor routing, classification, and lightweight reactions over deep reasoning.
 

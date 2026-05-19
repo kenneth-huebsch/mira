@@ -24,15 +24,13 @@ This repo is allowed to contain personalized behavior, account conventions, chat
 
 ## Memory System
 
-Mira uses two complementary memory layers:
+Mira does not use workspace memory files for now. Do not sync or restore
+`workspace/memory/*` unless Kenny explicitly asks to add memory back.
 
-- Curated memory lives in `workspace/memory/*.jsonl` and is governed by
-  `workspace/AGENTS.md` and `workspace/plugins/memory-plugin.ts`. These files define what Mira
-  intentionally remembers.
-- QMD is enabled in `templates/openclaw.friend-safe.example.json` as a local
-  read-only recall/search backend for selected markdown docs and workspace
-  skills. It is intentionally not backfilled from historical JSONL
-  memory, and session transcript indexing is off by default.
+QMD is enabled in `templates/openclaw.friend-safe.example.json` as a local
+read-only recall/search backend for selected markdown docs and workspace skills.
+It is intentionally not backfilled from historical JSONL memory, and session
+transcript indexing is off by default.
 
 Do not commit QMD runtime state: `~/.openclaw/agents/*/qmd/`, QMD indexes,
 session exports, and accumulated memory history are private runtime data.

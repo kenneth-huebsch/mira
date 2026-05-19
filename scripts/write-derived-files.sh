@@ -86,10 +86,6 @@ known_dependencies = {
     "workspace/AGENTS.md": "Standing execution rules and workflow policy.",
     "workspace/USER.md": "Shared non-tool, non-rule preferences and context.",
     "workspace/TOOLS.md": "Tool account, calendar, Gmail, Todoist, Telegram, OpenClaw cron creation, and skill conventions.",
-    "workspace/memory/medium_memory.jsonl": "Read and written by the memory plugin for time-bounded interactive context.",
-    "workspace/memory/long_memory.jsonl": "Read by the memory plugin for durable context.",
-    "workspace/memory/rolling_summary.json": "Optional dynamic context available to the memory plugin.",
-    "workspace/skills/memory_manager.md": "Used by the memory plugin after interactive turns.",
 }
 
 rows = ["# Cron Dependencies", "", "Mira has no recurring cron prompts by default. This file tracks dependencies for future scheduled behavior if Kenny adds any.", ""]
@@ -115,14 +111,14 @@ rows.append("")
 rows.append("- root workspace docs (`workspace/*.md`)")
 rows.append("- workspace skills (`workspace/skills/**/*.md`)")
 rows.append("")
-rows.append("QMD does not replace the curated JSONL files above. Historical JSONL memory is")
-rows.append("not backfilled into QMD, and session transcript indexing is disabled by default.")
+rows.append("QMD is read-only recall over selected markdown docs. Historical JSONL memory is")
+rows.append("not present in Mira's blueprint, and session transcript indexing is disabled by default.")
 rows.append("Do not add QMD indexes, session exports, or `~/.openclaw/agents/*/qmd/` runtime")
 rows.append("state to this dependency map or to the backup allowlist.")
 rows.append("")
 rows.append("## Sync Rule")
 rows.append("")
-rows.append("Run `scripts/sync-from-live.sh` after changing Mira behavior. It copies the allowlisted behavior files and reseeds memory files without copying accumulated private history.")
+rows.append("Run `scripts/sync-from-live.sh` after changing Mira behavior. It copies the allowlisted behavior files without copying accumulated private history.")
 rows.append("")
 (root / "docs" / "cron-dependencies.md").write_text("\n".join(rows))
 PY
