@@ -21,6 +21,30 @@ prepare_npm_runtime() {
   chown -R node:node "$npm_cache_dir"
 }
 
+ensure_mysql_python_runtime() {
+  if python3 - <<'PY' >/dev/null 2>&1
+import pymysql
+PY
+  then
+    return 0
+  fi
+
+  apt-get update -qq >/dev/null
+  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends python3-pymysql >/dev/null
+}
+
+ensure_aws_python_runtime() {
+  if python3 - <<'PY' >/dev/null 2>&1
+import boto3
+PY
+  then
+    return 0
+  fi
+
+  apt-get update -qq >/dev/null
+  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends python3-boto3 >/dev/null
+}
+
 install_qmd_runtime() {
   if [ "${OPENCLAW_INSTALL_QMD:-1}" = "0" ]; then
     return 0
@@ -139,6 +163,8 @@ install_gogcli() {
 ensure_runtime_tools
 prepare_gogcli_runtime
 prepare_npm_runtime
+ensure_mysql_python_runtime
+ensure_aws_python_runtime
 install_gogcli
 install_qmd_runtime
 install_agent_browser_runtime

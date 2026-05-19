@@ -122,6 +122,9 @@ behavior_files=(
   HEARTBEAT.md
   package.json
   package-lock.json
+  cron/DRIPR_INBOX_TRIAGE.md
+  cron/MYSQL_NEW_USERS.md
+  cron/CLOUDWATCH_DASHBOARD.md
   plugins/output-hygiene-plugin.ts
   skills/agent-browser/SKILL.md
 )
@@ -132,6 +135,9 @@ done
 
 install_output_hygiene_extension
 
+copy_dir "capabilities/dripr_inbox_triage"
+copy_dir "capabilities/mysql_new_users"
+copy_dir "capabilities/cloudwatch_dashboard"
 copy_dir "skills/quick-reminders"
 restore_openclaw_file "entrypoint.sh"
 
@@ -139,7 +145,7 @@ cat <<MSG
 
 Workspace behavior restored. Now manually configure:
 - $TARGET_OPENCLAW_HOME/openclaw.json credentials and provider auth
-- cron jobs only if Kenny explicitly asks for scheduled behavior
+- $TARGET_OPENCLAW_HOME/cron/jobs.json schedules/delivery, using templates/cron-jobs.friend-safe.example.json as a guide
 - Gmail/Google/Todoist/Telegram credentials and OAuth tokens
 - Docker compose mounts for openclaw/entrypoint.sh if using the container runtime
 MSG

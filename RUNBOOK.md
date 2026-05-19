@@ -44,3 +44,11 @@ cd /home/kenny/mira
 - UI/dev port: `3501`
 
 Override these with environment variables only for recovery or migration work.
+
+## Runtime Boundary
+
+Mira's scheduled helpers run through OpenClaw `exec` in the gateway container,
+with workspace paths rooted at `/home/node/.openclaw/workspace`. Container
+runtime dependencies are prepared by `openclaw/entrypoint.sh`; live credentials
+stay under `/home/kenny/mira/.openclaw` on the host and map into
+`/home/node/.openclaw` inside the container.

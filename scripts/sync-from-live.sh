@@ -74,6 +74,9 @@ behavior_files=(
   HEARTBEAT.md
   package.json
   package-lock.json
+  cron/DRIPR_INBOX_TRIAGE.md
+  cron/MYSQL_NEW_USERS.md
+  cron/CLOUDWATCH_DASHBOARD.md
   plugins/output-hygiene-plugin.ts
   skills/agent-browser/SKILL.md
 )
@@ -81,6 +84,10 @@ behavior_files=(
 for rel in "${behavior_files[@]}"; do
   copy_file "$rel"
 done
+
+copy_dir "$LIVE_WORKSPACE/capabilities/dripr_inbox_triage" "$BLUEPRINT_WORKSPACE/capabilities/dripr_inbox_triage"
+copy_dir "$LIVE_WORKSPACE/capabilities/mysql_new_users" "$BLUEPRINT_WORKSPACE/capabilities/mysql_new_users"
+copy_dir "$LIVE_WORKSPACE/capabilities/cloudwatch_dashboard" "$BLUEPRINT_WORKSPACE/capabilities/cloudwatch_dashboard"
 
 # Local skill currently lives in the OpenClaw source checkout, not the workspace.
 copy_dir "$OPENCLAW_SOURCE/skills/quick-reminders" "$BLUEPRINT_WORKSPACE/skills/quick-reminders"

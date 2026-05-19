@@ -11,7 +11,6 @@
           "start": "09:30",
           "timezone": "America/New_York"
         },
-        "enabled": false,
         "every": "120m",
         "isolatedSession": true,
         "lightContext": true,
@@ -51,7 +50,6 @@
         "7540422842",
         "8790259622"
       ],
-      "botToken": "<set manually>",
       "direct": {
         "8790259622": {
           "enabled": true,
@@ -71,7 +69,8 @@
         "*": {
           "requireMention": true
         }
-      }
+      },
+      "tokenFile": "<set manually>"
     }
   },
   "gateway": {
@@ -145,6 +144,11 @@
           "name": "mira-skills",
           "path": "/home/node/.openclaw/workspace/skills",
           "pattern": "**/*.md"
+        },
+        {
+          "name": "mira-capabilities",
+          "path": "/home/node/.openclaw/workspace/capabilities",
+          "pattern": "**/*.md"
         }
       ],
       "scope": {
@@ -165,8 +169,8 @@
     }
   },
   "meta": {
-    "lastTouchedAt": "2026-05-06T22:08:18.102Z",
-    "lastTouchedVersion": "2026.4.4"
+    "lastTouchedAt": "2026-05-19T16:01:44.818Z",
+    "lastTouchedVersion": "2026.4.19-beta.1"
   },
   "plugins": {
     "entries": {
@@ -361,6 +365,9 @@
     }
   },
   "tools": {
+    "exec": {
+      "host": "gateway"
+    },
     "profile": "coding",
     "sessions": {
       "visibility": "agent"

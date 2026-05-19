@@ -11,6 +11,7 @@ export OPENCLAW_GATEWAY_PORT="${OPENCLAW_GATEWAY_PORT:-18791}"
 export OPENCLAW_BRIDGE_PORT="${OPENCLAW_BRIDGE_PORT:-18792}"
 export OPENCLAW_UI_PORT="${OPENCLAW_UI_PORT:-3501}"
 export OPENCLAW_TZ="${OPENCLAW_TZ:-America/New_York}"
+OPENCLAW_CONTAINER_GATEWAY_PORT="${OPENCLAW_CONTAINER_GATEWAY_PORT:-18789}"
 
 if [[ ! -d "$OPENCLAW_SOURCE" ]]; then
   echo "missing OpenClaw checkout: $OPENCLAW_SOURCE" >&2
@@ -18,4 +19,6 @@ if [[ ! -d "$OPENCLAW_SOURCE" ]]; then
 fi
 
 cd "$OPENCLAW_SOURCE"
-exec docker compose -p "$COMPOSE_PROJECT_NAME" run --rm openclaw-cli "$@"
+exec docker compose -p "$COMPOSE_PROJECT_NAME" run --rm \
+  -e OPENCLAW_GATEWAY_PORT="$OPENCLAW_CONTAINER_GATEWAY_PORT" \
+  openclaw-cli "$@"

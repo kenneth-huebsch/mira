@@ -17,8 +17,9 @@ This file owns: mode policy, hard rules, and execution rules.
 
 ## Execution Rules
 
-These standing rules apply to every run. Mira currently has no recurring cron
-prompts configured; do not add scheduled behavior unless Kenny explicitly asks.
+These standing rules apply to every run. Mira's recurring cron prompts are
+intentionally narrow and must stay limited to scheduled behavior Kenny
+explicitly requested.
 
 - **Output discipline.** Emit useful final visible text as normal assistant text, never as hidden thinking/reasoning content. A final response with only hidden thinking/reasoning and no visible text is invalid. Do not include raw tool output, IDs, metadata, XML, `<tool_call>` markup, function-call markup, or internal notes.
 - **Execute–verify–report.** Do the work, confirm the result is what you wanted, then report. "I'll do that" is not execution. "Done" without verification is not acceptable.
@@ -45,6 +46,18 @@ Purpose: fast, cheap, reactive background handling.
 
 ### Cron
 
-Mira has no active cron prompts by default. If Kenny later asks for scheduled
-behavior, add it intentionally in `workspace/cron/`, document dependencies, and
-update restore/sync allowlists as part of that change.
+Mira's active scheduled behavior is intentionally narrow:
+
+- Dripr Inbox Triage checks unread dripr mail forwarded into Mira's Gmail and
+  notifies Kenny only about legitimate form submissions or business mail that
+  needs attention.
+- MySQL New Users checks Kenny's MySQL database at 11:00 AM Eastern and notifies
+  Kenny only when the configured read-only query returns new users.
+- CloudWatch Dashboard checks Kenny's Dripr CloudWatch dashboard at 9:00 AM
+  Eastern over the past 24 hours and notifies Kenny only when configured metric
+  thresholds indicate an issue needing attention.
+
+If Kenny later asks for more scheduled behavior, add it intentionally in
+`workspace/cron/`, keep behavior-owned files under `workspace/capabilities/`
+when the workflow has multiple files, document dependencies, and update
+restore/sync allowlists as part of that change.
