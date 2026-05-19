@@ -1,6 +1,6 @@
 ---
 name: safe-openclaw-config
-description: Safely edit, validate, restart, and recover OpenClaw configuration for Rumi. Use when changing openclaw.json, default models, gateway settings, auth-safe config, container state, or when the OpenClaw gateway is unhealthy after a config change.
+description: Safely edit, validate, restart, and recover OpenClaw configuration for Mira. Use when changing openclaw.json, default models, gateway settings, auth-safe config, container state, or when the OpenClaw gateway is unhealthy after a config change.
 ---
 
 # Safe OpenClaw Config
@@ -59,13 +59,13 @@ PY'
 Also inspect the host-mounted file when permissions allow:
 
 ```bash
-/home/kenny/.openclaw/openclaw.json
+/home/kenny/mira/.openclaw/openclaw.json
 ```
 
 ## Safety Notes
 
 - Never expose or commit gateway tokens, bot tokens, OAuth tokens, credentials, sessions, logs, or private memory history.
-- Keep live behavior changes synced back to the Rumi blueprint repo when appropriate.
+- Keep live behavior changes synced back to the Mira blueprint repo when appropriate.
 - If the gateway does not become healthy, inspect recent logs before making further changes:
 
 ```bash

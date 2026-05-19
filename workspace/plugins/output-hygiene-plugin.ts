@@ -168,7 +168,7 @@ function cleanOutboundContent(content: string): HygieneResult {
 
 export default definePluginEntry({
   id: "output-hygiene-plugin",
-  name: "Rumi Output Hygiene",
+  name: "Mira Output Hygiene",
   description: "Filters obvious tool-call markup and process narration before Telegram delivery",
   register(api) {
     api.on(

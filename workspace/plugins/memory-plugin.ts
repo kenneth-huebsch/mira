@@ -40,42 +40,18 @@ type DynamicSpec =
 
 const MEDIUM_MEMORY_FILE = "memory/medium_memory.jsonl";
 const LONG_MEMORY_FILE = "memory/long_memory.jsonl";
-const ENGAGEMENT_MEMORY_FILE = "memory/engagement_memory.jsonl";
-const PROJECTS_FILE = "memory/projects.jsonl";
-const PROJECT_RUNS_FILE = "memory/project_runs.jsonl";
-const PROJECT_DETAILS_FILE = "memory/project_details.jsonl";
 const SKILL_FILE = "skills/memory_manager.md";
 const MAX_SUMMARY_LENGTH = 140;
 const INTERACTIVE_MEDIUM_LIMIT = 8;
 const INTERACTIVE_LONG_LIMIT = 4;
-const INTERACTIVE_PROJECT_LIMIT = 5;
-const INTERACTIVE_PENDING_RUN_LIMIT = 4;
-const INTERACTIVE_PROJECT_DETAIL_LIMIT = 10;
-const HEARTBEAT_ENGAGEMENT_HISTORY_LIMIT = 6;
 const HEARTBEAT_MEDIUM_MEMORY_LIMIT = 2;
-const HEARTBEAT_HISTORY_MAX_CHARS = 1200;
 const HEARTBEAT_MEDIUM_MEMORY_MAX_CHARS = 360;
-const PROACTIVE_ENGAGEMENT_HISTORY_LIMIT = 20;
-const PROACTIVE_MEDIUM_LIMIT = 10;
-const PROACTIVE_LONG_LIMIT = 10;
 // OpenClaw's bootstrap auto-injects AGENTS.md, SOUL.md, IDENTITY.md, USER.md,
-// TOOLS.md, and HEARTBEAT.md on every run. Capability-owned interactive policy
-// can be injected here so AGENTS.md stays focused on global invariants.
+// TOOLS.md, and HEARTBEAT.md on every run. Mira currently has no capability
+// bundles configured by default.
 const INTERACTIVE_SYSTEM_FILES: string[] = [];
-const INTERACTIVE_CAPABILITY_FILES: string[] = [
-  "capabilities/project_companion/INTERACTIVE.md",
-];
+const INTERACTIVE_CAPABILITY_FILES: string[] = [];
 const HEARTBEAT_SYSTEM_FILES: string[] = [];
-const PENDING_PROJECT_RUN_STATUSES = new Set([
-  "queued",
-  "in_progress",
-  "pending_confirmation",
-  "needs_input",
-  "apply_queued",
-  "apply_in_progress",
-  "applied_with_errors",
-  "failed",
-]);
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -583,207 +559,6 @@ async function loadRollingSummary(workspaceDir: string): Promise<string | undefi
   return renderSection("Rolling Summary", summary);
 }
 
-function renderProjectLine(project: Record<string, unknown>): string | null {
-  const status = String(project.status ?? "").trim();
-  if (status !== "active") {
-    return null;
-  }
-  const title = String(project.title ?? "").trim();
-  if (!title) {
-    return null;
-  }
-  const phase = String(project.current_phase ?? "").trim();
-  const startsAt = String(project.starts_at ?? "").trim();
-  const nextActions = Array.isArray(project.next_actions)
-    ? project.next_actions.map((item) => String(item).trim()).filter(Boolean).slice(0, 3)
-    : [];
-  const blockers = Array.isArray(project.blockers)
-    ? project.blockers.map((item) => String(item).trim()).filter(Boolean).slice(0, 2)
-    : [];
-  const parts = [
-    title,
-    phase ? `phase: ${phase}` : "",
-    startsAt ? `starts: ${startsAt}` : "",
-    nextActions.length > 0 ? `next: ${nextActions.join("; ")}` : "",
-    blockers.length > 0 ? `blocked by: ${blockers.join("; ")}` : "",
-  ].filter(Boolean);
-  return parts.join(" | ");
-}
-
-function renderProjectDetailLine(detail: Record<string, unknown>, projectTitle: string): string | null {
-  if (String(detail.status ?? "").trim() !== "active") {
-    return null;
-  }
-  const kind = compactField(detail.kind, 40);
-  const title = compactField(detail.title, 100);
-  const value = compactField(detail.value, 180);
-  if (!projectTitle || (!title && !value)) {
-    return null;
-  }
-  const startsAt = compactField(detail.starts_at, 80);
-  const endsAt = compactField(detail.ends_at, 80);
-  const parts = [
-    projectTitle,
-    kind ? `kind: ${kind}` : "",
-    title ? `title: ${title}` : "",
-    value ? `detail: ${value}` : "",
-    startsAt ? `starts: ${startsAt}` : "",
-    endsAt ? `ends: ${endsAt}` : "",
-  ].filter(Boolean);
-  return parts.join(" | ");
-}
-
-function jsonListLength(value: unknown): number {
-  return Array.isArray(value) ? value.length : 0;
-}
-
-function compactField(value: unknown, maxChars = 140): string {
-  const compact = String(value ?? "").replace(/\s+/g, " ").trim();
-  if (compact.length <= maxChars) {
-    return compact;
-  }
-  return `${compact.slice(0, maxChars - 1).trimEnd()}...`;
-}
-
-async function loadActiveProjects(workspaceDir: string): Promise<string | undefined> {
-  const absolutePath = path.join(workspaceDir, PROJECTS_FILE);
-  const content = await readTextIfExists(absolutePath);
-  if (!content) {
-    return undefined;
-  }
-
-  const lines = content
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-  const projectLines: string[] = [];
-  for (const line of lines) {
-    const parsed = parseJsonObject(line);
-    if (!parsed) {
-      continue;
-    }
-    const rendered = renderProjectLine(parsed);
-    if (rendered) {
-      projectLines.push(rendered);
-    }
-    if (projectLines.length >= INTERACTIVE_PROJECT_LIMIT) {
-      break;
-    }
-  }
-
-  return renderBullets("Active Project Companion Context", projectLines);
-}
-
-async function loadActiveProjectDetails(workspaceDir: string): Promise<string | undefined> {
-  const projectsContent = await readTextIfExists(path.join(workspaceDir, PROJECTS_FILE));
-  const detailsContent = await readTextIfExists(path.join(workspaceDir, PROJECT_DETAILS_FILE));
-  if (!projectsContent || !detailsContent) {
-    return undefined;
-  }
-
-  const activeProjectsById = new Map<string, string>();
-  for (const line of projectsContent.split("\n").map((item) => item.trim()).filter(Boolean)) {
-    const project = parseJsonObject(line);
-    const id = compactField(project?.id, 80);
-    const title = compactField(project?.title, 120);
-    const status = compactField(project?.status, 40);
-    if (id && title && status === "active") {
-      activeProjectsById.set(id, title);
-    }
-  }
-
-  const detailLines: string[] = [];
-  for (const line of detailsContent.split("\n").map((item) => item.trim()).filter(Boolean)) {
-    const detail = parseJsonObject(line);
-    if (!detail) {
-      continue;
-    }
-    const projectId = compactField(detail.project_id, 80);
-    const projectTitle = activeProjectsById.get(projectId);
-    if (!projectTitle) {
-      continue;
-    }
-    const rendered = renderProjectDetailLine(detail, projectTitle);
-    if (rendered) {
-      detailLines.push(rendered);
-    }
-    if (detailLines.length >= INTERACTIVE_PROJECT_DETAIL_LIMIT) {
-      break;
-    }
-  }
-
-  return renderBullets("Active Project Details", detailLines);
-}
-
-async function loadPendingProjectRuns(workspaceDir: string): Promise<string | undefined> {
-  const runsPath = path.join(workspaceDir, PROJECT_RUNS_FILE);
-  const runsContent = await readTextIfExists(runsPath);
-  if (!runsContent) {
-    return undefined;
-  }
-
-  const projectsById = new Map<string, string>();
-  const projectsContent = await readTextIfExists(path.join(workspaceDir, PROJECTS_FILE));
-  if (projectsContent) {
-    for (const line of projectsContent.split("\n").map((item) => item.trim()).filter(Boolean)) {
-      const parsed = parseJsonObject(line);
-      const id = compactField(parsed?.id, 80);
-      const title = compactField(parsed?.title, 120);
-      if (id && title) {
-        projectsById.set(id, title);
-      }
-    }
-  }
-
-  const pendingLines: string[] = [];
-  for (const line of runsContent.split("\n").map((item) => item.trim()).filter(Boolean)) {
-    const run = parseJsonObject(line);
-    if (!run) {
-      continue;
-    }
-    const status = compactField(run.status, 40);
-    if (!PENDING_PROJECT_RUN_STATUSES.has(status)) {
-      continue;
-    }
-    const projectId = compactField(run.project_id, 80);
-    const projectTitle = projectsById.get(projectId) ?? projectId;
-    const questions = Array.isArray(run.questions)
-      ? run.questions.map((item) => compactField(item, 120)).filter(Boolean).slice(0, 2)
-      : [];
-    const proposedTaskCount = jsonListLength(run.proposed_tasks);
-    const proposedEventCount = jsonListLength(run.proposed_calendar_events);
-    const replyNeeded =
-      status === "needs_input"
-        ? "answer questions"
-        : status === "pending_confirmation"
-          ? "review/confirm proposal"
-          : status === "apply_queued" || status === "apply_in_progress"
-            ? "wait for apply worker"
-            : status === "applied_with_errors"
-              ? "review apply failure"
-          : status === "failed"
-            ? "review failure"
-            : status === "queued" || status === "in_progress"
-              ? "wait for worker"
-              : "";
-    const parts = [
-      projectTitle,
-      `status: ${status}`,
-      compactField(run.request, 120) ? `request: ${compactField(run.request, 120)}` : "",
-      compactField(run.summary, 160) ? `summary: ${compactField(run.summary, 160)}` : "",
-      proposedTaskCount || proposedEventCount ? `proposal: ${proposedTaskCount} task(s), ${proposedEventCount} event(s)` : "",
-      questions.length > 0 ? `questions: ${questions.join("; ")}` : "",
-      replyNeeded ? `reply needed: ${replyNeeded}` : "",
-    ].filter(Boolean);
-    pendingLines.push(parts.join(" | "));
-  }
-
-  return renderBullets(
-    "Pending Project Planning Runs",
-    pendingLines.slice(-INTERACTIVE_PENDING_RUN_LIMIT),
-  );
-}
-
 async function loadInteractiveMemory(workspaceDir: string): Promise<string | undefined> {
   const mediumMemoryPath = path.join(workspaceDir, MEDIUM_MEMORY_FILE);
   const longMemoryPath = path.join(workspaceDir, LONG_MEMORY_FILE);
@@ -801,9 +576,6 @@ async function loadInteractiveMemory(workspaceDir: string): Promise<string | und
       "Relevant Long Memory",
       longMemory.map((entry) => entry.summary),
     ),
-    await loadActiveProjects(workspaceDir),
-    await loadActiveProjectDetails(workspaceDir),
-    await loadPendingProjectRuns(workspaceDir),
   ].filter((section): section is string => Boolean(section));
 
   if (sections.length === 0) {
@@ -813,25 +585,16 @@ async function loadInteractiveMemory(workspaceDir: string): Promise<string | und
 }
 
 async function loadHeartbeatContext(workspaceDir: string): Promise<string | undefined> {
-  const sections = (
-    await Promise.all([
-      loadRecentJsonlLines(
-        workspaceDir,
-        ENGAGEMENT_MEMORY_FILE,
-        HEARTBEAT_ENGAGEMENT_HISTORY_LIMIT,
-        "Recent Engagement Sends",
-        HEARTBEAT_HISTORY_MAX_CHARS,
-      ),
-      loadHeartbeatMediumMemory(workspaceDir),
-    ])
-  ).filter((section): section is string => Boolean(section));
+  const sections = [await loadHeartbeatMediumMemory(workspaceDir)].filter(
+    (section): section is string => Boolean(section),
+  );
 
   if (sections.length === 0) {
     return undefined;
   }
 
   return [
-    "Heartbeat Context:\nUse this tiny snapshot only for warmth, relevance, and dedupe. Recent engagement sends mean Rumi should usually stay quiet. Fresh medium memory is only a small hint; do not turn it into a reminder unless it clearly makes the note feel more human.",
+    "Heartbeat Context:\nUse this tiny snapshot only for warmth and relevance. Fresh medium memory is only a small hint; do not turn it into a reminder unless it clearly makes the note feel more human.",
     ...sections,
   ].join("\n\n");
 }
@@ -848,27 +611,6 @@ async function loadHeartbeatMediumMemory(workspaceDir: string): Promise<string |
   )?.slice(0, HEARTBEAT_MEDIUM_MEMORY_MAX_CHARS);
 }
 
-async function loadProactiveMediumMemory(workspaceDir: string): Promise<string | undefined> {
-  const mediumMemoryPath = path.join(workspaceDir, MEDIUM_MEMORY_FILE);
-  const mediumMemory = takeRecentEntries(
-    (await loadMemory(mediumMemoryPath)).filter((entry) => !isExpired(entry)),
-    PROACTIVE_MEDIUM_LIMIT,
-  );
-  return renderBullets(
-    "Recent Medium Memory Candidates",
-    mediumMemory.map((entry) => entry.summary),
-  );
-}
-
-async function loadProactiveLongMemory(workspaceDir: string): Promise<string | undefined> {
-  const longMemoryPath = path.join(workspaceDir, LONG_MEMORY_FILE);
-  const longMemory = takeRecentEntries(await loadMemory(longMemoryPath), PROACTIVE_LONG_LIMIT);
-  return renderBullets(
-    "Recent Long Memory Candidates",
-    longMemory.map((entry) => entry.summary),
-  );
-}
-
 /**
  * Named dynamic loaders that cron frontmatter can reference by id.
  * Add new ids here and they become declaratively available.
@@ -878,18 +620,6 @@ async function loadProactiveLongMemory(workspaceDir: string): Promise<string | u
  */
 const NAMED_LOADERS: Record<string, DynamicLoader> = {
   rolling_summary: loadRollingSummary,
-  active_projects: loadActiveProjects,
-  proactive_medium_memory: loadProactiveMediumMemory,
-  proactive_long_memory: loadProactiveLongMemory,
-  active_priorities: async (workspaceDir: string) =>
-    readWorkspaceFileSection(workspaceDir, "memory/ACTIVE_PRIORITIES.md"),
-  proactive_engagement_history: async (workspaceDir: string) =>
-    loadRecentJsonlLines(
-      workspaceDir,
-      ENGAGEMENT_MEMORY_FILE,
-      PROACTIVE_ENGAGEMENT_HISTORY_LIMIT,
-      "Recent Engagement History",
-    ),
   consolidation_medium_memory: async (workspaceDir: string) =>
     loadRecentJsonlLines(workspaceDir, MEDIUM_MEMORY_FILE, Number.MAX_SAFE_INTEGER, "Medium Memory"),
   consolidation_long_memory: async (workspaceDir: string) =>

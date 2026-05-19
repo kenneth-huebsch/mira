@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TARGET_WORKSPACE="${TARGET_WORKSPACE:-$HOME/.openclaw/workspace}"
 BLUEPRINT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TARGET_OPENCLAW_HOME="${TARGET_OPENCLAW_HOME:-$BLUEPRINT_ROOT/.openclaw}"
+TARGET_WORKSPACE="${TARGET_WORKSPACE:-$TARGET_OPENCLAW_HOME/workspace}"
 BLUEPRINT_WORKSPACE="$BLUEPRINT_ROOT/workspace"
-OPENCLAW_SOURCE="${OPENCLAW_SOURCE:-$HOME/openclaw}"
+OPENCLAW_SOURCE="${OPENCLAW_SOURCE:-$BLUEPRINT_ROOT/openclaw-src}"
 
 copy_file() {
   local rel="$1"
@@ -100,7 +101,7 @@ JSON
   cat > "$dst_dir/openclaw.plugin.json" <<'JSON'
 {
   "id": "output-hygiene-plugin",
-  "name": "Rumi Output Hygiene",
+  "name": "Mira Output Hygiene",
   "description": "Filters obvious tool-call markup and process narration before Telegram delivery",
   "configSchema": {
     "type": "object",
@@ -139,7 +140,7 @@ JSON
 {
   "id": "workspace-medium-memory",
   "name": "Workspace Context Loader",
-  "description": "Loads Rumi workspace memory and capability context into agent runs",
+  "description": "Loads Mira workspace memory and capability context into agent runs",
   "configSchema": {
     "type": "object",
     "additionalProperties": false
@@ -157,33 +158,8 @@ behavior_files=(
   USER.md
   TOOLS.md
   HEARTBEAT.md
-  assets/rumi.jpg
   package.json
   package-lock.json
-  cron/RUMIS_EMAIL_TRIAGE.md
-  cron/KENNYS_EMAIL_TRIAGE.md
-  cron/MORNING_BRIEF.md
-  cron/MEMORY_CONSOLIDATION.md
-  cron/memory_consolidation.py
-  cron/NIGHTLY_SESSION_REFLECTION.md
-  cron/nightly_session_reflection.py
-  cron/PROACTIVE_ENGAGEMENT.md
-  cron/proactive_engagement.py
-  cron/PROJECT_COMPANION.md
-  cron/project_companion.py
-  capabilities/project_companion/README.md
-  capabilities/project_companion/INTERACTIVE.md
-  capabilities/project_companion/PROJECT_COMPANION.md
-  capabilities/project_companion/PROJECT_PLANNING_WORKER.md
-  capabilities/project_companion/PROJECT_APPLY_WORKER.md
-  capabilities/project_companion/project_companion.py
-  capabilities/project_companion/schema.md
-  cron/ENGAGEMENT_FOLLOWUPS.md
-  cron/engagement_followups.py
-  cron/email_triage_preflight.py
-  cron/email_triage_record.py
-  cron/morning_brief_collect.py
-  cron/UPCOMING_DATES.md
   plugins/memory-plugin.ts
   plugins/output-hygiene-plugin.ts
   skills/memory_manager.md
@@ -203,26 +179,18 @@ restore_openclaw_file "entrypoint.sh"
 seed_files=(
   memory/medium_memory.jsonl
   memory/long_memory.jsonl
-  memory/projects.jsonl
-  memory/project_details.jsonl
-  memory/project_runs.jsonl
-  memory/engagement_memory.jsonl
-  memory/engagement_followups.jsonl
-  memory/email_triage_state.jsonl
-  memory/nightly_session_reflection_state.jsonl
   memory/rolling_summary.json
-  memory/ACTIVE_PRIORITIES.md
 )
 
 for rel in "${seed_files[@]}"; do
   touch_seed_file "$rel"
 done
 
-cat <<'MSG'
+cat <<MSG
 
 Workspace behavior restored. Now manually configure:
-- ~/.openclaw/openclaw.json credentials and provider auth
-- ~/.openclaw/cron/jobs.json schedules/delivery, using templates/cron-jobs.friend-safe.example.json as a guide
+- $TARGET_OPENCLAW_HOME/openclaw.json credentials and provider auth
+- cron jobs only if Kenny explicitly asks for scheduled behavior
 - Gmail/Google/Todoist/Telegram credentials and OAuth tokens
 - Docker compose mounts for openclaw/entrypoint.sh if using the container runtime
 MSG

@@ -1,15 +1,15 @@
 ---
-name: choose-rumi-models
-description: Choose OpenRouter models for Rumi interactive chat, OpenClaw crons, memory consolidation, and tool workflows. Use when changing model pins, default models, thinking levels, or when balancing cost, reliability, emotion, reasoning, and tool execution quality.
+name: choose-mira-models
+description: Choose OpenRouter models for Mira interactive chat, OpenClaw crons, memory consolidation, and tool workflows. Use when changing model pins, default models, thinking levels, or when balancing cost, reliability, emotion, reasoning, and tool execution quality.
 ---
 
-# Choose Rumi Models
+# Choose Mira Models
 
-Use this policy when selecting models for Kenny's Rumi/OpenClaw setup.
+Use this policy when selecting models for Kenny's Mira/OpenClaw setup.
 
 ## Defaults
 
-- **Interactive Rumi:** `openrouter/deepseek/deepseek-v3.2`
+- **Interactive Mira:** `openrouter/deepseek/deepseek-v3.2`
 - **Cron/tool workflows:** `openrouter/xiaomi/mimo-v2-flash`
 - **Judgment-heavy durable state work:** evaluate separately; do not blindly use cheap cron defaults.
 - **Invalid cron value:** never use `default` as a cron payload model; it fails as `openrouter/default`.
@@ -24,9 +24,9 @@ Use `openrouter/xiaomi/mimo-v2-flash` for:
 
 Use `openrouter/deepseek/deepseek-v3.2` for:
 
-- Interactive Rumi chat with Kenny.
+- Interactive Mira chat with Kenny.
 - Emotionally responsive conversation, warmth, humor, relational presence, and nuanced judgment.
-- Persona-heavy turns where the user wants Rumi to feel human, specific, and alive.
+- Persona-heavy turns where the user wants Mira to feel human, specific, and alive.
 - Nightly Session Reflection, because it extracts emotionally useful continuity and durable facts from interactive sessions.
 
 Use reasoning-capable or stronger models cautiously for:

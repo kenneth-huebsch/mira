@@ -1,16 +1,16 @@
-# Rumi Backup
+# Mira Backup
 
 Use this playbook when syncing, reviewing, committing, pushing, or restoring the
-Rumi blueprint.
+Mira blueprint.
 
 ## What Belongs Here
 
 Allowed friend-safe content:
 
-- Rumi behavior docs and persona files.
-- Cron prompts and cron dependency seed files.
+- Mira behavior docs and persona files.
+- Future cron prompts and dependency seed files, only if Kenny explicitly adds scheduled behavior.
 - Workspace-local plugins and skills.
-- Local persona assets such as `workspace/assets/rumi.jpg`.
+- Local persona assets such as `workspace/assets/mira.jpg`.
 - Host-level OpenClaw restore assets under `openclaw/`, currently
   `openclaw/entrypoint.sh`.
 - Friend-safe config templates with credentials redacted.
@@ -28,7 +28,7 @@ Never include:
 ## Sync Workflow
 
 ```bash
-cd /home/kenny/rumi
+cd /home/kenny/mira
 ./scripts/sync-from-live.sh
 git status --short
 git diff --stat
@@ -47,7 +47,7 @@ Before committing or pushing:
 3. Run a token scan. At minimum:
 
 ```bash
-rg -n "(Bearer\\s+[A-Za-z0-9._-]{20,}|AIza[0-9A-Za-z_-]{20,}|ya29\\.[0-9A-Za-z_-]+|gh[pousr]_[0-9A-Za-z_]{20,}|sk-[0-9A-Za-z_-]{20,}|BEGIN (RSA|OPENSSH|PRIVATE) KEY)" /home/kenny/rumi
+rg -n "(Bearer\\s+[A-Za-z0-9._-]{20,}|AIza[0-9A-Za-z_-]{20,}|ya29\\.[0-9A-Za-z_-]+|gh[pousr]_[0-9A-Za-z_]{20,}|sk-[0-9A-Za-z_-]{20,}|BEGIN (RSA|OPENSSH|PRIVATE) KEY)" /home/kenny/mira
 ```
 
 4. If the scan finds a real secret, remove it, fix the generator or allowlist, and regenerate.
@@ -58,9 +58,9 @@ rg -n "(Bearer\\s+[A-Za-z0-9._-]{20,}|AIza[0-9A-Za-z_-]{20,}|ya29\\.[0-9A-Za-z_-
 Only commit when Kenny asks for it. Use the repo's normal remote:
 
 ```bash
-cd /home/kenny/rumi
+cd /home/kenny/mira
 git add .
-git commit -m "Update Rumi behavior"
+git commit -m "Update Mira behavior"
 git push
 ```
 
@@ -70,11 +70,11 @@ On a fresh host, clone upstream OpenClaw, complete onboarding, clone this repo,
 then run:
 
 ```bash
-cd /home/kenny/rumi
+cd /home/kenny/mira
 ./scripts/restore-to-live.sh
 ```
 
-After restore, manually configure credentials, cron schedules/delivery, provider
-auth, Gmail/Google/Todoist/Telegram auth, Docker Compose mounts/env, and device
-pairing as needed. QMD is installed at container startup by the restored
-entrypoint when Docker is configured to mount it.
+After restore, manually configure credentials, provider auth,
+Gmail/Google/Todoist/Telegram auth, Docker Compose mounts/env, and device
+pairing as needed. Mira has no cron schedules by default. QMD is installed at
+container startup by the restored entrypoint when Docker is configured to mount it.

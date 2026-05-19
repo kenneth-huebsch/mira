@@ -1,11 +1,11 @@
 ---
-name: rumi-backup
-description: Sync, review, commit, push, or restore the Rumi OpenClaw blueprint. Use after changing Rumi behavior or when backing up/restoring the rumi repo. Protects credentials while preserving friend-safe persona, cron, skill, plugin, and asset files.
+name: mira-backup
+description: Sync, review, commit, push, or restore the Mira OpenClaw blueprint. Use after changing Mira behavior or when backing up/restoring the mira repo. Protects credentials while preserving friend-safe persona, cron, skill, plugin, and asset files.
 ---
 
-# Rumi Backup
+# Mira Backup
 
-Read and follow `docs/agent-playbooks/rumi-backup.md`.
+Read and follow `docs/agent-playbooks/mira-backup.md`.
 
 Key rule: this repo may include friend-safe personalized behavior, IDs, cron
 prompts, and persona assets, but must never include credentials, tokens, auth

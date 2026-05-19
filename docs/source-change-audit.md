@@ -1,17 +1,17 @@
 # OpenClaw Source Change Audit
 
-Audited source checkout: `/home/kenny/openclaw`
+Audited source checkout: `/home/kenny/mira/openclaw-src`
 
 ## Summary
 
-The restore path should still start from latest upstream OpenClaw. Most behavior needed to recreate Rumi belongs in this blueprint repo under `workspace/`.
+The restore path should still start from latest upstream OpenClaw. Most behavior needed to recreate Mira belongs in this blueprint repo under `workspace/`.
 
 ## Standing Source Boundary
 
-Future Rumi coding work must not edit upstream OpenClaw source files under
-`/home/kenny/openclaw/src/`. Keep the OpenClaw checkout pullable from upstream.
+Future Mira coding work must not edit upstream OpenClaw source files under
+`/home/kenny/mira/openclaw-src/src/`. Keep the OpenClaw checkout pullable from upstream.
 
-Use Rumi-owned behavior surfaces instead:
+Use Mira-owned behavior surfaces instead:
 
 - `workspace/` prompts, docs, skills, helpers, and templates.
 - `workspace/plugins/` for plugin-based runtime behavior when OpenClaw exposes

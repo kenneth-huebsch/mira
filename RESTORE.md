@@ -1,13 +1,13 @@
-# Restore Rumi
+# Restore Mira
 
-This restores Rumi's behavior, not her exact runtime state or memory history.
+This restores Mira's behavior, not her exact runtime state or memory history.
 
 ## Fresh Host Flow
 
 1. Clone OpenClaw:
 
 ```bash
-git clone https://github.com/openclaw/openclaw.git ~/openclaw
+git clone https://github.com/openclaw/openclaw.git /home/kenny/mira/openclaw-src
 ```
 
 2. Install and run OpenClaw setup/onboarding using the current upstream docs.
@@ -15,13 +15,13 @@ git clone https://github.com/openclaw/openclaw.git ~/openclaw
 3. Clone this blueprint:
 
 ```bash
-git clone git@github.com:<your-github-user-or-org>/rumi.git ~/rumi
+git clone git@github.com:<your-github-user-or-org>/mira.git ~/mira
 ```
 
 4. Copy behavior files into the new workspace:
 
 ```bash
-cd ~/rumi
+cd ~/mira
 ./scripts/restore-to-live.sh
 ```
 
@@ -38,17 +38,16 @@ the compose file mounts that entrypoint.
 - Todoist MCP credentials.
 - Device pairing/auth state as needed.
 - Docker Compose env and volume mounts, including the restored
-  `~/openclaw/entrypoint.sh` if using the container runtime.
+  `/home/kenny/mira/openclaw-src/entrypoint.sh` if using the container runtime.
 
-Use `templates/openclaw.friend-safe.example.json` and `templates/cron-jobs.friend-safe.example.json` as structure references, but do not copy placeholder credential values into production.
+Use `templates/openclaw.friend-safe.example.json` as a structure reference, but do not copy placeholder credential values into production.
 
-6. Recreate or import cron jobs using the schedules and delivery shape in `templates/cron-jobs.friend-safe.example.json`.
+6. Mira has no cron jobs by default. Only create scheduled behavior if Kenny explicitly asks for it.
 
 7. Verify behavior:
 
 - Interactive chat loads `AGENTS.md`, `SOUL.md`, `IDENTITY.md`, `USER.md`, `TOOLS.md`, and `HEARTBEAT.md`.
-- Cron prompts exist under `workspace/cron/`.
-- Required cron dependency files exist under `workspace/memory/`.
+- No inherited cron prompts or capability bundles are restored by default.
 - The memory plugin is installed and can read `skills/memory_manager.md`.
 - QMD memory search is available with `openclaw memory status --agent main` and
   can search selected markdown docs. Historical JSONL memory is not backfilled,

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 BLUEPRINT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LIVE_OPENCLAW_HOME="${LIVE_OPENCLAW_HOME:-$HOME/.openclaw}"
+LIVE_OPENCLAW_HOME="${LIVE_OPENCLAW_HOME:-$BLUEPRINT_ROOT/.openclaw}"
 
 python3 - "$BLUEPRINT_ROOT" "$LIVE_OPENCLAW_HOME" <<'PY'
 from __future__ import annotations
@@ -83,42 +83,23 @@ if jobs_config is not None:
 
 cron_files = sorted((workspace / "cron").glob("*.md"))
 known_dependencies = {
-    "workspace/AGENTS.md": "Standing execution rules and schemas referenced by cron prompts.",
-    "workspace/USER.md": "Shared non-tool, non-rule preferences and context. Cron jobs that draft, summarize, or proactively message using personal context should honor relevant preferences here.",
+    "workspace/AGENTS.md": "Standing execution rules and workflow policy.",
+    "workspace/USER.md": "Shared non-tool, non-rule preferences and context.",
     "workspace/TOOLS.md": "Tool account, calendar, Gmail, Todoist, Telegram, OpenClaw cron creation, and skill conventions.",
-    "workspace/cron/memory_consolidation.py": "Helper used by Memory Consolidation to perform deterministic JSONL hygiene and sidecar compaction.",
-    "workspace/cron/proactive_engagement.py": "Helper used by Proactive Engagement to enforce randomized daily eligibility, select a topic/style from medium/long memory and relationship-building candidates, and append engagement state.",
-    "workspace/cron/project_companion.py": "Thin compatibility wrapper that delegates to the Project Companion capability helper.",
-    "workspace/capabilities/project_companion/README.md": "Capability overview for Project Companion, including state ownership and Todoist policy.",
-    "workspace/capabilities/project_companion/INTERACTIVE.md": "Capability-owned Project Companion instructions injected into interactive startup context by the memory plugin.",
-    "workspace/capabilities/project_companion/PROJECT_COMPANION.md": "Capability-owned daily project check-in behavior injected into the cron wrapper via system_files frontmatter.",
-    "workspace/capabilities/project_companion/PROJECT_PLANNING_WORKER.md": "Capability-owned isolated worker instructions for large project planning.",
-    "workspace/capabilities/project_companion/PROJECT_APPLY_WORKER.md": "Capability-owned isolated worker instructions for confirmed Todoist and Calendar writes.",
-    "workspace/capabilities/project_companion/project_companion.py": "Helper used by Project Companion to validate project records, manage planning runs, select due check-ins, and update project cadence state.",
-    "workspace/capabilities/project_companion/schema.md": "Schema reference for project state, planning runs, Todoist proposals, and calendar proposals.",
-    "workspace/cron/engagement_followups.py": "Helper used by Engagement Follow-Ups to validate queued instructions, process due follow-ups, run supported live checks, and append engagement state.",
-    "workspace/cron/email_triage_preflight.py": "Helper used by email triage crons to search Gmail and prepare compact message records.",
-    "workspace/cron/morning_brief_collect.py": "Helper used by Morning Brief to collect calendar and memory facts before model-written prose.",
-    "workspace/cron/nightly_session_reflection.py": "Helper used by Nightly Session Reflection to collect interactive transcript context, validate memory writes, audit results, and gate reset behavior.",
-    "workspace/memory/medium_memory.jsonl": "Read by Morning Brief, Memory Consolidation, Nightly Session Reflection, Proactive Engagement, and the memory plugin; written by Nightly Session Reflection and the memory plugin.",
-    "workspace/memory/long_memory.jsonl": "Read by Memory Consolidation, Nightly Session Reflection, Proactive Engagement, and the memory plugin; written by Nightly Session Reflection when Kenny reveals durable facts.",
-    "workspace/memory/projects.jsonl": "Long-running project companion state read by Project Companion, Morning Brief, Memory Consolidation, and the memory plugin; written through the project companion helper.",
-    "workspace/memory/project_details.jsonl": "Project-scoped detail memory read by Project Companion, Memory Consolidation, and the memory plugin; written through the project companion helper and seeded empty in the blueprint.",
-    "workspace/memory/project_runs.jsonl": "Resumable project planning run state read and written through the Project Companion helper; seeded empty in the blueprint.",
-    "workspace/memory/engagement_memory.jsonl": "Read and appended by Proactive Engagement and Engagement Follow-Ups.",
-    "workspace/memory/engagement_followups.jsonl": "Short-lived queue written by interactive Rumi through the engagement follow-up helper and processed by Engagement Follow-Ups.",
-    "workspace/memory/email_triage_state.jsonl": "Written by email crons and compacted by Memory Consolidation.",
-    "workspace/memory/nightly_session_reflection_state.jsonl": "Audit sidecar written by Nightly Session Reflection with counts and reset status, not transcript contents.",
-    "workspace/memory/rolling_summary.json": "Optional dynamic context loaded by the memory plugin when cron frontmatter asks for rolling_summary.",
-    "workspace/memory/ACTIVE_PRIORITIES.md": "Optional dynamic context loaded by the memory plugin when cron frontmatter asks for active_priorities.",
+    "workspace/memory/medium_memory.jsonl": "Read and written by the memory plugin for time-bounded interactive context.",
+    "workspace/memory/long_memory.jsonl": "Read by the memory plugin for durable context.",
+    "workspace/memory/rolling_summary.json": "Optional dynamic context available to the memory plugin.",
     "workspace/skills/memory_manager.md": "Used by the memory plugin after interactive turns.",
 }
 
-rows = ["# Cron Dependencies", "", "This file documents behavior-bearing files that cron jobs or cron context injection depend on.", ""]
+rows = ["# Cron Dependencies", "", "Mira has no recurring cron prompts by default. This file tracks dependencies for future scheduled behavior if Kenny adds any.", ""]
 rows.append("## Cron Prompts")
 rows.append("")
-for path in cron_files:
-    rows.append(f"- `{path.relative_to(root)}`")
+if cron_files:
+    for path in cron_files:
+        rows.append(f"- `{path.relative_to(root)}`")
+else:
+    rows.append("- None configured.")
 rows.append("")
 rows.append("## Required Supporting Files")
 rows.append("")
@@ -132,7 +113,6 @@ rows.append("QMD is configured in `templates/openclaw.friend-safe.example.json` 
 rows.append("read-only memory search backend over selected markdown sources:")
 rows.append("")
 rows.append("- root workspace docs (`workspace/*.md`)")
-rows.append("- cron prompts (`workspace/cron/*.md`)")
 rows.append("- workspace skills (`workspace/skills/**/*.md`)")
 rows.append("")
 rows.append("QMD does not replace the curated JSONL files above. Historical JSONL memory is")
@@ -142,7 +122,7 @@ rows.append("state to this dependency map or to the backup allowlist.")
 rows.append("")
 rows.append("## Sync Rule")
 rows.append("")
-rows.append("Run `scripts/sync-from-live.sh` after changing Rumi behavior. It copies the allowlisted behavior files and reseeds memory/state files without copying accumulated private history.")
+rows.append("Run `scripts/sync-from-live.sh` after changing Mira behavior. It copies the allowlisted behavior files and reseeds memory files without copying accumulated private history.")
 rows.append("")
 (root / "docs" / "cron-dependencies.md").write_text("\n".join(rows))
 PY

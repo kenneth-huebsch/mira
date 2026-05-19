@@ -2,8 +2,11 @@
 node_modules/
 dist/
 coverage/
+__pycache__/
+openclaw-src/
 
 # OpenClaw live state and credentials
+.openclaw/
 credentials/
 gcal-tokens/
 gogcli/credentials.json
@@ -42,8 +45,4 @@ workspace/memory/*.jsonl
 workspace/memory/.dreams/
 !workspace/memory/medium_memory.jsonl
 !workspace/memory/long_memory.jsonl
-!workspace/memory/engagement_memory.jsonl
-!workspace/memory/engagement_followups.jsonl
-!workspace/memory/email_triage_state.jsonl
 !workspace/memory/rolling_summary.json
-!workspace/memory/ACTIVE_PRIORITIES.md

@@ -1,14 +1,14 @@
 ---
-description: Keep upstream OpenClaw source pullable; use Rumi plugins and behavior files instead
+description: Keep upstream OpenClaw source pullable; use Mira plugins and behavior files instead
 alwaysApply: true
 ---
 
 # No Upstream OpenClaw Source Edits
 
-Do not edit upstream OpenClaw source code for Rumi work.
+Do not edit upstream OpenClaw source code for Mira work.
 
-- Never modify files under `/home/kenny/openclaw/src/`.
-- Do not add source patches, tests, or runtime changes to the OpenClaw checkout as a way to customize Rumi.
-- If runtime behavior needs changing, first look for a plugin hook and implement it as Rumi-owned code outside upstream source, preferably under `workspace/plugins/` and mirrored into the live workspace.
-- Prompt, cron configuration, Rumi workspace behavior files, docs, templates, and plugins are allowed.
+- Never modify files under `/home/kenny/mira/openclaw-src/src/`.
+- Do not add source patches, tests, or runtime changes to the OpenClaw checkout as a way to customize Mira.
+- If runtime behavior needs changing, first look for a plugin hook and implement it as Mira-owned code outside upstream source, preferably under `workspace/plugins/` and mirrored into the live workspace.
+- Prompt, cron configuration, Mira workspace behavior files, docs, templates, and plugins are allowed.
 - If no plugin/config/prompt approach can solve the issue, document the limitation and ask Kenny before proposing an upstream fork or patch branch.

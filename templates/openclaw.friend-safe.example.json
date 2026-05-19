@@ -18,6 +18,9 @@
         "suppressToolErrorWarnings": true,
         "target": "last"
       },
+      "llm": {
+        "idleTimeoutSeconds": 300
+      },
       "model": {
         "primary": "openrouter/deepseek/deepseek-v3.2"
       },
@@ -79,7 +82,7 @@
     "controlUi": {
       "allowInsecureAuth": true,
       "allowedOrigins": [
-        "http://localhost:18789"
+        "http://localhost:18791"
       ]
     },
     "mode": "local",
@@ -95,7 +98,7 @@
         "sms.search"
       ]
     },
-    "port": 18789,
+    "port": 18791,
     "tailscale": {
       "mode": "off",
       "resetOnExit": false
@@ -133,17 +136,12 @@
       },
       "paths": [
         {
-          "name": "rumi-root-docs",
+          "name": "mira-root-docs",
           "path": "/home/node/.openclaw/workspace",
           "pattern": "*.md"
         },
         {
-          "name": "rumi-cron-prompts",
-          "path": "/home/node/.openclaw/workspace/cron",
-          "pattern": "*.md"
-        },
-        {
-          "name": "rumi-skills",
+          "name": "mira-skills",
           "path": "/home/node/.openclaw/workspace/skills",
           "pattern": "**/*.md"
         }

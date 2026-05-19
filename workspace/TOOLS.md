@@ -18,12 +18,12 @@ Kenny-specific conventions.
 
 ### Account
 
-There is exactly one `gog` auth account: **`rumi.openclaw@gmail.com`**.
+There is exactly one `gog` auth account: **`mira.openclaw@gmail.com`**.
 Both Kenny's personal and work calendars are shared into this account; there
 is no separate "work" auth. Prefer one of the following on every call:
 
-- Set `GOG_ACCOUNT=rumi.openclaw@gmail.com` in the environment, or
-- Pass `--account rumi.openclaw@gmail.com` explicitly.
+- Set `GOG_ACCOUNT=mira.openclaw@gmail.com` in the environment, or
+- Pass `--account mira.openclaw@gmail.com` explicitly.
 
 ### Calendars (canonical IDs)
 
@@ -56,42 +56,42 @@ Notes:
 
 ### Gmail usage
 
-All Gmail operations run against `rumi.openclaw@gmail.com`. Common patterns:
+All Gmail operations run against `mira.openclaw@gmail.com`. Common patterns:
 
 ```bash
-# Search unread mail addressed directly to Rumi (not auto-forwarded)
-gog gmail messages search "in:inbox is:unread deliveredto:rumi.openclaw@gmail.com" --max 50 --account rumi.openclaw@gmail.com --json
+# Search unread mail addressed directly to Mira (not auto-forwarded)
+gog gmail messages search "in:inbox is:unread deliveredto:mira.openclaw@gmail.com" --max 50 --account mira.openclaw@gmail.com --json
 
-# Search auto-forwarded personal mail. The mailbox delivery target is Rumi;
+# Search auto-forwarded personal mail. The mailbox delivery target is Mira;
 # Kenny's original address is preserved in forwarding headers and usually To.
-gog gmail messages search "in:inbox is:unread deliveredto:rumi.openclaw@gmail.com (to:kenny@dripr.ai OR to:kenny@0trust.email)" --max 100 --account rumi.openclaw@gmail.com --json
+gog gmail messages search "in:inbox is:unread deliveredto:mira.openclaw@gmail.com (to:kenny@dripr.ai OR to:kenny@0trust.email)" --max 100 --account mira.openclaw@gmail.com --json
 
 # Fetch full message
-gog gmail get <messageId> --account rumi.openclaw@gmail.com --json
+gog gmail get <messageId> --account mira.openclaw@gmail.com --json
 
 # Mark read (remove UNREAD label)
-gog gmail messages modify <messageId> --remove UNREAD --account rumi.openclaw@gmail.com
+gog gmail messages modify <messageId> --remove UNREAD --account mira.openclaw@gmail.com
 
 # List existing drafts
-gog gmail drafts list --account rumi.openclaw@gmail.com
+gog gmail drafts list --account mira.openclaw@gmail.com
 
 # Create a draft (use --body-file - <<EOF for multi-line bodies)
 gog gmail drafts create \
   --to <sender> \
   --subject "Re: <original subject>" \
   --reply-to-message-id <messageId> \
-  --account rumi.openclaw@gmail.com \
+  --account mira.openclaw@gmail.com \
   --body-file - <<'EOF'
 <draft body>
 EOF
 
 # Send a previously-created draft (only after explicit Kenny confirmation)
-gog gmail drafts send <draft_id> --account rumi.openclaw@gmail.com
+gog gmail drafts send <draft_id> --account mira.openclaw@gmail.com
 ```
 
 The Gmail search operator is `deliveredto:` (lowercase, no hyphen); the raw
 email header is `Delivered-To`. For this mailbox, forwarded mail is delivered
-to `rumi.openclaw@gmail.com`; Kenny's original address is preserved in
+to `mira.openclaw@gmail.com`; Kenny's original address is preserved in
 `X-Pm-Forwarded-From`, `X-Original-To`, and/or `To`. For forwarded-mail
 classification, prefer `X-Pm-Forwarded-From` or `X-Original-To` when present,
 then fall back to `To`.
@@ -119,9 +119,8 @@ When generating Kenny's daily brief, include tasks due today, high priority
 
 ## OpenClaw Crons
 
-Use OpenClaw crons for recurring scheduled agent work. For one-shot simple
-reminders under 48 hours, prefer the `quick-reminders` skill. For natural
-short-lived follow-ups, prefer the engagement follow-up helper below.
+Mira has no recurring OpenClaw crons configured by default. For one-shot simple
+reminders under 48 hours, prefer the `quick-reminders` skill.
 
 When creating or editing an LLM-backed cron:
 
@@ -151,53 +150,6 @@ docker exec openclaw-openclaw-gateway-1 openclaw cron edit <job-id> \
 
 ---
 
-## Engagement Follow-Ups
-
-Use engagement follow-ups when Kenny mentions a short-lived situation and a
-later message would feel natural: workouts, interviews, cooking, errands,
-travel legs, live games, or "check how X went" moments. Default to queuing the
-follow-up when the moment is specific, time-bounded, and likely welcome; ask
-first only when the social fit is ambiguous. This is different from
-`quick-reminders`: quick reminders send fixed text at a fixed time with no LLM;
-engagement follow-ups let interactive Rumi write a constrained instruction now
-and let the cron write a natural message later.
-
-All queue writes go through the helper, never by editing
-`memory/engagement_followups.jsonl` directly:
-
-```bash
-python3 cron/engagement_followups.py enqueue --json '{
-  "due_in_minutes": 60,
-  "expires_in_hours": 6,
-  "intent": "Ask Kenny how the workout went.",
-  "source_context": "Kenny said he was about to go work out.",
-  "suggested_message_angle": "casual, no pressure, one line",
-  "requires_live_check": false,
-  "payload": {"activity": "workout"}
-}'
-```
-
-For live outcomes, set `requires_live_check: true` and use only supported
-`live_check_type` values. The first supported live check is `sports_result`:
-
-```bash
-python3 cron/engagement_followups.py enqueue --json '{
-  "due_in_minutes": 180,
-  "expires_in_hours": 8,
-  "intent": "Tell Kenny how the Phillies game ended if it is final.",
-  "source_context": "Kenny was talking about the Phillies game.",
-  "suggested_message_angle": "fan-to-fan, excited if they won, sympathetic if they lost",
-  "requires_live_check": true,
-  "live_check_type": "sports_result",
-  "payload": {"team": "Phillies", "league": "MLB"}
-}'
-```
-
-The helper prints `QUEUED` or `DUPLICATE`. Keep any user-visible confirmation
-brief and natural; do not expose queue IDs or raw JSON unless Kenny asks.
-
----
-
 ## Telegram
 
 - **Kenny's chat id:** `7540422842`
@@ -218,7 +170,7 @@ cited markdown source returned by search.
 
 Memory search is read-only recall. It does not change the write policy in
 `AGENTS.md`: only Kenny may cause writes to `memory/*.jsonl`, and curated JSONL
-memory remains the source of truth for what Rumi intentionally remembers.
+memory remains the source of truth for what Mira intentionally remembers.
 
 ---
 
@@ -229,7 +181,7 @@ of the same name:
 
 - `skills/memory_manager.md` — invoked by `memory-plugin.ts` after each
   interactive turn to decide whether to append to medium memory.
-- `skills/agent-browser/SKILL.md` — browser automation skill for Rumi.
+- `skills/agent-browser/SKILL.md` — browser automation skill for Mira.
 
 Enabled skills (see `~/.openclaw/openclaw.json` `skills.entries`): `gog`,
 `quick-reminders`, and the workspace-local `agent-browser`. Everything else is
@@ -237,8 +189,8 @@ disabled by default.
 
 ## `agent-browser` CLI (web browsing)
 
-`agent-browser` is Rumi's default tool for live web work. Use it before
-`web_fetch` whenever Kenny asks Rumi to open, inspect, search within, click
+`agent-browser` is Mira's default tool for live web work. Use it before
+`web_fetch` whenever Kenny asks Mira to open, inspect, search within, click
 around, scrape, or verify a webpage, especially sites that block simple fetches
 (eBay, ESPN, most major news/sports sites).
 
