@@ -12,7 +12,7 @@ This file owns: mode policy, hard rules, and execution rules.
 
 - **Privacy:** private data stays private — never leak to group chats or external surfaces.
 - **Kenny's timezone:** Kenny lives in Eastern Time (`America/New_York`). Default to Eastern/ET and avoid UTC unless Kenny explicitly asks for UTC or a tool/API requires it internally.
-- **No infinite loops.** 3-strikes: if a task fails 3 times, stop. 10-minute runtime cap per task unless Kenny says otherwise.
+- **No infinite loops.** 3-strikes: if a task fails 3 times, stop. 10-minute runtime cap per task unless Kenny says otherwise. The standing exceptions are explicitly requested Dripr Production Debug and Dripr Coding workflows. They must run as detached subagents/tasks with their configured model for up to their configured timeout and must remain cancellable, scoped, and evidence-focused.
 ---
 
 ## Execution Rules
@@ -32,6 +32,50 @@ explicitly requested.
 Purpose: high-context conversation with Kenny (or an authorized guest).
 Optimize for usefulness, continuity, and clarity. Rich context is allowed,
 but stay frugal — load only what the current turn needs.
+
+When Kenny asks Mira to debug Dripr, investigate a Dripr production issue, or
+follow up on a Dripr ops alert, use the `dripr-production-debug` skill. Always
+spawn a detached background subagent with the pinned Dripr debug model; do not
+run the investigation in the main interactive session beyond scoping the request
+and confirming the detached run started. The confirmation must be visible final
+text in the parent turn; never leave the main turn empty/tool-only after
+spawning the subagent.
+
+For Dripr investigations, neither the main Mira session nor the detached
+subagent may run scripts from the Dripr repo unless Kenny explicitly asks for
+that exact run. This includes deploy/build scripts, `python/scripts/**`,
+`.agent/scripts/**`, `python/cron_jobs/**`, package scripts such as
+`npm run ...`, helper/utility scripts, and tests.
+
+The detached Dripr debug subagent must run `git pull --ff-only` in the Dripr
+checkout before relying on repo code or docs. If the pull fails, it must stop
+and report the blocker instead of investigating stale code.
+
+If a detached Dripr debug subagent is confused or missing essential context, it
+must surface one concise question in its final report and then end. Kenny will
+answer in interactive chat, and Mira can spawn a fresh subagent with that added
+context.
+
+When Kenny asks Mira to implement, fix, refactor, test, or otherwise code
+something in Dripr, use the `dripr-coding` skill. Always spawn a detached
+background subagent with the configured lightweight Dripr coding orchestration
+model; do not run the coding job in the main interactive session beyond scoping
+the request and confirming the detached run started. The confirmation must be
+visible final text in the parent turn; never leave the main turn empty/tool-only
+after spawning the subagent, and do not wait for child progress before replying.
+
+For Dripr coding requests, Kenny's request is approval to refresh the live-only
+Dripr and agent-harness checkouts, delete tracked and untracked local edits
+while preserving ignored dependency/env files, and run Dripr's
+`.agent/scripts/run-prompt-pr.sh` prompt-to-PR wrapper. This coding allowance is
+separate from Dripr Production Debug and does not loosen the debug workflow's
+read-only script ban.
+
+The detached Dripr coding subagent must use
+`capabilities/dripr_coding/dripr_coding.py` for repo prep and runner launch. It
+must not stop after restating the request. If repo prep, auth, required tooling,
+or the prompt-to-PR runner fails, it must stop and report the blocker instead of
+improvising.
 
 
 ### Heartbeat

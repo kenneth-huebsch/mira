@@ -127,6 +127,8 @@ behavior_files=(
   cron/CLOUDWATCH_DASHBOARD.md
   plugins/output-hygiene-plugin.ts
   skills/agent-browser/SKILL.md
+  skills/dripr-production-debug/SKILL.md
+  skills/dripr-coding/SKILL.md
 )
 
 for rel in "${behavior_files[@]}"; do
@@ -138,6 +140,8 @@ install_output_hygiene_extension
 copy_dir "capabilities/dripr_inbox_triage"
 copy_dir "capabilities/mysql_new_users"
 copy_dir "capabilities/cloudwatch_dashboard"
+copy_dir "capabilities/dripr_production_debug"
+copy_dir "capabilities/dripr_coding"
 copy_dir "skills/quick-reminders"
 restore_openclaw_file "entrypoint.sh"
 

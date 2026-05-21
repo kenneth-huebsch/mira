@@ -11,14 +11,42 @@ ensure_runtime_tools() {
 prepare_gogcli_runtime() {
   xdg_config_home="${XDG_CONFIG_HOME:-/home/node/.openclaw}"
   gogcli_config_dir="${xdg_config_home}/gogcli"
+  default_config_parent="/home/node/.config"
+  default_gogcli_config_dir="${default_config_parent}/gogcli"
+  export XDG_CONFIG_HOME="$xdg_config_home"
+
   mkdir -p "$gogcli_config_dir"
-  chown -R node:node "$gogcli_config_dir"
+  mkdir -p "$default_config_parent"
+  if [ -d "$default_gogcli_config_dir" ] && [ ! -e "$default_gogcli_config_dir/credentials.json" ] && [ ! -e "$default_gogcli_config_dir/keyring" ]; then
+    rm -rf "$default_gogcli_config_dir"
+  fi
+  if [ ! -e "$default_gogcli_config_dir" ]; then
+    ln -s "$gogcli_config_dir" "$default_gogcli_config_dir"
+  fi
+  chown -R node:node "$gogcli_config_dir" "$default_config_parent"
 }
 
 prepare_npm_runtime() {
   npm_cache_dir="${NPM_CONFIG_CACHE:-/home/node/.npm}"
   mkdir -p "$npm_cache_dir"
   chown -R node:node "$npm_cache_dir"
+}
+
+prepare_gh_runtime() {
+  xdg_config_home="${XDG_CONFIG_HOME:-/home/node/.openclaw}"
+  gh_config_dir="${GH_CONFIG_DIR:-${xdg_config_home}/gh}"
+  default_config_parent="/home/node/.config"
+  default_gh_config_dir="${default_config_parent}/gh"
+  mkdir -p "$gh_config_dir"
+  mkdir -p "$default_config_parent"
+  if [ -d "$default_gh_config_dir" ] && [ ! -e "$default_gh_config_dir/hosts.yml" ]; then
+    rm -rf "$default_gh_config_dir"
+  fi
+  if [ ! -e "$default_gh_config_dir" ]; then
+    ln -s "$gh_config_dir" "$default_gh_config_dir"
+  fi
+  chown -R node:node "$gh_config_dir" "$default_config_parent"
+  export GH_CONFIG_DIR="$gh_config_dir"
 }
 
 ensure_mysql_python_runtime() {
@@ -43,6 +71,27 @@ PY
 
   apt-get update -qq >/dev/null
   DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends python3-boto3 >/dev/null
+}
+
+ensure_dripr_debug_python_runtime() {
+  if python3 - <<'PY' >/dev/null 2>&1
+import venv
+PY
+  then
+    return 0
+  fi
+
+  apt-get update -qq >/dev/null
+  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends python3.11-venv python3-dev default-libmysqlclient-dev build-essential pkg-config >/dev/null
+}
+
+ensure_github_cli_runtime() {
+  if command -v gh >/dev/null 2>&1; then
+    return 0
+  fi
+
+  apt-get update -qq >/dev/null
+  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends gh >/dev/null
 }
 
 install_qmd_runtime() {
@@ -104,6 +153,25 @@ install_agent_browser_runtime() {
   export PATH="${agent_browser_bin_dir}:${PATH}"
 }
 
+install_cursor_agent_runtime() {
+  if [ "${OPENCLAW_INSTALL_CURSOR_AGENT:-1}" = "0" ]; then
+    return 0
+  fi
+
+  cursor_agent_bin_dir="${OPENCLAW_CURSOR_AGENT_BIN_DIR:-/home/node/.local/bin}"
+  cursor_agent_bin="${cursor_agent_bin_dir}/agent"
+  mkdir -p "$cursor_agent_bin_dir"
+  chown -R node:node "$cursor_agent_bin_dir" /home/node/.local
+
+  if [ ! -x "$cursor_agent_bin" ]; then
+    su -m -s /bin/sh node -c 'export HOME=/home/node; export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-/home/node/.openclaw}"; curl https://cursor.com/install -fsS | sh' >/dev/null
+  fi
+
+  ln -sfn "$cursor_agent_bin" /usr/local/bin/agent
+  chown -R node:node /home/node/.local
+  export PATH="${cursor_agent_bin_dir}:${PATH}"
+}
+
 install_gogcli() {
   gogcli_version="${OPENCLAW_GOGCLI_VERSION:-0.12.0}"
   gogcli_version="${gogcli_version#v}"
@@ -163,10 +231,14 @@ install_gogcli() {
 ensure_runtime_tools
 prepare_gogcli_runtime
 prepare_npm_runtime
+prepare_gh_runtime
 ensure_mysql_python_runtime
 ensure_aws_python_runtime
+ensure_dripr_debug_python_runtime
+ensure_github_cli_runtime
 install_gogcli
 install_qmd_runtime
 install_agent_browser_runtime
+install_cursor_agent_runtime
 
-exec env PATH="$PATH" AGENT_BROWSER_HOME="${AGENT_BROWSER_HOME:-}" su -m -s /bin/sh node -c 'exec "$@"' -- "$@"
+exec env PATH="$PATH" AGENT_BROWSER_HOME="${AGENT_BROWSER_HOME:-}" GH_CONFIG_DIR="${GH_CONFIG_DIR:-}" su -m -s /bin/sh node -c 'exec "$@"' -- "$@"

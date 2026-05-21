@@ -95,6 +95,14 @@ known_dependencies = {
     "workspace/capabilities/cloudwatch_dashboard/README.md": "Capability overview for CloudWatch Dashboard, including setup and credential boundaries.",
     "workspace/capabilities/cloudwatch_dashboard/CLOUDWATCH_DASHBOARD.md": "Capability-owned behavior for summarizing dashboard threshold breaches and setup failures.",
     "workspace/capabilities/cloudwatch_dashboard/cloudwatch_dashboard.py": "Helper used by CloudWatch Dashboard to query CloudWatch and prepare compact issue records.",
+    "workspace/capabilities/dripr_production_debug/README.md": "Capability overview for Dripr Production Debug, including live repo setup and safety boundaries.",
+    "workspace/capabilities/dripr_production_debug/DRIPR_PRODUCTION_DEBUG.md": "Capability-owned behavior for long-running Dripr production investigations.",
+    "workspace/capabilities/dripr_production_debug/dripr_production_debug.py": "Helper used by Dripr Production Debug for repo checks, approved tests, read-only MySQL, and CloudWatch logs.",
+    "workspace/skills/dripr-production-debug/SKILL.md": "Interactive skill that routes Dripr debugging requests into a detached read-only investigation.",
+    "workspace/capabilities/dripr_coding/README.md": "Capability overview for Dripr Coding, including live repo setup and prompt-to-PR boundaries.",
+    "workspace/capabilities/dripr_coding/DRIPR_CODING.md": "Capability-owned behavior for detached Dripr coding runs.",
+    "workspace/capabilities/dripr_coding/dripr_coding.py": "Helper used by Dripr Coding for repo refresh, preflight checks, and prompt-to-PR launch.",
+    "workspace/skills/dripr-coding/SKILL.md": "Interactive skill that routes Dripr coding requests into a detached prompt-to-PR run.",
 }
 
 rows = ["# Cron Dependencies", "", "This file documents behavior-bearing files that cron jobs or cron context injection depend on.", ""]

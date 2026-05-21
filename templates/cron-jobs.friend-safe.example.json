@@ -39,7 +39,7 @@
       "name": "Dripr Inbox Triage",
       "payload": {
         "kind": "agentTurn",
-        "message": "Run this prompt file: cron/DRIPR_INBOX_TRIAGE.md. This is a cron execution job. Your first tool call must read cron/DRIPR_INBOX_TRIAGE.md. Then run python3 capabilities/dripr_inbox_triage/dripr_inbox_triage.py process exactly. Return only the helper stdout as final visible text. If the helper prints NO_REPLY, return exactly NO_REPLY. If the helper exits non-zero, return exactly Mira dripr inbox triage failed: Gmail unavailable. Do not mention prompts, files, tools, JSON, cron, internal process, or reasoning.",
+        "message": "Run this prompt file: cron/DRIPR_INBOX_TRIAGE.md. This is a cron execution job. Your first tool call must read cron/DRIPR_INBOX_TRIAGE.md. Then use exec to run this exact command with no extra arguments: python3 capabilities/dripr_inbox_triage/dripr_inbox_triage.py process. Return only the helper stdout as final visible text. If the helper prints NO_REPLY, return exactly NO_REPLY. Only if the exec command exits non-zero, return exactly Mira dripr inbox triage failed: Gmail unavailable. Do not mention prompts, files, tools, JSON, cron, internal process, or reasoning.",
         "model": "openrouter/xiaomi/mimo-v2-flash",
         "thinking": "off",
         "timeoutSeconds": 180,

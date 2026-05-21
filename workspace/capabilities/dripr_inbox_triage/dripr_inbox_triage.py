@@ -30,8 +30,16 @@ def account() -> str:
     return os.environ.get("MIRA_GMAIL_ACCOUNT") or os.environ.get("GOG_ACCOUNT") or DEFAULT_ACCOUNT
 
 
+def gog_env() -> dict[str, str]:
+    env = os.environ.copy()
+    env.setdefault("XDG_CONFIG_HOME", "/home/node/.openclaw")
+    env.setdefault("GOG_KEYRING_BACKEND", "file")
+    env.setdefault("GOG_KEYRING_PASSWORD", "")
+    return env
+
+
 def run_json(args: list[str]) -> dict[str, Any]:
-    proc = subprocess.run(args, text=True, capture_output=True)
+    proc = subprocess.run(args, text=True, capture_output=True, env=gog_env())
     if proc.returncode != 0:
         raise RuntimeError((proc.stderr or proc.stdout).strip() or "command failed")
     try:
@@ -44,7 +52,7 @@ def run_json(args: list[str]) -> dict[str, Any]:
 
 
 def run_command(args: list[str]) -> str:
-    proc = subprocess.run(args, text=True, capture_output=True)
+    proc = subprocess.run(args, text=True, capture_output=True, env=gog_env())
     if proc.returncode != 0:
         raise RuntimeError((proc.stderr or proc.stdout).strip() or "command failed")
     return proc.stdout.strip()

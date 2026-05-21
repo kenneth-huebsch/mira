@@ -146,6 +146,179 @@ configured checks breach thresholds or when setup/runtime fails. If all checks
 are healthy, return exactly `NO_REPLY`.
 
 
+## Dripr Production Debug
+
+Use the local `dripr-production-debug` skill when Kenny asks Mira to debug
+Dripr, investigate a production/staging issue, explain a CloudWatch alert, or
+inspect a campaign/email/user problem.
+
+The Dripr checkout is live-only and lives at:
+
+```bash
+/home/node/.openclaw/workspace/runtime/repos/dripr
+```
+
+On Kenny's host, that maps to:
+
+```bash
+/home/kenny/mira/.openclaw/workspace/runtime/repos/dripr
+```
+
+The helper command is:
+
+```bash
+python3 capabilities/dripr_production_debug/dripr_production_debug.py check-config
+```
+
+Configuration is live-only and belongs in:
+
+```bash
+/home/node/.openclaw/secrets/dripr-production-debug.env
+```
+
+On Kenny's host, that maps to:
+
+```bash
+/home/kenny/mira/.openclaw/secrets/dripr-production-debug.env
+```
+
+Default model/timeout for detached investigations:
+
+```bash
+DRIPR_DEBUG_MODEL=openrouter/openai/gpt-5.5
+DRIPR_DEBUG_THINKING=medium
+DRIPR_DEBUG_TIMEOUT_SECONDS=7200
+```
+
+The workflow must run in a detached subagent so the stronger model can work
+without blocking Mira's interactive session. It is read-only by default. It may
+inspect the Dripr checkout, run bounded read-only MySQL `SELECT`/`WITH`
+queries, and search CloudWatch logs. It must not run Dripr repo scripts or tests
+unless Kenny explicitly asks for that exact run. That includes deploy/build
+scripts, `python/scripts/**`, `.agent/scripts/**`, `python/cron_jobs/**`,
+package scripts such as `npm run ...`, and helper/utility scripts. It must not
+mutate production, deploy, push code, open PRs, send customer-facing email, or
+repair data unless Kenny explicitly asks for that separate action.
+
+Before relying on Dripr repo code or docs, the detached debug subagent must run:
+
+```bash
+git pull --ff-only
+```
+
+from `/home/node/.openclaw/workspace/runtime/repos/dripr`. If the pull fails,
+stop and report the blocker rather than investigating stale code.
+
+If the detached debug subagent is confused or missing essential context, it
+should ask one concise question in its final report and then end. Kenny will
+answer in interactive chat; Mira can then spawn a fresh subagent with the extra
+context.
+
+
+## Dripr Coding
+
+Use the local `dripr-coding` skill when Kenny asks Mira to implement, fix,
+refactor, test, or otherwise code something in Dripr.
+
+The workflow must run in a detached subagent so the prompt-to-PR agent loop can
+work without blocking Mira's interactive session. The main session should only
+scope the request, spawn the detached run, and return visible confirmation text
+without waiting for child progress.
+
+The live-only repos live at:
+
+```bash
+/home/node/.openclaw/workspace/runtime/repos/dripr
+/home/node/.openclaw/workspace/runtime/repos/agent
+```
+
+On Kenny's host, those map to:
+
+```bash
+/home/kenny/mira/.openclaw/workspace/runtime/repos/dripr
+/home/kenny/mira/.openclaw/workspace/runtime/repos/agent
+```
+
+The helper command is:
+
+```bash
+python3 capabilities/dripr_coding/dripr_coding.py check-config
+python3 capabilities/dripr_coding/dripr_coding.py prepare-repos
+python3 capabilities/dripr_coding/dripr_coding.py run-prompt-pr --title "<title>" --kind chore --prompt "<task>"
+```
+
+The helper clones missing repos from:
+
+```bash
+https://github.com/kenneth-huebsch/dripr.git
+https://github.com/kenneth-huebsch/agent.git
+```
+
+If a repo exists, the helper refreshes it to clean `main` with:
+
+```bash
+git reset --hard
+git clean -fd
+git switch main
+git pull --ff-only
+```
+
+This deletes tracked and untracked local edits while preserving ignored files
+such as `node_modules`, virtualenvs, and local env files.
+
+The helper also configures repo-local git commit identity before the prompt
+runner starts:
+
+```bash
+user.name=mira-dripr-coding-agent
+user.email=mira-dripr-coding-agent@users.noreply.github.com
+```
+
+Override with `DRIPR_CODING_GIT_USER_NAME` and
+`DRIPR_CODING_GIT_USER_EMAIL` in the live-only env file only when the runner
+should use a different commit identity.
+
+Configuration is optional and live-only. If present, it belongs in:
+
+```bash
+/home/node/.openclaw/secrets/dripr-coding.env
+```
+
+On Kenny's host, that maps to:
+
+```bash
+/home/kenny/mira/.openclaw/secrets/dripr-coding.env
+```
+
+Default model/timeout for detached coding runs:
+
+```bash
+DRIPR_CODING_MODEL=openrouter/xiaomi/mimo-v2-flash
+DRIPR_CODING_THINKING=off
+DRIPR_CODING_TIMEOUT_SECONDS=7200
+```
+
+The Dripr coding subagent is an orchestration wrapper, not the implementation
+engine. Cursor CLI performs the actual coding inside Dripr's prompt-to-PR
+runner, so the OpenClaw subagent does not need a frontier model by default.
+
+The prompt-to-PR runner requires Cursor CLI auth, `gh` auth, git auth for both
+repos, and Dripr `env/integration.env` pointed at the test environment. If
+`/home/node/.openclaw/secrets/dripr-git-credentials` exists, the helper uses it
+as the Git credential store for both repos. Keep auth state, tokens, generated
+task files, logs, repo checkouts, and env contents out of tracked files.
+
+This capability may run Dripr's `.agent/scripts/run-prompt-pr.sh` wrapper
+because Kenny explicitly asked for a coding job. It must not deploy, mutate
+infrastructure, edit production or staging data, touch credentials, or run
+production/staging tests. Dripr Production Debug remains read-only by default
+and must continue to treat Dripr repo scripts as banned unless Kenny explicitly
+asks for that exact debug-time run.
+
+The detached subagent must invoke `run-prompt-pr` or report a concrete blocker.
+Restating the requested change is not completion.
+
+
 ## `agent-browser` CLI (web browsing)
 
 `agent-browser` is Mira's default tool for live web work. Use it before

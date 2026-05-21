@@ -79,6 +79,8 @@ behavior_files=(
   cron/CLOUDWATCH_DASHBOARD.md
   plugins/output-hygiene-plugin.ts
   skills/agent-browser/SKILL.md
+  skills/dripr-production-debug/SKILL.md
+  skills/dripr-coding/SKILL.md
 )
 
 for rel in "${behavior_files[@]}"; do
@@ -88,6 +90,8 @@ done
 copy_dir "$LIVE_WORKSPACE/capabilities/dripr_inbox_triage" "$BLUEPRINT_WORKSPACE/capabilities/dripr_inbox_triage"
 copy_dir "$LIVE_WORKSPACE/capabilities/mysql_new_users" "$BLUEPRINT_WORKSPACE/capabilities/mysql_new_users"
 copy_dir "$LIVE_WORKSPACE/capabilities/cloudwatch_dashboard" "$BLUEPRINT_WORKSPACE/capabilities/cloudwatch_dashboard"
+copy_dir "$LIVE_WORKSPACE/capabilities/dripr_production_debug" "$BLUEPRINT_WORKSPACE/capabilities/dripr_production_debug"
+copy_dir "$LIVE_WORKSPACE/capabilities/dripr_coding" "$BLUEPRINT_WORKSPACE/capabilities/dripr_coding"
 
 # Local skill currently lives in the OpenClaw source checkout, not the workspace.
 copy_dir "$OPENCLAW_SOURCE/skills/quick-reminders" "$BLUEPRINT_WORKSPACE/skills/quick-reminders"
