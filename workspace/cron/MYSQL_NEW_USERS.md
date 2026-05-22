@@ -23,8 +23,14 @@ Follow standing execution rules from `AGENTS.md` and tool conventions from
 python3 capabilities/mysql_new_users/mysql_new_users.py review
 ```
 
-3. If the helper output is exactly `NO_REPLY`, stop immediately and return
-   exactly `NO_REPLY`. Do not explain.
+3. If the helper output is exactly `NO_REPLY`, return exactly:
+
+```text
+👨 No new Dripr signups today.
+```
+
+   This heartbeat line confirms the check ran successfully with nothing to
+   report; do not add anything else.
 4. If the helper output is JSON with `"status":"SETUP_REQUIRED"`, return:
 
 ```text
@@ -59,7 +65,7 @@ Dripr has a new signup! <email> registered on Month D @ HH:MM
 
 Return only one of:
 
-- `NO_REPLY`
+- `👨 No new Dripr signups today.`
 - One signup line per user in the exact configured format
 - `Mira MySQL new-user check needs setup before it can run.`
 - `Mira MySQL new-user check failed.`

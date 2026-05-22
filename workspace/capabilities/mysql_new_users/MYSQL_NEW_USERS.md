@@ -16,7 +16,13 @@ Run:
 python3 capabilities/mysql_new_users/mysql_new_users.py review
 ```
 
-If the helper prints exactly `NO_REPLY`, return exactly `NO_REPLY`.
+If the helper prints exactly `NO_REPLY`, return exactly:
+
+```text
+👨 No new Dripr signups today.
+```
+
+This is a daily heartbeat — it confirms the check ran with nothing to report.
 
 If the helper prints JSON with `"status":"SETUP_REQUIRED"`, return:
 

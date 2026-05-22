@@ -23,8 +23,14 @@ Follow standing execution rules from `AGENTS.md` and tool conventions from
 python3 capabilities/cloudwatch_dashboard/cloudwatch_dashboard.py review
 ```
 
-3. If the helper output is exactly `NO_REPLY`, stop immediately and return
-   exactly `NO_REPLY`. Do not explain.
+3. If the helper output is exactly `NO_REPLY`, return exactly:
+
+```text
+✅ No Dripr operational issues today.
+```
+
+   This heartbeat line confirms the check ran successfully with nothing to
+   report; do not add anything else.
 4. If the helper output is JSON with `"status":"SETUP_REQUIRED"`, return:
 
 ```text
@@ -55,7 +61,7 @@ Mira CloudWatch dashboard check failed.
 
 Return only one of:
 
-- `NO_REPLY`
+- `✅ No Dripr operational issues today.`
 - A short CloudWatch dashboard alert for Kenny
 - `Mira CloudWatch dashboard check needs setup before it can run.`
 - `Mira CloudWatch dashboard check failed.`

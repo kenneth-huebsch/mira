@@ -17,7 +17,13 @@ Run:
 python3 capabilities/cloudwatch_dashboard/cloudwatch_dashboard.py review
 ```
 
-If the helper prints exactly `NO_REPLY`, return exactly `NO_REPLY`.
+If the helper prints exactly `NO_REPLY`, return exactly:
+
+```text
+✅ No Dripr operational issues today.
+```
+
+This is a daily heartbeat — it confirms the check ran with nothing to report.
 
 If the helper prints JSON with `"status":"SETUP_REQUIRED"`, return:
 
