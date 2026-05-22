@@ -76,5 +76,11 @@ cd /home/kenny/mira
 
 After restore, manually configure credentials, provider auth,
 Gmail/Google/Todoist/Telegram auth, Docker Compose mounts/env, and device
-pairing as needed. Mira has no cron schedules by default. QMD is installed at
-container startup by the restored entrypoint when Docker is configured to mount it.
+pairing as needed. The cron prompt files (`cron/*.md` and their capability
+helpers) are restored automatically; the actual schedule and delivery wiring
+in `~/.openclaw/cron/jobs.json` is not. Recreate jobs manually using
+`templates/cron-jobs.friend-safe.example.json` as a guide and the
+`openclaw cron add` / `openclaw cron edit` CLI to register them, then
+reauthorize any delivery channels and capability secrets each job depends on.
+QMD is installed at container startup by the restored entrypoint when Docker
+is configured to mount it.
