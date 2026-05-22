@@ -79,14 +79,12 @@ Use OpenClaw crons for recurring scheduled agent work. For LLM-backed crons:
   or `openclaw cron runs <job-id>` before telling Kenny it is done.
 
 Container-safe pattern. Mira's gateway container is
-`openclaw-mira-openclaw-gateway-1` (Rumi has her own
-`openclaw-rumi-openclaw-gateway-1`); never edit the other claw's container by
-mistake. Always pass `--user node` so the CLI runs as the same uid that owns
-the workspace and extensions; without it `docker exec` defaults to root and
-prints spurious "blocked plugin candidate: suspicious ownership" warnings for
-every workspace-owned plugin (the daemon itself runs as `node` and loads them
-fine — those warnings only appear on root-invoked CLI calls and are not
-runtime failures):
+`openclaw-mira-openclaw-gateway-1`. Always pass `--user node` so the CLI runs
+as the same uid that owns the workspace and extensions; without it
+`docker exec` defaults to root and prints spurious "blocked plugin candidate:
+suspicious ownership" warnings for every workspace-owned plugin (the daemon
+itself runs as `node` and loads them fine — those warnings only appear on
+root-invoked CLI calls and are not runtime failures):
 
 ```bash
 docker exec --user node openclaw-mira-openclaw-gateway-1 openclaw cron edit <job-id> \
