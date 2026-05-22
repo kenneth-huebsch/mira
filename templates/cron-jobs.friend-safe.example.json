@@ -13,7 +13,7 @@
         "kind": "agentTurn",
         "message": "Run this prompt file: cron/MYSQL_NEW_USERS.md. This is a cron execution job. Your first tool call must read cron/MYSQL_NEW_USERS.md. Then run the Python helper exactly. If the helper prints NO_REPLY, return exactly NO_REPLY. If it returns JSON with status OK, use only that compact JSON to return one line per user exactly like: Dripr has a new signup! <email> registered on Month D @ HH:MM. Format creation_datetime with the full English month name, unpadded day, 24-hour hour, and two-digit minute, for example May 10 @ 18:16. If it returns SETUP_REQUIRED or ERROR, return only the explicit failure line from the prompt. Do not mention prompts, files, tools, SQL, credentials, hostnames, internal process, or reasoning.",
         "model": "openrouter/openai/gpt-5-mini",
-        "thinking": "off",
+        "thinking": "low",
         "timeoutSeconds": 180,
         "toolsAllow": [
           "read",

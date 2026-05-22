@@ -75,6 +75,10 @@ Use OpenClaw crons for recurring scheduled agent work. For LLM-backed crons:
   final visible text. Do not tell the model to send Telegram itself.
 - If a cron should be silent when there is nothing useful, make the payload say
   `return exactly NO_REPLY`; do not say only "do nothing".
+- For manual cron kickoffs requested in chat, use
+  `skills/manual-cron-kickoff/SKILL.md`. After `cron run` is accepted, return a
+  short visible acknowledgement immediately; do not poll unless Kenny explicitly
+  asks.
 - After creating or editing a cron, verify it with `openclaw cron list --json`
   or `openclaw cron runs <job-id>` before telling Kenny it is done.
 

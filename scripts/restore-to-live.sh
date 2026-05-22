@@ -127,6 +127,7 @@ behavior_files=(
   cron/CLOUDWATCH_DASHBOARD.md
   plugins/output-hygiene-plugin.ts
   skills/agent-browser/SKILL.md
+  skills/manual-cron-kickoff/SKILL.md
   skills/dripr-production-debug/SKILL.md
   skills/dripr-coding/SKILL.md
 )
