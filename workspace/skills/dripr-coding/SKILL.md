@@ -29,6 +29,31 @@ Do not wait for the child to make progress or complete.
    one sentence, for example:
    `Started a detached Dripr coding run; it will refresh Dripr and the agent harness, then kick off the prompt-to-PR runner.`
 
+## `sessions_spawn` Arguments
+
+Call `sessions_spawn` with exactly this shape, filling in only `task` and the
+configured model/timeout values:
+
+```json
+{
+  "task": "<subagent prompt>",
+  "label": "dripr-coding",
+  "runtime": "subagent",
+  "model": "openrouter/xiaomi/mimo-v2-flash",
+  "thinking": "off",
+  "cwd": "/home/node/.openclaw/workspace",
+  "runTimeoutSeconds": 7200,
+  "mode": "run",
+  "cleanup": "keep",
+  "sandbox": "inherit"
+}
+```
+
+Do not add `agentId`: `dripr-coding` is a skill label, not an OpenClaw agent id.
+Do not use `runtime: "acp"`, `streamTo`, `resumeSessionId`, `timeoutSeconds`,
+`attachAs`, or empty `attachments`; those are not part of this detached subagent
+workflow and can make the spawn fail.
+
 ## Subagent Prompt Shape
 
 Give the child this task:
@@ -59,10 +84,11 @@ details are unavailable. Do not deploy, mutate infrastructure, edit production
 or staging data, touch credentials, or paste secrets/logs/customer data.
 ```
 
-Use `sessions_spawn`. Do not conduct the coding job in the main session. If
-detached subagents are unavailable, stop and tell Kenny the run could not be
-started. Do not poll in a loop; OpenClaw announces completion. Use `/subagents`
-or task tools only for intervention or explicit status requests.
+Use `sessions_spawn` with the exact argument shape above. Do not conduct the
+coding job in the main session. If detached subagents are unavailable, stop and
+tell Kenny the run could not be started, including the exact spawn error. Do not
+poll in a loop; OpenClaw announces completion. Use `/subagents` or task tools
+only for intervention or explicit status requests.
 
 Immediately after `sessions_spawn` succeeds, end the parent turn with a visible
 one-sentence acknowledgment. Do not ask follow-up questions, present choices,

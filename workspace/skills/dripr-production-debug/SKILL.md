@@ -27,6 +27,31 @@ an empty/tool-only parent turn is invalid and surfaces as a Telegram failure.
    This must be visible final text, for example:
    `Started a detached Dripr production debug run; I will inspect repo/docs, read-only database state, and CloudWatch logs if permissions allow.`
 
+## `sessions_spawn` Arguments
+
+Call `sessions_spawn` with exactly this shape, filling in only `task` and the
+configured model/timeout values:
+
+```json
+{
+  "task": "<subagent prompt>",
+  "label": "dripr-production-debug",
+  "runtime": "subagent",
+  "model": "openrouter/openai/gpt-5.5",
+  "thinking": "medium",
+  "cwd": "/home/node/.openclaw/workspace",
+  "runTimeoutSeconds": 7200,
+  "mode": "run",
+  "cleanup": "keep",
+  "sandbox": "inherit"
+}
+```
+
+Do not add `agentId`: `dripr-production-debug` is a skill label, not an
+OpenClaw agent id. Do not use `runtime: "acp"`, `streamTo`, `resumeSessionId`,
+`timeoutSeconds`, `attachAs`, or empty `attachments`; those are not part of this
+detached subagent workflow and can make the spawn fail.
+
 ## Subagent Prompt Shape
 
 Give the child this task:
@@ -49,9 +74,10 @@ deploy, push code, create PRs, or perform DB repairs. Return a concise incident
 report with evidence, likely root cause, recommended next move, and gaps.
 ```
 
-Use `sessions_spawn`. Do not conduct the investigation in the main session. If
-detached subagents are unavailable, stop and tell Kenny the investigation could
-not be started. Do not poll in a loop; OpenClaw announces completion. Use
+Use `sessions_spawn` with the exact argument shape above. Do not conduct the
+investigation in the main session. If detached subagents are unavailable, stop
+and tell Kenny the investigation could not be started, including the exact
+spawn error. Do not poll in a loop; OpenClaw announces completion. Use
 `/subagents` or task tools only for intervention or explicit status requests.
 Immediately after `sessions_spawn` succeeds, end the parent turn with a visible
 one-sentence acknowledgment. Do not ask follow-up questions, present choices, or
