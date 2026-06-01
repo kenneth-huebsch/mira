@@ -101,6 +101,21 @@ CloudWatch logs:
 python3 capabilities/dripr_production_debug/dripr_production_debug.py cloudwatch-logs --filter-pattern '"exact id or error text"' --since-hours 6 --limit 50
 ```
 
+When an `exec` call returns `Command still running (session <name>, pid <pid>)`,
+use the returned session name for process follow-up, not the PID. If one
+session-name poll fails, stop and report the process follow-up failure instead
+of retrying in a loop.
+
+Do not invent helper flags. Use only arguments documented here or shown by
+the helper's CloudWatch help:
+
+```bash
+python3 capabilities/dripr_production_debug/dripr_production_debug.py cloudwatch-logs --help
+```
+
+Keep CloudWatch log group names exact; the cron log group is
+`/aws/lightsail/dripr/cron-jobs` with a hyphen.
+
 ## Scripts And Tests
 
 - Do not run scripts from the Dripr repo unless Kenny explicitly asks. This

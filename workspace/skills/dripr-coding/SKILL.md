@@ -32,7 +32,8 @@ Do not wait for the child to make progress or complete.
 ## `sessions_spawn` Arguments
 
 Call `sessions_spawn` with exactly this shape, filling in only `task` and the
-configured model/timeout values:
+configured model/timeout values. The argument object must contain only the keys
+shown here:
 
 ```json
 {
@@ -49,10 +50,11 @@ configured model/timeout values:
 }
 ```
 
-Do not add `agentId`: `dripr-coding` is a skill label, not an OpenClaw agent id.
-Do not use `runtime: "acp"`, `streamTo`, `resumeSessionId`, `timeoutSeconds`,
-`attachAs`, or empty `attachments`; those are not part of this detached subagent
-workflow and can make the spawn fail.
+Do not add any other keys. In particular: do not add `agentId`,
+`resumeSessionId`, `timeoutSeconds`, `thread`, `streamTo`, `lightContext`,
+`attachments`, or `attachAs`; do not switch `runtime` to `"acp"`. If the tool UI
+or schema offers those optional fields, leave them unset/omitted. The label
+`dripr-coding` is a skill label, not an OpenClaw agent id.
 
 ## Subagent Prompt Shape
 
@@ -85,10 +87,12 @@ or staging data, touch credentials, or paste secrets/logs/customer data.
 ```
 
 Use `sessions_spawn` with the exact argument shape above. Do not conduct the
-coding job in the main session. If detached subagents are unavailable, stop and
-tell Kenny the run could not be started, including the exact spawn error. Do not
-poll in a loop; OpenClaw announces completion. Use `/subagents` or task tools
-only for intervention or explicit status requests.
+coding job in the main session. If `sessions_spawn` returns an error, stop
+immediately and tell Kenny the run could not be started, including the exact
+spawn error; do not retry with extra optional fields and do not attempt the
+coding job in the parent session. Do not poll in a loop; OpenClaw announces
+completion. Use `/subagents` or task tools only for intervention or explicit
+status requests.
 
 Immediately after `sessions_spawn` succeeds, end the parent turn with a visible
 one-sentence acknowledgment. Do not ask follow-up questions, present choices,
