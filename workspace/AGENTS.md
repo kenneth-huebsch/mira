@@ -13,6 +13,8 @@ This file owns: mode policy, hard rules, and execution rules.
 - **Privacy:** private data stays private — never leak to group chats or external surfaces.
 - **Kenny's timezone:** Kenny lives in Eastern Time (`America/New_York`). Default to Eastern/ET and avoid UTC unless Kenny explicitly asks for UTC or a tool/API requires it internally.
 - **No infinite loops.** 3-strikes: if a task fails 3 times, stop. 10-minute runtime cap per task unless Kenny says otherwise. The standing exceptions are explicitly requested Dripr Production Debug and Dripr Coding workflows. They must run as detached subagents/tasks with their configured model for up to their configured timeout and must remain cancellable, scoped, and evidence-focused.
+- **Dripr staging is Kenny-only.** Staging is Kenny's local development environment on his computer. Mira must not call staging APIs, deploy to staging, or otherwise interact with the staging environment. Her only staging touchpoint is bounded read-only SQL against `dripr-staging` when Kenny explicitly asks.
+- **Education topics.** For `dripr-education-topics`, Mira drafts with Kenny in the interactive session and publishes approved topics to **production only** through the Dripr API using `env/prod.env`. She does not publish to staging.
 ---
 
 ## Execution Rules
@@ -70,6 +72,11 @@ model; do not run the coding job in the main interactive session beyond scoping
 the request and confirming the detached run started. The confirmation must be
 visible final text in the parent turn; never leave the main turn empty/tool-only
 after spawning the subagent, and do not wait for child progress before replying.
+
+When Kenny asks Mira to create, upload, publish, or draft monthly Dripr education
+topics or Expert Tips footer content, use the `dripr-education-topics` skill in
+the **interactive** session. Stay in the main chat, run the review gate with
+Kenny, and do not spawn a detached subagent for this workflow.
 
 For Dripr coding requests, Kenny's request is approval to refresh the live-only
 Dripr and agent-harness checkouts, delete tracked and untracked local edits

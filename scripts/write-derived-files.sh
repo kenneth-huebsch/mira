@@ -101,8 +101,13 @@ known_dependencies = {
     "workspace/skills/dripr-production-debug/SKILL.md": "Interactive skill that routes Dripr debugging requests into a detached read-only investigation.",
     "workspace/capabilities/dripr_coding/README.md": "Capability overview for Dripr Coding, including live repo setup and prompt-to-PR boundaries.",
     "workspace/capabilities/dripr_coding/DRIPR_CODING.md": "Capability-owned behavior for detached Dripr coding runs.",
-    "workspace/capabilities/dripr_coding/dripr_coding.py": "Helper used by Dripr Coding for repo refresh, preflight checks, and prompt-to-PR launch.",
+    "workspace/capabilities/dripr_coding/dripr_coding.py": "Helper used by Dripr Coding for repo refresh, preflight checks, prompt-to-PR launch, and Dripr skill catalog listing.",
+    "workspace/capabilities/dripr_coding/skills_catalog.py": "Shared Dripr repo skill catalog parser used by coding and debug helpers.",
     "workspace/skills/dripr-coding/SKILL.md": "Interactive skill that routes Dripr coding requests into a detached prompt-to-PR run.",
+    "workspace/capabilities/dripr_education_topics/README.md": "Capability overview for interactive Dripr education topic drafting and gated publish.",
+    "workspace/capabilities/dripr_education_topics/DRIPR_EDUCATION_TOPICS.md": "Capability-owned behavior for interactive education topic review and publish.",
+    "workspace/capabilities/dripr_education_topics/dripr_education_topics.py": "Helper used by Dripr Education Topics for repo sync, recent-topic lookup, Bedrock image generation, and gated production API publish.",
+    "workspace/skills/dripr-education-topics/SKILL.md": "Interactive skill for drafting and publishing monthly Dripr education topics with Kenny review.",
 }
 
 rows = ["# Cron Dependencies", "", "This file documents behavior-bearing files that cron jobs or cron context injection depend on.", ""]

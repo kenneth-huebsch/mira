@@ -1,8 +1,11 @@
 # Dripr Production Debug
 
-This capability lets Mira investigate Dripr production or staging issues with
-read-only evidence from the Dripr repo, MySQL, CloudWatch, and only
-Kenny-approved tests.
+This capability lets Mira investigate Dripr production issues with read-only
+evidence from the Dripr repo, MySQL, CloudWatch, and only Kenny-approved tests.
+
+Staging is Kenny's local environment. Mira does not use `env/staging.env` or
+staging APIs. She may query the `dripr-staging` database only when Kenny
+explicitly asks to inspect staging DB state.
 
 ## Files
 
@@ -75,6 +78,7 @@ From Mira's OpenClaw workspace:
 ```bash
 python3 capabilities/dripr_production_debug/dripr_production_debug.py check-config
 python3 capabilities/dripr_production_debug/dripr_production_debug.py repo-status
+python3 capabilities/dripr_production_debug/dripr_production_debug.py list-skills
 ```
 
 Only when Kenny explicitly asks Mira to run Dripr tests:

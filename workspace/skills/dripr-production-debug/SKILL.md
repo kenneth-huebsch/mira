@@ -1,6 +1,6 @@
 ---
 name: dripr-production-debug
-description: Debug Dripr production, staging, or ops issues with a long-running read-only background investigation. Use when Kenny asks Mira to debug Dripr, investigate a prod issue, explain a CloudWatch alert, inspect a campaign/email/user problem, or run Dripr tests.
+description: Debug Dripr production or ops issues with a long-running read-only background investigation. Use when Kenny asks Mira to debug Dripr, investigate a prod issue, explain a CloudWatch alert, inspect a campaign/email/user problem, or run Dripr tests.
 ---
 
 # Dripr Production Debug
@@ -64,11 +64,16 @@ Investigate this Dripr issue read-only: <symptom>.
 Read capabilities/dripr_production_debug/DRIPR_PRODUCTION_DEBUG.md first.
 Use the Dripr checkout at /home/node/.openclaw/workspace/runtime/repos/dripr.
 Before operating in that repo, run `git pull --ff-only` so the local checkout is
-up to date, then read its AGENTS.md and every `.agent/skills/*/SKILL.md` file
-for repo-specific rules and workflows. If `git pull --ff-only` fails, stop and
+up to date, then run
+`python3 capabilities/dripr_production_debug/dripr_production_debug.py list-skills`,
+read its `AGENTS.md`, and the relevant `.agent/skills/*/SKILL.md` files from
+that catalog for repo-specific rules and workflows. If `git pull --ff-only` fails, stop and
 report the blocker instead of investigating stale code.
 Use helper commands under capabilities/dripr_production_debug/ for repo status,
-bounded MySQL SELECT/WITH queries, and bounded CloudWatch log searches. Do not
+bounded MySQL SELECT/WITH queries, and bounded CloudWatch log searches. Default
+to production evidence. Do not read or use `env/staging.env`. Only query the
+`dripr-staging` database when Kenny explicitly asks to inspect staging DB state.
+Do not
 run Dripr repo scripts, package scripts, .agent/scripts, utility scripts,
 deploy/build scripts, cron scripts, npm scripts, or tests unless Kenny
 explicitly asked for that exact run. Do not mutate production, send email,

@@ -16,7 +16,7 @@ interactive session.
 
 Restate the investigation scope in one sentence:
 
-- Environment: production, staging, integration, or unknown.
+- Environment: production unless Kenny explicitly asks to inspect staging DB state.
 - Symptom: what appears broken.
 - Time window in Eastern time.
 - Known identifiers: campaign ID, email ID, user email, Clerk user ID, route,
@@ -39,12 +39,15 @@ additional context.
    trouble, stop and report the blocker instead of investigating stale code.
 2. Read Dripr repo guidance:
    - `AGENTS.md`
-   - every `.agent/skills/*/SKILL.md` file
+   - run `python3 capabilities/dripr_production_debug/dripr_production_debug.py list-skills`
+   - read the relevant `.agent/skills/*/SKILL.md` files from that catalog
    - `docs-internal/system-design.md`
    - `docs-internal/campaign-state-machine.md` for campaign or email lifecycle
    - `docs-internal/testing-strategy.md`
 3. Inspect the code path that owns the symptom.
-4. Use read-only MySQL only for the smallest useful state slice.
+4. Use read-only MySQL only for the smallest useful state slice. Default to
+   production data from `env/prod.env`. Query `dripr-staging` only when Kenny
+   explicitly asks to inspect the staging database. Do not read `env/staging.env`.
 5. Use CloudWatch logs around exact identifiers and timestamps.
 6. Do not run tests or scripts from the Dripr repo unless Kenny explicitly asks
    for that exact run.

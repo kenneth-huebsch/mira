@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import os
 import re
@@ -62,6 +63,16 @@ class SetupError(RuntimeError):
     pass
 
 
+def load_skills_catalog():
+    catalog_path = Path(__file__).resolve().parent.parent / "dripr_coding" / "skills_catalog.py"
+    spec = importlib.util.spec_from_file_location("dripr_skills_catalog", catalog_path)
+    if spec is None or spec.loader is None:
+        raise SetupError(f"unable to load skills catalog: {catalog_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Read-only Dripr production debugging helper.")
     parser.add_argument("--env-file", default=os.environ.get("DRIPR_DEBUG_ENV", str(DEFAULT_ENV_FILE)))
@@ -69,6 +80,7 @@ def parse_args() -> argparse.Namespace:
 
     subparsers.add_parser("check-config", help="Validate repo and credential plumbing without querying production data.")
     subparsers.add_parser("repo-status", help="Return compact Dripr checkout status and key docs availability.")
+    subparsers.add_parser("list-skills", help="List Dripr repo skills from .agent/skills/*/SKILL.md frontmatter.")
 
     test_parser = subparsers.add_parser("run-test", help="Run a Dripr test command only after Kenny explicitly approves it.")
     test_parser.add_argument("target", choices=["python-unit", "ui-unit", "integration-trial"])
@@ -451,6 +463,9 @@ def main() -> int:
             result = check_config(values)
         elif args.command == "repo-status":
             result = repo_status(values)
+        elif args.command == "list-skills":
+            catalog = load_skills_catalog()
+            result = catalog.list_dripr_repo_skills(repo_path(values))
         elif args.command == "run-test":
             values["_kenny_approved"] = "1" if args.kenny_approved else ""
             result = run_test(values, args.target)

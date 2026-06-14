@@ -70,6 +70,12 @@ Prepare both repos:
 python3 capabilities/dripr_coding/dripr_coding.py prepare-repos
 ```
 
+List Dripr repo skills from frontmatter:
+
+```bash
+python3 capabilities/dripr_coding/dripr_coding.py list-skills
+```
+
 Generate the prompt-to-PR task without invoking Cursor or GitHub:
 
 ```bash

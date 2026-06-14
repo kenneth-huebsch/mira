@@ -82,6 +82,7 @@ behavior_files=(
   skills/manual-cron-kickoff/SKILL.md
   skills/dripr-production-debug/SKILL.md
   skills/dripr-coding/SKILL.md
+  skills/dripr-education-topics/SKILL.md
 )
 
 for rel in "${behavior_files[@]}"; do
@@ -93,6 +94,7 @@ copy_dir "$LIVE_WORKSPACE/capabilities/mysql_new_users" "$BLUEPRINT_WORKSPACE/ca
 copy_dir "$LIVE_WORKSPACE/capabilities/cloudwatch_dashboard" "$BLUEPRINT_WORKSPACE/capabilities/cloudwatch_dashboard"
 copy_dir "$LIVE_WORKSPACE/capabilities/dripr_production_debug" "$BLUEPRINT_WORKSPACE/capabilities/dripr_production_debug"
 copy_dir "$LIVE_WORKSPACE/capabilities/dripr_coding" "$BLUEPRINT_WORKSPACE/capabilities/dripr_coding"
+copy_dir "$LIVE_WORKSPACE/capabilities/dripr_education_topics" "$BLUEPRINT_WORKSPACE/capabilities/dripr_education_topics"
 
 # Local skill currently lives in the OpenClaw source checkout, not the workspace.
 copy_dir "$OPENCLAW_SOURCE/skills/quick-reminders" "$BLUEPRINT_WORKSPACE/skills/quick-reminders"

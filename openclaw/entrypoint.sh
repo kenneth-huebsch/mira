@@ -64,13 +64,16 @@ PY
 ensure_aws_python_runtime() {
   if python3 - <<'PY' >/dev/null 2>&1
 import boto3
+
+boto3.client("bedrock-runtime", region_name="us-west-2")
 PY
   then
     return 0
   fi
 
   apt-get update -qq >/dev/null
-  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends python3-boto3 >/dev/null
+  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends python3-pip >/dev/null
+  pip3 install --break-system-packages 'boto3>=1.34' >/dev/null
 }
 
 ensure_dripr_debug_python_runtime() {

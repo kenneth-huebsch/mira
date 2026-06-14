@@ -150,6 +150,11 @@
           "name": "mira-capabilities",
           "path": "/home/node/.openclaw/workspace/capabilities",
           "pattern": "**/*.md"
+        },
+        {
+          "name": "dripr-repo-skills",
+          "path": "/home/node/.openclaw/workspace/runtime/repos/dripr/.agent/skills",
+          "pattern": "**/SKILL.md"
         }
       ],
       "scope": {

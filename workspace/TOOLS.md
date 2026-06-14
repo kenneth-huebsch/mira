@@ -163,12 +163,25 @@ The scheduled check runs at 9:00 AM Eastern. It should notify Kenny only when
 configured checks breach thresholds or when setup/runtime fails. If all checks
 are healthy, return exactly `NO_REPLY`.
 
+## Dripr Staging (Kenny-only)
+
+Staging is Kenny's local Dripr environment on his own computer. Mira must not:
+
+- read or source `env/staging.env`
+- call staging APIs or URLs
+- deploy to staging or interact with Kenny's local staging app
+
+Mira's **only** staging touchpoint is the database:
+
+- read-only `dripr-staging` queries when Kenny explicitly asks
+
+Default all other Dripr workflows to **production**.
 
 ## Dripr Production Debug
 
 Use the local `dripr-production-debug` skill when Kenny asks Mira to debug
-Dripr, investigate a production/staging issue, explain a CloudWatch alert, or
-inspect a campaign/email/user problem.
+Dripr, investigate a production issue, explain a CloudWatch alert, or inspect a
+campaign/email/user problem.
 
 The Dripr checkout is live-only and lives at:
 
@@ -226,6 +239,9 @@ git pull --ff-only
 
 from `/home/node/.openclaw/workspace/runtime/repos/dripr`. If the pull fails,
 stop and report the blocker rather than investigating stale code.
+
+QMD indexes Dripr repo skills for on-demand recall in direct chat at
+`runtime/repos/dripr/.agent/skills/**/SKILL.md` after the checkout exists.
 
 If the detached debug subagent is confused or missing essential context, it
 should ask one concise question in its final report and then end. Kenny will
@@ -335,6 +351,71 @@ asks for that exact debug-time run.
 
 The detached subagent must invoke `run-prompt-pr` or report a concrete blocker.
 Restating the requested change is not completion.
+
+List Dripr repo skills from the live checkout:
+
+```bash
+python3 capabilities/dripr_coding/dripr_coding.py list-skills
+python3 capabilities/dripr_production_debug/dripr_production_debug.py list-skills
+```
+
+Detached Dripr subagents should use `list-skills` after repo refresh or
+`git pull --ff-only`, then read only the relevant `.agent/skills/*/SKILL.md`
+files for the task. QMD also indexes Dripr repo skills for on-demand recall in
+direct chat.
+
+
+## Dripr Education Topics
+
+Use the local `dripr-education-topics` skill when Kenny asks Mira to create,
+upload, publish, or draft monthly Dripr education topics.
+
+This workflow runs in the **interactive** session because Kenny must review
+title, copy, and image before publish. Do not spawn a detached subagent.
+
+Mira publishes approved topics to **production only** through
+`POST /api/education-topics` using `DRIPR_API_KEY` and `VITE_API_GATEWAY_URL`
+from `env/prod.env`. The API uploads the image and creates the database row.
+She does not publish to staging.
+
+Helper commands:
+
+```bash
+python3 capabilities/dripr_education_topics/dripr_education_topics.py check-config
+python3 capabilities/dripr_education_topics/dripr_education_topics.py sync-repo
+python3 capabilities/dripr_education_topics/dripr_education_topics.py recent-topics
+python3 capabilities/dripr_education_topics/dripr_education_topics.py generate-image \
+  --title "<title>" --visual-concept "<scene>" --output <draft.png>
+python3 capabilities/dripr_education_topics/dripr_education_topics.py publish --kenny-approved \
+  --month <month> --year <year> --title "<title>" --content "<content>" --image <draft.png>
+```
+
+Credentials come from Dripr **`env/prod.env` only**. Mira never reads
+`env/staging.env`.
+
+The canonical creative rules live in the Dripr checkout at:
+
+```bash
+/home/node/.openclaw/workspace/runtime/repos/dripr/.agent/skills/uploading-education-topics/SKILL.md
+```
+
+Use `sync-repo`, not `dripr_coding.py prepare-repos`, so in-progress draft
+images under Mira runtime are not disturbed.
+
+Optional live-only overrides belong in:
+
+```bash
+/home/node/.openclaw/secrets/dripr-education-topics.env
+```
+
+Supported overrides only:
+
+```bash
+DRIPR_REPO_PATH=/home/node/.openclaw/workspace/runtime/repos/dripr
+DRIPR_EDUCATION_TOPICS_RUN_ROOT=/home/node/.openclaw/workspace/runtime/capability-runs/dripr-education-topics
+DRIPR_BEDROCK_REGION=us-west-2
+```
+
 
 
 ## `agent-browser` CLI (web browsing)

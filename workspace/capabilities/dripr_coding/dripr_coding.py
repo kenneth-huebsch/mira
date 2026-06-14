@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from skills_catalog import list_dripr_repo_skills
+
 
 WORKSPACE_ROOT = Path(os.environ.get("OPENCLAW_WORKSPACE_DIR", "/home/node/.openclaw/workspace"))
 OPENCLAW_ROOT = WORKSPACE_ROOT.parent
@@ -42,6 +44,7 @@ def parse_args() -> argparse.Namespace:
 
     subparsers.add_parser("check-config", help="Inspect tools, auth, and repo readiness without changing repos.")
     subparsers.add_parser("prepare-repos", help="Clone or refresh Dripr and agent harness repos.")
+    subparsers.add_parser("list-skills", help="List Dripr repo skills from .agent/skills/*/SKILL.md frontmatter.")
 
     runner = subparsers.add_parser("run-prompt-pr", help="Run Dripr's prompt-to-PR wrapper.")
     prompt_source = runner.add_mutually_exclusive_group(required=True)
@@ -487,6 +490,9 @@ def main() -> int:
             return 0
         if args.command == "prepare-repos":
             print_json(prepare_repos(values))
+            return 0
+        if args.command == "list-skills":
+            print_json(list_dripr_repo_skills(dripr_repo(values)))
             return 0
         if args.command == "run-prompt-pr":
             result = run_prompt_pr(values, args)

@@ -38,11 +38,15 @@ Mira can spawn a fresh coding run.
    ```bash
    python3 capabilities/dripr_coding/dripr_coding.py prepare-repos
    ```
-4. In the refreshed Dripr checkout, read:
+4. In the refreshed Dripr checkout, run:
+   ```bash
+   python3 capabilities/dripr_coding/dripr_coding.py list-skills
+   ```
+5. Read:
    - `AGENTS.md`
-   - every `.agent/skills/*/SKILL.md` file relevant to the request
+   - every relevant `.agent/skills/*/SKILL.md` file from the catalog
    - `.agent/overnight/README.md`
-5. Start the prompt-to-PR runner through the helper:
+6. Start the prompt-to-PR runner through the helper:
    ```bash
    python3 capabilities/dripr_coding/dripr_coding.py run-prompt-pr --title "<short title>" --kind chore --prompt "<Kenny's request>"
    ```

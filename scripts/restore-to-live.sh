@@ -130,6 +130,7 @@ behavior_files=(
   skills/manual-cron-kickoff/SKILL.md
   skills/dripr-production-debug/SKILL.md
   skills/dripr-coding/SKILL.md
+  skills/dripr-education-topics/SKILL.md
 )
 
 for rel in "${behavior_files[@]}"; do
@@ -143,6 +144,7 @@ copy_dir "capabilities/mysql_new_users"
 copy_dir "capabilities/cloudwatch_dashboard"
 copy_dir "capabilities/dripr_production_debug"
 copy_dir "capabilities/dripr_coding"
+copy_dir "capabilities/dripr_education_topics"
 copy_dir "skills/quick-reminders"
 restore_openclaw_file "entrypoint.sh"
 

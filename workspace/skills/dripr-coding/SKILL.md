@@ -70,8 +70,10 @@ harness at /home/node/.openclaw/workspace/runtime/repos/agent.
 
 Run `python3 capabilities/dripr_coding/dripr_coding.py check-config`, then
 `python3 capabilities/dripr_coding/dripr_coding.py prepare-repos`. After the
-repos are refreshed, read Dripr's AGENTS.md and the relevant `.agent/skills/*/SKILL.md`
-files, then run `python3 capabilities/dripr_coding/dripr_coding.py run-prompt-pr`
+repos are refreshed, run
+`python3 capabilities/dripr_coding/dripr_coding.py list-skills`, read Dripr's
+`AGENTS.md`, and the relevant `.agent/skills/*/SKILL.md` files from that
+catalog, then run `python3 capabilities/dripr_coding/dripr_coding.py run-prompt-pr`
 with a short title, the best matching kind, and Kenny's request as the prompt.
 Do not stop after restating the request. The job is incomplete unless
 `run-prompt-pr` has been invoked or a concrete setup/auth/repo blocker prevented
