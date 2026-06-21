@@ -78,6 +78,7 @@ behavior_files=(
   cron/MYSQL_NEW_USERS.md
   cron/CLOUDWATCH_DASHBOARD.md
   cron/DRIPR_EDUCATION_TOPICS_CHECK.md
+  cron/DRIPR_REDDIT_FOLLOWUPS.md
   plugins/output-hygiene-plugin.ts
   skills/agent-browser/SKILL.md
   skills/gog-reauth/SKILL.md
@@ -97,6 +98,8 @@ copy_dir "$LIVE_WORKSPACE/capabilities/cloudwatch_dashboard" "$BLUEPRINT_WORKSPA
 copy_dir "$LIVE_WORKSPACE/capabilities/dripr_production_debug" "$BLUEPRINT_WORKSPACE/capabilities/dripr_production_debug"
 copy_dir "$LIVE_WORKSPACE/capabilities/dripr_coding" "$BLUEPRINT_WORKSPACE/capabilities/dripr_coding"
 copy_dir "$LIVE_WORKSPACE/capabilities/dripr_education_topics" "$BLUEPRINT_WORKSPACE/capabilities/dripr_education_topics"
+copy_dir "$LIVE_WORKSPACE/capabilities/dripr_reddit_followups" "$BLUEPRINT_WORKSPACE/capabilities/dripr_reddit_followups"
+copy_dir "$LIVE_WORKSPACE/skills/native-airtable" "$BLUEPRINT_WORKSPACE/skills/native-airtable"
 
 # Local skill currently lives in the OpenClaw source checkout, not the workspace.
 copy_dir "$OPENCLAW_SOURCE/skills/quick-reminders" "$BLUEPRINT_WORKSPACE/skills/quick-reminders"

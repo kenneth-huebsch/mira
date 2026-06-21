@@ -117,6 +117,9 @@ Mira's active scheduled behavior is intentionally narrow:
 - Dripr Education Topics Check runs daily at 10:30 AM Eastern but only notifies
   Kenny on the monthly trigger day (14 days before month-end) when next month's
   production education topic is missing or already ready.
+- Dripr Reddit Follow-Ups checks Kenny's Airtable Reddit scrape table at 1:00 PM
+  and 6:00 PM Eastern and notifies Kenny only about rows where `followed_up` is
+  `no`.
 
 If Kenny later asks for more scheduled behavior, add it intentionally in
 `workspace/cron/`, keep behavior-owned files under `workspace/capabilities/`

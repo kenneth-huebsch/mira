@@ -126,6 +126,7 @@ behavior_files=(
   cron/MYSQL_NEW_USERS.md
   cron/CLOUDWATCH_DASHBOARD.md
   cron/DRIPR_EDUCATION_TOPICS_CHECK.md
+  cron/DRIPR_REDDIT_FOLLOWUPS.md
   plugins/output-hygiene-plugin.ts
   skills/agent-browser/SKILL.md
   skills/gog-reauth/SKILL.md
@@ -147,6 +148,8 @@ copy_dir "capabilities/cloudwatch_dashboard"
 copy_dir "capabilities/dripr_production_debug"
 copy_dir "capabilities/dripr_coding"
 copy_dir "capabilities/dripr_education_topics"
+copy_dir "capabilities/dripr_reddit_followups"
+copy_dir "skills/native-airtable"
 copy_dir "skills/quick-reminders"
 restore_openclaw_file "entrypoint.sh"
 

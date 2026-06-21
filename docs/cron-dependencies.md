@@ -7,6 +7,7 @@ This file documents behavior-bearing files that cron jobs or cron context inject
 - `workspace/cron/CLOUDWATCH_DASHBOARD.md`
 - `workspace/cron/DRIPR_EDUCATION_TOPICS_CHECK.md`
 - `workspace/cron/DRIPR_INBOX_TRIAGE.md`
+- `workspace/cron/DRIPR_REDDIT_FOLLOWUPS.md`
 - `workspace/cron/MYSQL_NEW_USERS.md`
 
 ## Required Supporting Files
@@ -36,6 +37,10 @@ This file documents behavior-bearing files that cron jobs or cron context inject
 - `workspace/capabilities/dripr_education_topics/DRIPR_EDUCATION_TOPICS.md` (present) - Capability-owned behavior for interactive education topic review and publish.
 - `workspace/capabilities/dripr_education_topics/dripr_education_topics.py` (present) - Helper used by Dripr Education Topics for repo sync, next-month prod check, prod-to-staging copy, recent-topic lookup, Bedrock image generation, and gated production API publish.
 - `workspace/skills/dripr-education-topics/SKILL.md` (present) - Interactive skill for drafting and publishing monthly Dripr education topics with Kenny review.
+- `workspace/skills/native-airtable/SKILL.md` (present) - ClawHub Airtable skill used by Dripr Reddit Follow-Ups to read bases, tables, and records via `AIRTABLE_PAT`.
+- `workspace/capabilities/dripr_reddit_followups/README.md` (present) - Capability overview for Dripr Reddit Follow-Ups, including Airtable skill install and credential boundaries.
+- `workspace/capabilities/dripr_reddit_followups/DRIPR_REDDIT_FOLLOWUPS.md` (present) - Capability-owned behavior for summarizing Reddit follow-up rows.
+- `workspace/capabilities/dripr_reddit_followups/dripr_reddit_followups.py` (present) - Helper used by Dripr Reddit Follow-Ups to query Airtable through the native-airtable skill and prepare compact follow-up records.
 
 ## QMD Recall Backend
 

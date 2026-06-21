@@ -166,6 +166,65 @@ The scheduled check runs at 9:00 AM Eastern. It should notify Kenny only when
 configured checks breach thresholds or when setup/runtime fails. If all checks
 are healthy, return exactly `NO_REPLY`.
 
+## Dripr Reddit Follow-Ups
+
+Mira's Dripr Reddit follow-up check runs as a scheduled cron and must use the
+capability helper instead of ad hoc Airtable commands:
+
+```bash
+python3 capabilities/dripr_reddit_followups/dripr_reddit_followups.py review
+```
+
+Install the ClawHub `native-airtable` skill in Mira's workspace before using this
+capability:
+
+```bash
+cd /home/kenny/mira
+./scripts/openclaw-cli.sh skills install native-airtable
+```
+
+The helper wraps `skills/native-airtable/scripts/airtable.py` and expects
+`AIRTABLE_PAT` from the live-only env file below.
+
+Configuration is live-only and belongs in:
+
+```bash
+/home/node/.openclaw/secrets/dripr-reddit-airtable.env
+```
+
+On Kenny's host, that maps to:
+
+```bash
+/home/kenny/mira/.openclaw/secrets/dripr-reddit-airtable.env
+```
+
+Required values:
+
+```bash
+AIRTABLE_PAT=
+AIRTABLE_BASE_ID=appmU4swFIn5T7d3U
+```
+
+Optional values:
+
+```bash
+AIRTABLE_TABLE_ID=
+AIRTABLE_TABLE_NAME=
+DRIPR_REDDIT_FOLLOWUPS_MAX_ROWS=3
+```
+
+Create the PAT at `https://airtable.com/create/tokens` with scopes
+`data.records:read` and `schema.bases:read`, and grant access to base
+`appmU4swFIn5T7d3U`.
+
+Keep Airtable tokens, record contents, and private scrape data out of tracked
+files. The helper filters rows where `followed_up` is `no` and returns compact
+JSON with `why_relevant` and `url`, or exactly `NO_REPLY`.
+
+The scheduled check runs at 1:00 PM and 6:00 PM Eastern. It should notify Kenny
+only when matching rows exist. If no rows need follow-up, return exactly
+`NO_REPLY`.
+
 ## Dripr Staging (Kenny-only)
 
 Staging is Kenny's local Dripr environment on his own computer. Mira must not:

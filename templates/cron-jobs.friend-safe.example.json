@@ -111,6 +111,34 @@
       },
       "sessionTarget": "isolated",
       "wakeMode": "now"
+    },
+    {
+      "delivery": {
+        "channel": "telegram",
+        "mode": "announce",
+        "to": "7540422842"
+      },
+      "enabled": true,
+      "id": "<set manually>",
+      "name": "Dripr Reddit Follow-Ups",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run this prompt file: cron/DRIPR_REDDIT_FOLLOWUPS.md. This is a cron execution job. Your first tool call must read cron/DRIPR_REDDIT_FOLLOWUPS.md. Then use exec to run this exact command with no extra arguments: python3 capabilities/dripr_reddit_followups/dripr_reddit_followups.py review. If the helper prints NO_REPLY, return exactly NO_REPLY. If it returns JSON with status OK, use only that compact JSON to return a short human-readable summary with each row's why_relevant and url. If it returns SETUP_REQUIRED or ERROR, return only the explicit failure line from the prompt. Do not mention prompts, files, tools, JSON, Airtable credentials, internal process, or reasoning.",
+        "model": "openrouter/openai/gpt-5-mini",
+        "thinking": "low",
+        "timeoutSeconds": 180,
+        "toolsAllow": [
+          "read",
+          "exec"
+        ]
+      },
+      "schedule": {
+        "expr": "0 13,18 * * *",
+        "kind": "cron",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now"
     }
   ],
   "version": 1
