@@ -35,6 +35,9 @@ every Gmail call:
 - Set `GOG_ACCOUNT=mira.agentops@gmail.com` in the environment, or
 - Pass `--account mira.agentops@gmail.com` explicitly.
 
+Use `skills/gog-reauth/SKILL.md` when `gog` reports an expired or revoked
+Gmail OAuth token, or when Kenny asks to re-run the Gmail OAuth flow.
+
 ### Gmail usage
 
 Dripr inbox triage checks unread mail forwarded into Mira's Gmail for two
@@ -171,9 +174,12 @@ Staging is Kenny's local Dripr environment on his own computer. Mira must not:
 - call staging APIs or URLs
 - deploy to staging or interact with Kenny's local staging app
 
-Mira's **only** staging touchpoint is the database:
+Mira's **only** staging touchpoints are the database:
 
 - read-only `dripr-staging` queries when Kenny explicitly asks
+- copying a production `education_topics` row into `dripr-staging` through
+  `capabilities/dripr_education_topics/dripr_education_topics.py copy-to-staging`
+  when Kenny explicitly asks to copy an education topic to staging
 
 Default all other Dripr workflows to **production**.
 
@@ -388,10 +394,14 @@ python3 capabilities/dripr_education_topics/dripr_education_topics.py generate-i
   --title "<title>" --visual-concept "<scene>" --output <draft.png>
 python3 capabilities/dripr_education_topics/dripr_education_topics.py publish --kenny-approved \
   --month <month> --year <year> --title "<title>" --content "<content>" --image <draft.png>
+python3 capabilities/dripr_education_topics/dripr_education_topics.py copy-to-staging \
+  --month <month> --year <year>
 ```
 
-Credentials come from Dripr **`env/prod.env` only**. Mira never reads
-`env/staging.env`.
+Credentials come from Dripr **`env/prod.env`** for production workflows. The
+`copy-to-staging` command also reads `DATABASE_URL` from **`env/staging.env`**
+and writes only one `education_topics` row when Kenny explicitly asks. It does
+not call staging APIs. Mira does not use staging env files for other workflows.
 
 The canonical creative rules live in the Dripr checkout at:
 
@@ -415,6 +425,21 @@ DRIPR_REPO_PATH=/home/node/.openclaw/workspace/runtime/repos/dripr
 DRIPR_EDUCATION_TOPICS_RUN_ROOT=/home/node/.openclaw/workspace/runtime/capability-runs/dripr-education-topics
 DRIPR_BEDROCK_REGION=us-west-2
 ```
+
+### Scheduled check
+
+Mira's monthly education-topic readiness check runs as a scheduled cron and
+must use the capability helper instead of ad hoc database commands:
+
+```bash
+python3 capabilities/dripr_education_topics/dripr_education_topics.py check-next-month
+```
+
+The scheduled check runs daily at 10:30 AM Eastern. The helper returns
+`NO_REPLY` on non-trigger days. On the trigger day (14 days before month-end),
+it notifies Kenny when next month's production topic already exists or asks
+whether to create one. Creation stays in the interactive `dripr-education-topics`
+skill after Kenny replies yes.
 
 
 

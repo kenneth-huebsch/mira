@@ -5,7 +5,7 @@ capability_id: dripr_education_topics
 # Dripr Education Topics
 
 Use this capability inside **Interactive Mira** when Kenny asks to create,
-upload, or publish monthly Dripr education topics.
+upload, publish, or copy monthly Dripr education topics.
 
 This workflow is intentionally interactive. It needs back-and-forth review of
 title, copy, and image before publish. Do not spawn a detached subagent.
@@ -21,6 +21,27 @@ After `sync-repo`, read the live Dripr skill:
 That file owns the creative rules, Bedrock image prompt shape, and review gate.
 It also describes Kenny's local staging workflow. **Mira does not use the
 staging publish path.** Mira publishes to production only through the Dripr API.
+When Kenny explicitly asks to copy a production topic into staging for testing,
+use `copy-to-staging` below.
+
+## Copy Production Row To Staging
+
+When Kenny asks to copy an education topic to staging:
+
+1. Resolve `month` and `year`.
+2. Run:
+   ```bash
+   python3 capabilities/dripr_education_topics/dripr_education_topics.py copy-to-staging \
+     --month <month> --year <year>
+   ```
+3. If the helper returns `action: already_exists`, report that staging already
+   has that month/year.
+4. If the helper returns `action: copied`, confirm success. The copied row keeps
+   the production `image_url`; that is expected for application-logic testing.
+
+This reads prod from `env/prod.env`, checks staging through `env/staging.env`'s
+`DATABASE_URL`, and inserts at most one matching row. It does not call staging
+APIs or upload images.
 
 ## Publish Model
 
@@ -87,10 +108,11 @@ If Kenny requests changes, update the draft and repeat the review gate.
 ## Safety Rules
 
 - Do not publish without `--kenny-approved`.
-- Do not publish to staging or read `env/staging.env`.
-- Do not bypass the API with direct database or S3 writes.
+- Do not publish to staging or call staging APIs.
+- Do not write staging data except through `copy-to-staging` when Kenny explicitly asks.
+- Do not bypass the production API with direct database or S3 writes.
 - Do not expose API keys, env file contents, or raw credentials.
-- If publish or verification fails, report the blocker and stop.
+- If publish, copy, or verification fails, report the blocker and stop.
 
 ## Report Format
 

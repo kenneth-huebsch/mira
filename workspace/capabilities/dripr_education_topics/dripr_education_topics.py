@@ -8,9 +8,13 @@ import os
 import re
 import subprocess
 import sys
+import uuid
+from calendar import monthrange
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote
+from zoneinfo import ZoneInfo
 
 try:
     import boto3
@@ -28,6 +32,7 @@ except ImportError:  # pragma: no cover - depends on live OpenClaw image
     pymysql = None
 
 
+ET = ZoneInfo("America/New_York")
 WORKSPACE_ROOT = Path(os.environ.get("OPENCLAW_WORKSPACE_DIR", "/home/node/.openclaw/workspace"))
 DEFAULT_REPO_PATH = WORKSPACE_ROOT / "runtime" / "repos" / "dripr"
 DEFAULT_RUN_ROOT = WORKSPACE_ROOT / "runtime" / "capability-runs" / "dripr-education-topics"
@@ -35,6 +40,7 @@ DEFAULT_OVERRIDE_ENV_FILE = WORKSPACE_ROOT.parent / "secrets" / "dripr-education
 DEFAULT_BEDROCK_REGION = "us-west-2"
 STABLE_IMAGE_MODEL_ID = "stability.stable-image-core-v1:1"
 PROD_ENV_NAME = "prod"
+STAGING_ENV_NAME = "staging"
 PROD_ENV_KEYS = (
     "DATABASE_URL",
     "DRIPR_API_KEY",
@@ -54,6 +60,15 @@ SELECT month, year, title, image_url
 FROM education_topics
 WHERE month = %s AND year = %s
 """.strip()
+FETCH_TOPIC_SQL = """
+SELECT month, year, title, content, image_url
+FROM education_topics
+WHERE month = %s AND year = %s
+""".strip()
+INSERT_TOPIC_SQL = """
+INSERT INTO education_topics (id, creation_datetime, month, year, title, content, image_url)
+VALUES (%s, %s, %s, %s, %s, %s, %s)
+""".strip()
 MAX_FIELD_CHARS = 280
 DANGEROUS_SQL_RE = re.compile(
     r"\b(ALTER|CREATE|DELETE|DROP|GRANT|INSERT|LOAD|REPLACE|REVOKE|TRUNCATE|UPDATE)\b",
@@ -72,10 +87,15 @@ def parse_args() -> argparse.Namespace:
         default=os.environ.get("DRIPR_EDUCATION_TOPICS_ENV", str(DEFAULT_OVERRIDE_ENV_FILE)),
         help="Optional override env file. Dripr env/prod.env is the primary credential source.",
     )
+    parser.add_argument("--now", help="Override current time for tests (ISO-8601, Eastern assumed if naive).")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("check-config", help="Validate repo and Dripr env/prod.env readiness.")
     subparsers.add_parser("sync-repo", help="Run git pull --ff-only in the Dripr checkout.")
+    subparsers.add_parser(
+        "check-next-month",
+        help="On the monthly trigger day, check whether next month's prod education topic exists.",
+    )
     subparsers.add_parser("recent-topics", help="List production education topics from the past two years.")
 
     generate_image = subparsers.add_parser(
@@ -107,6 +127,13 @@ def parse_args() -> argparse.Namespace:
     publish.add_argument("--title", required=True)
     publish.add_argument("--content", required=True)
     publish.add_argument("--image", required=True)
+
+    copy_to_staging = subparsers.add_parser(
+        "copy-to-staging",
+        help="Copy a production education topic row into dripr-staging when Kenny explicitly asks.",
+    )
+    copy_to_staging.add_argument("--month", type=int, required=True)
+    copy_to_staging.add_argument("--year", type=int, required=True)
 
     return parser.parse_args()
 
@@ -173,6 +200,30 @@ def compact(value: Any, max_chars: int = MAX_FIELD_CHARS) -> str | int | float |
 
 def compact_error(error: BaseException) -> str:
     return str(compact(error, MAX_FIELD_CHARS))
+
+
+def now_et(raw: str | None = None) -> datetime:
+    if not raw:
+        return datetime.now(ET)
+    parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=ET)
+    return parsed.astimezone(ET)
+
+
+def is_monthly_trigger_day(dt: datetime) -> bool:
+    last_day = monthrange(dt.year, dt.month)[1]
+    return dt.day == last_day - 14
+
+
+def next_calendar_month(dt: datetime) -> tuple[int, int]:
+    if dt.month == 12:
+        return 1, dt.year + 1
+    return dt.month + 1, dt.year
+
+
+def month_year_label(month: int, year: int) -> str:
+    return datetime(year, month, 1, tzinfo=ET).strftime("%B %Y")
 
 
 def dripr_repo(overrides: dict[str, str]) -> Path:
@@ -287,6 +338,51 @@ def run_mysql_query_for_dripr_env(
         params,
         max_rows,
     )
+
+
+def insert_education_topic_row(mysql_config: dict[str, Any], row: dict[str, Any]) -> None:
+    connection = mysql_connect(mysql_config)
+    try:
+        cursor = connection.cursor()
+        try:
+            cursor.execute(
+                INSERT_TOPIC_SQL,
+                (
+                    row["id"],
+                    row["creation_datetime"],
+                    row["month"],
+                    row["year"],
+                    row["title"],
+                    row["content"],
+                    row["image_url"],
+                ),
+            )
+            connection.commit()
+        finally:
+            cursor.close()
+    finally:
+        connection.close()
+
+
+def validate_month_year(month: int, year: int) -> None:
+    if month < 1 or month > 12:
+        raise SetupError("month must be between 1 and 12")
+    if year < 2000 or year > 2100:
+        raise SetupError("year must be between 2000 and 2100")
+
+
+def validate_topic_text(title: str, content: str) -> tuple[str, str]:
+    clean_title = title.strip()
+    clean_content = content.strip()
+    if not clean_title:
+        raise SetupError("title is required")
+    if not clean_content:
+        raise SetupError("content is required")
+    if len(clean_title) > 128:
+        raise SetupError("title must be 128 characters or fewer")
+    if len(clean_content) > 2048:
+        raise SetupError("content must be 2048 characters or fewer")
+    return clean_title, clean_content
 
 
 def required_env_keys(env_values: dict[str, str], keys: list[str]) -> list[str]:
@@ -527,6 +623,123 @@ def sync_repo(overrides: dict[str, str]) -> dict[str, Any]:
     }
 
 
+def check_next_month(overrides: dict[str, str], args: argparse.Namespace) -> dict[str, Any] | None:
+    current = now_et(args.now)
+    if not is_monthly_trigger_day(current):
+        return None
+
+    target_month, target_year = next_calendar_month(current)
+    repo = dripr_repo(overrides)
+    prod_env = load_dripr_env_file(repo, PROD_ENV_NAME)
+    rows = run_mysql_query_for_dripr_env(
+        prod_env,
+        VERIFY_TOPIC_SQL,
+        (target_month, target_year),
+        max_rows=1,
+    )
+    topic_exists = bool(rows)
+    result: dict[str, Any] = {
+        "status": "OK",
+        "trigger_day": True,
+        "target_month": target_month,
+        "target_year": target_year,
+        "target_label": month_year_label(target_month, target_year),
+        "topic_exists": topic_exists,
+    }
+    if topic_exists:
+        row = rows[0]
+        result["topic"] = {
+            "month": row.get("month"),
+            "year": row.get("year"),
+            "title": compact(row.get("title")),
+            "image_url": compact(row.get("image_url")),
+        }
+    return result
+
+
+def copy_topic_to_staging(overrides: dict[str, str], args: argparse.Namespace) -> dict[str, Any]:
+    validate_month_year(args.month, args.year)
+    repo = dripr_repo(overrides)
+    prod_env = load_dripr_env_file(repo, PROD_ENV_NAME)
+    staging_env = load_dripr_env_file(repo, STAGING_ENV_NAME)
+
+    prod_rows = run_mysql_query_for_dripr_env(
+        prod_env,
+        FETCH_TOPIC_SQL,
+        (args.month, args.year),
+        max_rows=1,
+    )
+    if not prod_rows:
+        raise SetupError(
+            f"no production education topic found for {month_year_label(args.month, args.year)}"
+        )
+
+    staging_rows = run_mysql_query_for_dripr_env(
+        staging_env,
+        VERIFY_TOPIC_SQL,
+        (args.month, args.year),
+        max_rows=1,
+    )
+    if staging_rows:
+        row = staging_rows[0]
+        return {
+            "status": "OK",
+            "action": "already_exists",
+            "target_label": month_year_label(args.month, args.year),
+            "month": args.month,
+            "year": args.year,
+            "staging_database": mysql_connection_config_from_dripr_env(staging_env)["database"],
+            "topic": {
+                "title": compact(row.get("title")),
+                "image_url": compact(row.get("image_url")),
+            },
+        }
+
+    prod_row = prod_rows[0]
+    title, content = validate_topic_text(
+        str(prod_row.get("title") or ""),
+        str(prod_row.get("content") or ""),
+    )
+    image_url = str(prod_row.get("image_url") or "").strip()
+    if not image_url:
+        raise SetupError("production topic is missing image_url")
+
+    staging_config = mysql_connection_config_from_dripr_env(staging_env)
+    new_row = {
+        "id": str(uuid.uuid4()),
+        "creation_datetime": datetime.now(timezone.utc).replace(tzinfo=None),
+        "month": args.month,
+        "year": args.year,
+        "title": title,
+        "content": content,
+        "image_url": image_url,
+    }
+    insert_education_topic_row(staging_config, new_row)
+
+    verify_rows = run_mysql_query_for_config(
+        staging_config,
+        FETCH_TOPIC_SQL,
+        (args.month, args.year),
+        max_rows=1,
+    )
+    return {
+        "status": "OK",
+        "action": "copied",
+        "target_label": month_year_label(args.month, args.year),
+        "month": args.month,
+        "year": args.year,
+        "staging_database": staging_config["database"],
+        "source_database": mysql_connection_config_from_dripr_env(prod_env)["database"],
+        "topic": {
+            "title": title,
+            "image_url": compact(image_url),
+            "content_preview": compact(content, 160),
+        },
+        "verification": verify_rows,
+        "note": "image_url still points at the production S3 object by design",
+    }
+
+
 def recent_topics(overrides: dict[str, str]) -> dict[str, Any]:
     repo = dripr_repo(overrides)
     prod_env = load_dripr_env_file(repo, PROD_ENV_NAME)
@@ -557,14 +770,7 @@ def validate_topic_payload(args: argparse.Namespace) -> tuple[str, str, Path]:
 
     title = args.title.strip()
     content = args.content.strip()
-    if not title:
-        raise SetupError("title is required")
-    if not content:
-        raise SetupError("content is required")
-    if len(title) > 128:
-        raise SetupError("title must be 128 characters or fewer")
-    if len(content) > 2048:
-        raise SetupError("content must be 2048 characters or fewer")
+    title, content = validate_topic_text(title, content)
     return title, content, image_path
 
 
@@ -661,12 +867,20 @@ def main() -> int:
             result = check_config(overrides)
         elif args.command == "sync-repo":
             result = sync_repo(overrides)
+        elif args.command == "check-next-month":
+            outcome = check_next_month(overrides, args)
+            if outcome is None:
+                print("NO_REPLY")
+                return 0
+            result = outcome
         elif args.command == "recent-topics":
             result = recent_topics(overrides)
         elif args.command == "generate-image":
             result = generate_topic_image(overrides, args)
         elif args.command == "publish":
             result = publish_topic(overrides, args)
+        elif args.command == "copy-to-staging":
+            result = copy_topic_to_staging(overrides, args)
         else:
             raise SetupError(f"unknown command: {args.command}")
     except SetupError as error:

@@ -77,8 +77,10 @@ behavior_files=(
   cron/DRIPR_INBOX_TRIAGE.md
   cron/MYSQL_NEW_USERS.md
   cron/CLOUDWATCH_DASHBOARD.md
+  cron/DRIPR_EDUCATION_TOPICS_CHECK.md
   plugins/output-hygiene-plugin.ts
   skills/agent-browser/SKILL.md
+  skills/gog-reauth/SKILL.md
   skills/manual-cron-kickoff/SKILL.md
   skills/dripr-production-debug/SKILL.md
   skills/dripr-coding/SKILL.md

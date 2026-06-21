@@ -106,7 +106,7 @@ known_dependencies = {
     "workspace/skills/dripr-coding/SKILL.md": "Interactive skill that routes Dripr coding requests into a detached prompt-to-PR run.",
     "workspace/capabilities/dripr_education_topics/README.md": "Capability overview for interactive Dripr education topic drafting and gated publish.",
     "workspace/capabilities/dripr_education_topics/DRIPR_EDUCATION_TOPICS.md": "Capability-owned behavior for interactive education topic review and publish.",
-    "workspace/capabilities/dripr_education_topics/dripr_education_topics.py": "Helper used by Dripr Education Topics for repo sync, recent-topic lookup, Bedrock image generation, and gated production API publish.",
+    "workspace/capabilities/dripr_education_topics/dripr_education_topics.py": "Helper used by Dripr Education Topics for repo sync, next-month prod check, prod-to-staging copy, recent-topic lookup, Bedrock image generation, and gated production API publish.",
     "workspace/skills/dripr-education-topics/SKILL.md": "Interactive skill for drafting and publishing monthly Dripr education topics with Kenny review.",
 }
 

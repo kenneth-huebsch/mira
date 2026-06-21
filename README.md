@@ -51,3 +51,5 @@ If the diff looks right, commit and push.
 ## Safety Line
 
 The sync script is allowlist-based. It copies known behavior files and seeds required memory files, but it does not copy accumulated memory history, runtime logs, sessions, device state, credentials, or tokens.
+
+Provider API keys live in ignored per-instance secret env files under `.openclaw/secrets/`, never in tracked files or global shell startup files. See `RUNBOOK.md` for the OpenRouter rotation procedure.

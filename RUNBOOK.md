@@ -45,6 +45,34 @@ cd /home/kenny/mira
 
 Override these with environment variables only for recovery or migration work.
 
+
+## Provider Credentials
+
+Mira's OpenRouter auth is per-instance, not global shell state. The live auth
+profile references `OPENROUTER_API_KEY` through a SecretRef-style env reference,
+and `scripts/start-openclaw.sh` plus `scripts/openclaw-cli.sh` load it from:
+
+```bash
+/home/kenny/mira/.openclaw/secrets/openrouter.env
+```
+
+The scripts pass those values into Docker through `openclaw/provider-auth.compose.yml`, so the setup does not depend on global shell exports or source checkout defaults.
+
+That file is ignored runtime state and must not be committed. To rotate the
+OpenRouter token, edit `OPENROUTER_API_KEY` in that file, keep permissions at
+`600`, then restart this OpenClaw home:
+
+```bash
+cd /home/kenny/mira
+./scripts/stop-openclaw.sh
+./scripts/start-openclaw.sh
+```
+
+Do not put provider API keys in `~/.bashrc`, tracked docs, templates, or
+`auth-profiles.json`. The expected live auth profile shape is a `keyRef` to
+`OPENROUTER_API_KEY`; the token value belongs only in the ignored secret env
+file.
+
 ## Runtime Boundary
 
 Mira's scheduled helpers run through OpenClaw `exec` in the gateway container,
