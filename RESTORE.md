@@ -1,6 +1,6 @@
 # Restore Mira
 
-This restores Mira's coding-agent behavior, not her exact runtime state,
+This restores Mira's coding-harness routing behavior, not her exact runtime state,
 credentials, sessions, or memory history.
 
 ## Fresh Host Flow
@@ -27,8 +27,8 @@ cd ~/mira
 ```
 
 This also restores `openclaw/entrypoint.sh` into the OpenClaw checkout so the
-Docker gateway can install/link coding tools, GitHub CLI, Cursor CLI, and `gog`
-for on-demand Gmail access when the compose file mounts that entrypoint.
+Docker gateway can install/link GitHub CLI, Cursor CLI, and `gog` for harness
+routing and on-demand Gmail access when the compose file mounts that entrypoint.
 
 5. Manually configure credentials and runtime secrets:
 
@@ -51,7 +51,9 @@ Use `templates/openclaw.friend-safe.example.json` as a structure reference, but 
 - No workspace memory files, QMD indexes, or memory plugin are restored by default.
 - Telegram DM works for Kenny after credentials are restored.
 - On-demand Gmail reads work through `gog` after Gmail OAuth is restored.
-- Coding tools such as `git`, `gh`, and Cursor CLI are available in the gateway container.
+- The `coding-harness` skill and helper are restored.
+- `git`, `gh`, and Cursor CLI are available in the gateway container.
+- `python3 capabilities/coding_harness/coding_harness.py check-config` passes after GitHub CLI, private harness repo access, and Cursor CLI auth are configured.
 
 ## What This Does Not Restore
 

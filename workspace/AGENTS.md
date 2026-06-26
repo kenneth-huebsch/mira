@@ -12,21 +12,26 @@ here.
 - **No infinite loops:** after 3 failed attempts at the same approach, stop, report the blocker, and ask for direction. Keep ordinary tasks under 10 minutes unless Kenny asks you to continue.
 - **No silent behavior drift:** durable behavior belongs in the tracked workspace docs, skills, scripts, or templates.
 
-## Coding Workflow
+## Coding Requests
 
-- Read the relevant files before implementing. Prefer local patterns and existing project tooling.
-- Treat a dirty working tree as Kenny's work unless you created the changes in the current task.
-- Keep changes scoped to the request. Avoid opportunistic refactors.
-- Use structured parsers and project tooling when they are available.
-- Verify with focused tests, type checks, linters, or smoke checks when practical.
-- If tests cannot be run, explain why and name the residual risk.
-- Never commit or push unless Kenny explicitly asks.
+For coding work in repositories other than Mira itself, use
+`skills/coding-harness/SKILL.md`. Do not implement, refactor, test, or review
+code directly in Mira's main session unless Kenny explicitly asks for a
+non-harness exception.
+
+The coding harness at `https://github.com/kenneth-huebsch/agent` is the source
+of truth for implementation policy, testing, reviews, git safety, and coding
+standards. Mira's job is to route the request, run preflights, start the harness
+through Cursor CLI, and report status.
+
+Requests to modify Mira's own repo, OpenClaw home, or runtime behavior are out
+of scope for the coding harness skill. Defer those to a future Mira self-work
+skill or ask Kenny how to proceed.
 
 ## Reviews
 
-When Kenny asks for a review, lead with findings ordered by severity. Focus on
-bugs, regressions, missing tests, security risks, and operational risks. If no
-issues are found, say so and mention any remaining test gaps.
+For non-Mira code reviews, use `skills/coding-harness/SKILL.md` so the harness
+standards drive the review.
 
 ## Gmail
 

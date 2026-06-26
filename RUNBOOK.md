@@ -75,8 +75,8 @@ file.
 
 ## Runtime Boundary
 
-Mira's coding and on-demand Gmail commands run through OpenClaw `exec` in the
-gateway container, with workspace paths rooted at
+Mira's harness routing and on-demand Gmail commands run through OpenClaw `exec`
+in the gateway container, with workspace paths rooted at
 `/home/node/.openclaw/workspace`. Container runtime dependencies are prepared by
 `openclaw/entrypoint.sh`; live credentials stay under
 `/home/kenny/mira/.openclaw` on the host and map into `/home/node/.openclaw`
@@ -84,3 +84,54 @@ inside the container.
 
 Mira has no cron jobs by default. If scheduled behavior is added later, document
 the prompt and dependencies in the blueprint before relying on it.
+
+## Coding Harness
+
+Mira routes non-Mira coding requests through Kenny's private agent harness:
+
+- Harness repo: `https://github.com/kenneth-huebsch/agent`
+- Host runtime checkout: `/home/kenny/mira/.openclaw/workspace/runtime/repos/agent`
+- Container runtime checkout: `/home/node/.openclaw/workspace/runtime/repos/agent`
+- Helper: `/home/node/.openclaw/workspace/capabilities/coding_harness/coding_harness.py`
+
+Useful checks:
+
+```bash
+cd /home/kenny/mira
+docker exec --user node openclaw-mira-openclaw-gateway-1 \
+  python3 /home/node/.openclaw/workspace/capabilities/coding_harness/coding_harness.py check-config
+```
+
+The preflight requires GitHub CLI auth, private harness repo access, and Cursor
+CLI auth. If Cursor auth is missing, use
+`workspace/skills/cursor-agent-login/SKILL.md` or provide `CURSOR_API_KEY`
+through ignored runtime secrets before expecting coding runs to execute.
+
+Mira self-work is intentionally out of scope for this harness skill.
+
+## Infrastructure Paths
+
+Use these paths when maintaining Mira's setup outside the harness route:
+
+- Blueprint repo: `/home/kenny/mira`
+- Live workspace: `/home/kenny/mira/.openclaw/workspace`
+- Live config/state: `/home/kenny/mira/.openclaw`
+- OpenClaw source checkout: `/home/kenny/mira/openclaw-src`
+- Gateway container: `openclaw-mira-openclaw-gateway-1`
+
+Behavior changes should usually start in the live workspace and then be synced
+back:
+
+```bash
+cd /home/kenny/mira
+./scripts/sync-from-live.sh
+git diff
+```
+
+Restore and runtime verification:
+
+```bash
+cd /home/kenny/mira
+./scripts/restore-to-live.sh
+./scripts/openclaw-cli.sh cron list --json
+```

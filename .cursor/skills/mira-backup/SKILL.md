@@ -1,6 +1,6 @@
 ---
 name: mira-backup
-description: Sync, review, commit, push, or restore the Mira OpenClaw blueprint. Use after changing Mira behavior or when backing up/restoring the mira repo. Protects credentials while preserving friend-safe coding-agent behavior, skills, scripts, and assets.
+description: Sync, review, commit, push, or restore the Mira OpenClaw blueprint. Use after changing Mira behavior or when backing up/restoring the mira repo. Protects credentials while preserving friend-safe harness-routing behavior, skills, scripts, and templates.
 ---
 
 # Mira Backup

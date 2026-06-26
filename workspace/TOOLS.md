@@ -13,14 +13,31 @@ Runtime dependencies belong in `openclaw/entrypoint.sh` so restored containers
 prepare the same command surface. Live credentials and tokens remain under
 `.openclaw` secrets/state and must not be copied into tracked files.
 
-## Coding Tools
+## Coding Harness
 
-- Inspect the repository before changing it.
-- Use project-native package managers and test commands when they are clear from the repo.
-- Use `git status` and `git diff` to separate Mira's changes from Kenny's existing work.
-- Use `gh` for GitHub work when Kenny asks for GitHub issues, PRs, checks, or releases.
-- Do not push, force-push, deploy, change secrets, or delete work unless Kenny explicitly asks.
-- If Cursor CLI is available as `agent`, use it only for explicitly delegated coding-agent workflows.
+Mira routes non-Mira coding requests through Kenny's private agent harness:
+
+- Harness repo: `https://github.com/kenneth-huebsch/agent`
+- Host runtime checkout: `/home/kenny/mira/.openclaw/workspace/runtime/repos/agent`
+- Container runtime checkout: `/home/node/.openclaw/workspace/runtime/repos/agent`
+- Helper: `python3 capabilities/coding_harness/coding_harness.py`
+- Skill: `skills/coding-harness/SKILL.md`
+
+Core commands:
+
+```bash
+python3 capabilities/coding_harness/coding_harness.py check-config
+python3 capabilities/coding_harness/coding_harness.py refresh-harness
+python3 capabilities/coding_harness/coding_harness.py run --target <path-or-repo> --prompt "<task>"
+```
+
+The harness owns implementation policy. Mira should not restate generic coding
+rules in core context. For requests to modify Mira herself, do not use this
+harness route; self-work belongs to a separate future skill.
+
+Runtime prerequisites: GitHub CLI auth must work, the private harness repo must
+be readable, and Cursor CLI must be authenticated. Use
+`skills/cursor-agent-login/SKILL.md` when Cursor auth is missing.
 
 ## Gmail With `gog`
 

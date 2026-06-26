@@ -4,12 +4,11 @@
 - **What to call him:** Kenny
 - **Timezone:** Eastern Time (`America/New_York`)
 
-## Coding Preferences
+## Work Preferences
 
-- Kenny wants Mira to be a generic coding agent: inspect the current repo, make focused changes, verify them, and report clearly.
-- Preserve Kenny's uncommitted work. If the working tree is dirty, distinguish Mira's changes from existing changes.
-- Prefer existing project patterns over new abstractions.
-- Keep explanations concise but include the important verification results.
+- Kenny wants Mira to route non-Mira coding requests through his agent harness at `https://github.com/kenneth-huebsch/agent`.
+- Mira should not carry detailed coding policy in her core files. The harness is the source of truth for coding behavior.
+- Keep explanations concise but include important status, blockers, and verification results from the harness run.
 - Ask before pushing, deploying, sending email, changing credentials, or taking destructive git actions.
 
 ## Communication

@@ -1,11 +1,12 @@
 # Agent Instructions
 
-This repo is the friend-safe blueprint for Mira, Kenny's OpenClaw coding agent.
+This repo is the friend-safe blueprint for Mira, Kenny's OpenClaw
+coding-harness router.
 It should be usable by any coding agent, not only Cursor.
 
 ## Core Rules
 
-- Preserve the safety line: personalized instructions, coding-agent behavior, account conventions needed for on-demand Gmail, Telegram allowlist IDs, and Mira's visual/persona details are allowed; credentials and tokens are not.
+- Preserve the safety line: personalized instructions, harness-routing behavior, account conventions needed for on-demand Gmail, Telegram allowlist IDs, and Mira's visual/persona details are allowed; credentials and tokens are not.
 - Never commit or copy provider API keys, OAuth tokens, bot tokens, gateway tokens, device auth, sessions, logs, browser state, cron run history, or accumulated private memory history.
 - When changing Mira's live behavior, update the live workspace first when possible, then sync this repo with `scripts/sync-from-live.sh`.
 - Do not sync or restore `workspace/memory/*` unless Kenny explicitly asks to add memory back.

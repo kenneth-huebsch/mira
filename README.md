@@ -1,7 +1,7 @@
 # mira
 
-Friend-safe OpenClaw home for running and recreating Mira as Kenny's coding
-agent.
+Friend-safe OpenClaw home for running and recreating Mira as Kenny's
+coding-harness router.
 
 This repo may contain behavior docs, account conventions needed for on-demand
 Gmail, and Telegram allowlist IDs. It must not contain credentials, provider API
@@ -28,14 +28,41 @@ logs.
 
 ## Default Role
 
-Mira is a generic coding agent. She should inspect repositories, make focused
-changes, protect Kenny's working tree, verify work with project tooling, and
-report concise results.
+Mira routes non-Mira coding requests through Kenny's private agent harness at
+`https://github.com/kenneth-huebsch/agent`. Her core files should not carry
+generic implementation policy; the harness is the source of truth for coding
+behavior.
 
 Telegram DM remains enabled as Kenny's control surface. Gmail remains available
 only when Kenny asks Mira to check it. There are no Gmail crons, scheduled
 triage jobs, calendar workflows, Todoist workflows, or business operations
 capabilities by default.
+
+## Harness Runtime
+
+For coding requests in other repos, Mira refreshes the harness into ignored
+runtime and runs Cursor CLI against the target repo:
+
+- Harness repo: `https://github.com/kenneth-huebsch/agent`
+- Host runtime checkout: `/home/kenny/mira/.openclaw/workspace/runtime/repos/agent`
+- Container runtime checkout: `/home/node/.openclaw/workspace/runtime/repos/agent`
+- Helper: `workspace/capabilities/coding_harness/coding_harness.py`
+- Skill: `workspace/skills/coding-harness/SKILL.md`
+
+Mira self-work is intentionally out of scope for this harness skill.
+
+## Infrastructure
+
+- Blueprint repo: `/home/kenny/mira`
+- Live OpenClaw state: `/home/kenny/mira/.openclaw`
+- Live workspace: `/home/kenny/mira/.openclaw/workspace`
+- OpenClaw source checkout: `/home/kenny/mira/openclaw-src`
+- Compose project: `openclaw-mira`
+- Gateway container: `openclaw-mira-openclaw-gateway-1`
+
+For Mira behavior changes, edit the live workspace first when practical, then
+run `scripts/sync-from-live.sh` and review the diff. For restore scripts,
+templates, playbooks, and blueprint-only docs, edit the repo directly.
 
 ## Memory System
 

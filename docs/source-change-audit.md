@@ -5,7 +5,7 @@ Audited source checkout: `/home/kenny/mira/openclaw-src`
 ## Summary
 
 The restore path should still start from latest upstream OpenClaw. Mira's
-coding-agent behavior belongs in this blueprint repo under `workspace/`.
+harness-routing behavior belongs in this blueprint repo under `workspace/`.
 
 ## Standing Source Boundary
 
@@ -40,7 +40,7 @@ The `pi-embedded-runner` changes look like upstream source fixes for suppressing
   - Mounts `entrypoint.sh`.
   - Exposes port `3500`.
 - `entrypoint.sh`
-  - Installs/links `gog`, GitHub CLI, Cursor CLI, and basic coding runtime tools.
+  - Installs/links `gog`, GitHub CLI, Cursor CLI, and basic runtime tools for harness routing.
   - Prepares runtime dirs for `gogcli`, npm, and `gh`.
   - Drops back to the `node` user for the OpenClaw command.
 - `src/agents/pi-embedded-runner/run.ts`

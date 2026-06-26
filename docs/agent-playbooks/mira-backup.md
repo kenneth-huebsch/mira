@@ -7,10 +7,9 @@ Mira blueprint.
 
 Allowed friend-safe content:
 
-- Mira behavior docs and persona files.
+- Mira behavior docs, persona files, harness-routing skills, and helper scripts.
 - Future cron prompts and dependency files, only if Kenny explicitly adds scheduled behavior.
 - Workspace-local plugins and skills.
-- Local persona assets such as `workspace/assets/mira.jpg`.
 - Host-level OpenClaw restore assets under `openclaw/`, currently
   `openclaw/entrypoint.sh`.
 - Friend-safe config templates with credentials redacted.
@@ -43,7 +42,7 @@ history, or credentials.
 
 Before committing or pushing:
 
-1. Confirm changed files are behavior, docs, scripts, templates, or allowed assets.
+1. Confirm changed files are behavior, docs, scripts, templates, workspace skills, or workspace helper scripts.
 2. Inspect generated templates for real tokens or authorization headers.
 3. Run a token scan. At minimum:
 

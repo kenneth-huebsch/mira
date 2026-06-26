@@ -1,6 +1,6 @@
 ---
 name: configure-mira
-description: Configure Mira's OpenClaw coding-agent behavior, persona, identity, Gmail conventions, Telegram control surface, workspace skills, memory policy, or assets.
+description: Configure Mira's OpenClaw harness-routing behavior, persona, identity, Gmail conventions, Telegram control surface, workspace skills, memory policy, or restore shape.
 ---
 
 # Configure Mira

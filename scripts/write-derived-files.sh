@@ -66,9 +66,11 @@ if jobs_config is not None:
 cron_dir = workspace / "cron"
 cron_files = sorted(cron_dir.glob("*.md")) if cron_dir.exists() else []
 known_dependencies = {
-    "workspace/AGENTS.md": "Standing coding workflow, privacy, Gmail, Telegram, and cron policy.",
-    "workspace/USER.md": "Kenny's coding collaboration preferences.",
-    "workspace/TOOLS.md": "Coding tool, on-demand Gmail, Telegram, and cron conventions.",
+    "workspace/AGENTS.md": "Standing harness-routing policy, privacy, Gmail, Telegram, and cron policy.",
+    "workspace/USER.md": "Kenny's interaction preferences.",
+    "workspace/TOOLS.md": "Harness routing, on-demand Gmail, Telegram, and cron conventions.",
+    "workspace/skills/coding-harness/SKILL.md": "Routes non-Mira coding requests through Kenny's private agent harness.",
+    "workspace/capabilities/coding_harness/coding_harness.py": "Refreshes the harness and runs Cursor CLI against non-Mira target repos.",
 }
 
 rows = ["# Cron Dependencies", "", "This file documents behavior-bearing files that cron jobs or cron context injection depend on.", ""]
@@ -88,7 +90,7 @@ for dep, reason in known_dependencies.items():
 rows.append("")
 rows.append("## QMD Recall Backend")
 rows.append("")
-rows.append("QMD is not configured by default in the coding-only Mira template.")
+rows.append("QMD is not configured by default in the harness-routing Mira template.")
 rows.append("")
 rows.append("Do not add QMD indexes, session exports, or `~/.openclaw/agents/*/qmd/` runtime state to this dependency map or to the backup allowlist.")
 rows.append("")

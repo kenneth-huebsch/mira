@@ -1,6 +1,6 @@
 ---
 name: choose-mira-models
-description: Choose OpenRouter models for Mira interactive coding chat, OpenClaw crons if added later, and tool workflows. Use when changing model pins, default models, thinking levels, or balancing cost, reliability, reasoning, and tool execution quality.
+description: Choose OpenRouter models for Mira interactive chat, harness routing, OpenClaw crons if added later, and tool workflows. Use when changing model pins, default models, thinking levels, or balancing cost, reliability, reasoning, and tool execution quality.
 ---
 
 # Choose Mira Models
@@ -26,7 +26,7 @@ Use `openrouter/openai/gpt-5-mini` for:
 
 - Interactive Mira chat with Kenny when the default model is changed to GPT-5 mini.
 - Reliable Telegram-visible final output, tool use, and nuanced enough judgment
-  for normal personal-assistant work.
+  for normal routing and assistant work.
 - Tool-heavy turns where reliable visible output matters.
 
 Use reasoning-capable or stronger models cautiously for:

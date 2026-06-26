@@ -100,13 +100,10 @@
   },
   "skills": {
     "entries": {
-      "coding-agent": {
+      "coding-harness": {
         "enabled": true
       },
-      "gh-issues": {
-        "enabled": true
-      },
-      "github": {
+      "cursor-agent-login": {
         "enabled": true
       },
       "gog": {
