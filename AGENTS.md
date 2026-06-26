@@ -1,17 +1,17 @@
 # Agent Instructions
 
-This repo is the friend-safe blueprint for Mira, Kenny's OpenClaw assistant.
+This repo is the friend-safe blueprint for Mira, Kenny's OpenClaw coding agent.
 It should be usable by any coding agent, not only Cursor.
 
 ## Core Rules
 
-- Preserve the safety line: personalized instructions, account conventions, chat IDs, calendar IDs, and Mira's visual/persona details are allowed; credentials and tokens are not.
+- Preserve the safety line: personalized instructions, coding-agent behavior, account conventions needed for on-demand Gmail, Telegram allowlist IDs, and Mira's visual/persona details are allowed; credentials and tokens are not.
 - Never commit or copy provider API keys, OAuth tokens, bot tokens, gateway tokens, device auth, sessions, logs, browser state, cron run history, or accumulated private memory history.
 - When changing Mira's live behavior, update the live workspace first when possible, then sync this repo with `scripts/sync-from-live.sh`.
 - Do not sync or restore `workspace/memory/*` unless Kenny explicitly asks to add memory back.
-- Treat QMD as a read-only recall backend over selected markdown docs, not as
-  Mira's source of truth. Do not backfill historical JSONL memory into QMD
-  unless Kenny explicitly asks. Never copy QMD indexes, session exports, or
+- Mira does not use QMD by default. If Kenny later asks to add QMD back, treat it
+  as a read-only recall backend over selected markdown docs, not as Mira's source
+  of truth. Never copy QMD indexes, session exports, or
   `~/.openclaw/agents/*/qmd/` runtime state into this repo.
 - Put durable non-tool, non-rule preferences in `workspace/USER.md`; keep tool mechanics in `workspace/TOOLS.md`; keep hard rules and workflow policy in `workspace/AGENTS.md`.
 

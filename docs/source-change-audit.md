@@ -4,7 +4,8 @@ Audited source checkout: `/home/kenny/mira/openclaw-src`
 
 ## Summary
 
-The restore path should still start from latest upstream OpenClaw. Most behavior needed to recreate Mira belongs in this blueprint repo under `workspace/`.
+The restore path should still start from latest upstream OpenClaw. Mira's
+coding-agent behavior belongs in this blueprint repo under `workspace/`.
 
 ## Standing Source Boundary
 
@@ -14,8 +15,6 @@ Future Mira coding work must not edit upstream OpenClaw source files under
 Use Mira-owned behavior surfaces instead:
 
 - `workspace/` prompts, docs, skills, helpers, and templates.
-- `workspace/plugins/` for plugin-based runtime behavior when OpenClaw exposes
-  the needed hook.
 - Live cron/config changes through OpenClaw CLI commands, mirrored back into the
   blueprint when behavior-bearing.
 
@@ -23,9 +22,8 @@ If a behavior change appears to require an upstream source patch, stop and
 document the limitation. Only use an OpenClaw fork or patch branch after Kenny
 explicitly approves it.
 
-Two local source areas are preserved separately:
+One local source area is preserved separately:
 
-- `skills/quick-reminders/` is behavior-bearing and has been copied into `workspace/skills/quick-reminders/` in this blueprint.
 - `entrypoint.sh` is copied into `openclaw/entrypoint.sh` in this blueprint and
   restored to the OpenClaw checkout by `scripts/restore-to-live.sh`.
 - Container convenience changes in `docker-compose.yml` are still host-local.
@@ -39,15 +37,11 @@ The `pi-embedded-runner` changes look like upstream source fixes for suppressing
 - `docker-compose.yml`
   - Runs the gateway container as root with `entrypoint.sh`.
   - Adds `GOG_KEYRING_BACKEND`, `GOG_KEYRING_PASSWORD`, and `XDG_CONFIG_HOME` env vars.
-  - Mounts `entrypoint.sh` and `skills/quick-reminders`.
+  - Mounts `entrypoint.sh`.
   - Exposes port `3500`.
 - `entrypoint.sh`
-  - Installs/links `gog`, QMD, and `agent-browser`.
-  - Prepares runtime dirs for `gogcli`, npm, and browser automation.
-  - Installs QMD into the mounted OpenClaw config dir (`runtime/qmd`) and links
-    it into `.openclaw/bin` so the QMD binary survives container recreation.
-  - Does not preserve QMD indexes, downloaded packages, or session exports in
-    the blueprint; those remain runtime state.
+  - Installs/links `gog`, GitHub CLI, Cursor CLI, and basic coding runtime tools.
+  - Prepares runtime dirs for `gogcli`, npm, and `gh`.
   - Drops back to the `node` user for the OpenClaw command.
 - `src/agents/pi-embedded-runner/run.ts`
 - `src/agents/pi-embedded-runner/run/attempt.ts`
@@ -59,8 +53,7 @@ The `pi-embedded-runner` changes look like upstream source fixes for suppressing
 
 ## Restore Decision
 
-For now, this blueprint does not fork OpenClaw source. It documents source
-changes, preserves `quick-reminders` as workspace behavior, and preserves the
+For now, this blueprint does not fork OpenClaw source. It preserves the
 container entrypoint as `openclaw/entrypoint.sh`.
 
 If a future restore from latest upstream OpenClaw does not behave correctly,

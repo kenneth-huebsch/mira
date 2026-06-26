@@ -2,9 +2,9 @@
 set -eu
 
 ensure_runtime_tools() {
-  if ! command -v jq >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
+  if ! command -v jq >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1 || ! command -v git >/dev/null 2>&1 || ! command -v bash >/dev/null 2>&1; then
     apt-get update -qq >/dev/null
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends jq curl >/dev/null
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends jq curl git bash ca-certificates >/dev/null
   fi
 }
 
@@ -49,45 +49,6 @@ prepare_gh_runtime() {
   export GH_CONFIG_DIR="$gh_config_dir"
 }
 
-ensure_mysql_python_runtime() {
-  if python3 - <<'PY' >/dev/null 2>&1
-import pymysql
-PY
-  then
-    return 0
-  fi
-
-  apt-get update -qq >/dev/null
-  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends python3-pymysql >/dev/null
-}
-
-ensure_aws_python_runtime() {
-  if python3 - <<'PY' >/dev/null 2>&1
-import boto3
-
-boto3.client("bedrock-runtime", region_name="us-west-2")
-PY
-  then
-    return 0
-  fi
-
-  apt-get update -qq >/dev/null
-  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends python3-pip >/dev/null
-  pip3 install --break-system-packages 'boto3>=1.34' >/dev/null
-}
-
-ensure_dripr_debug_python_runtime() {
-  if python3 - <<'PY' >/dev/null 2>&1
-import venv
-PY
-  then
-    return 0
-  fi
-
-  apt-get update -qq >/dev/null
-  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends python3.11-venv python3-dev default-libmysqlclient-dev build-essential pkg-config >/dev/null
-}
-
 ensure_github_cli_runtime() {
   if command -v gh >/dev/null 2>&1; then
     return 0
@@ -95,65 +56,6 @@ ensure_github_cli_runtime() {
 
   apt-get update -qq >/dev/null
   DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends gh >/dev/null
-}
-
-install_qmd_runtime() {
-  if [ "${OPENCLAW_INSTALL_QMD:-1}" = "0" ]; then
-    return 0
-  fi
-
-  xdg_config_home="${XDG_CONFIG_HOME:-/home/node/.openclaw}"
-  qmd_runtime_root="${OPENCLAW_QMD_RUNTIME_ROOT:-${xdg_config_home}/runtime/qmd}"
-  qmd_bin_dir="${OPENCLAW_QMD_BIN_DIR:-${xdg_config_home}/bin}"
-  qmd_package="${OPENCLAW_QMD_PACKAGE:-@tobilu/qmd@2.1.0}"
-  qmd_bin="${qmd_runtime_root}/node_modules/.bin/qmd"
-
-  mkdir -p "$qmd_runtime_root" "$qmd_bin_dir"
-  chown -R node:node "$qmd_runtime_root" "$qmd_bin_dir"
-
-  if [ ! -x "$qmd_bin" ]; then
-    npm install --no-save --prefix "$qmd_runtime_root" "$qmd_package" >/dev/null
-  fi
-
-  ln -sfn "$qmd_bin" "${qmd_bin_dir}/qmd"
-  chown -R node:node "$qmd_runtime_root" "$qmd_bin_dir"
-  export PATH="${qmd_bin_dir}:${PATH}"
-}
-
-install_agent_browser_runtime() {
-  if [ "${OPENCLAW_INSTALL_AGENT_BROWSER:-1}" = "0" ]; then
-    return 0
-  fi
-
-  xdg_config_home="${XDG_CONFIG_HOME:-/home/node/.openclaw}"
-  agent_browser_runtime_root="${OPENCLAW_AGENT_BROWSER_RUNTIME_ROOT:-${xdg_config_home}/runtime/agent-browser}"
-  agent_browser_bin_dir="${OPENCLAW_AGENT_BROWSER_BIN_DIR:-${xdg_config_home}/bin}"
-  agent_browser_home="${OPENCLAW_AGENT_BROWSER_HOME:-${xdg_config_home}/agent-browser}"
-  agent_browser_package="${OPENCLAW_AGENT_BROWSER_PACKAGE:-agent-browser@latest}"
-  agent_browser_apt_packages="libnspr4 libnss3 libatk1.0-0 libatk-bridge2.0-0 libdbus-1-3 libcups2 libxkbcommon0 libasound2 libgbm1 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libatspi2.0-0"
-  agent_browser_bin="${agent_browser_runtime_root}/node_modules/.bin/agent-browser"
-
-  mkdir -p "$agent_browser_runtime_root" "$agent_browser_bin_dir" "$agent_browser_home"
-  chown -R node:node "$agent_browser_runtime_root" "$agent_browser_bin_dir" "$agent_browser_home"
-
-  if ! dpkg-query -W -f='${Status}' libnspr4 2>/dev/null | awk '/installed/ { found=1 } END { exit found ? 0 : 1 }'; then
-    apt-get update -qq >/dev/null
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends $agent_browser_apt_packages >/dev/null
-  fi
-
-  if [ ! -x "$agent_browser_bin" ]; then
-    npm install --no-save --prefix "$agent_browser_runtime_root" "$agent_browser_package" >/dev/null
-  fi
-
-  ln -sfn "$agent_browser_bin" "${agent_browser_bin_dir}/agent-browser"
-  rm -rf /home/node/.agent-browser
-  ln -sfn "$agent_browser_home" /home/node/.agent-browser
-  export AGENT_BROWSER_HOME="$agent_browser_home"
-
-  HOME=/home/node XDG_CONFIG_HOME="$xdg_config_home" AGENT_BROWSER_HOME="$agent_browser_home" "$agent_browser_bin" install >/dev/null
-
-  chown -R node:node "$agent_browser_runtime_root" "$agent_browser_bin_dir" "$agent_browser_home"
-  export PATH="${agent_browser_bin_dir}:${PATH}"
 }
 
 install_cursor_agent_runtime() {
@@ -167,7 +69,7 @@ install_cursor_agent_runtime() {
   chown -R node:node "$cursor_agent_bin_dir" /home/node/.local
 
   if [ ! -x "$cursor_agent_bin" ]; then
-    su -m -s /bin/sh node -c 'export HOME=/home/node; export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-/home/node/.openclaw}"; curl https://cursor.com/install -fsS | sh' >/dev/null
+    su -m -s /bin/bash node -c 'export HOME=/home/node; export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-/home/node/.openclaw}"; curl https://cursor.com/install -fsS | bash' >/dev/null
   fi
 
   ln -sfn "$cursor_agent_bin" /usr/local/bin/agent
@@ -235,13 +137,8 @@ ensure_runtime_tools
 prepare_gogcli_runtime
 prepare_npm_runtime
 prepare_gh_runtime
-ensure_mysql_python_runtime
-ensure_aws_python_runtime
-ensure_dripr_debug_python_runtime
 ensure_github_cli_runtime
 install_gogcli
-install_qmd_runtime
-install_agent_browser_runtime
 install_cursor_agent_runtime
 
-exec env PATH="$PATH" AGENT_BROWSER_HOME="${AGENT_BROWSER_HOME:-}" GH_CONFIG_DIR="${GH_CONFIG_DIR:-}" su -m -s /bin/sh node -c 'exec "$@"' -- "$@"
+exec env PATH="$PATH" GH_CONFIG_DIR="${GH_CONFIG_DIR:-}" su -m -s /bin/sh node -c 'exec "$@"' -- "$@"

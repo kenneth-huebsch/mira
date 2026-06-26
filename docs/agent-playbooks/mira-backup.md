@@ -8,7 +8,7 @@ Mira blueprint.
 Allowed friend-safe content:
 
 - Mira behavior docs and persona files.
-- Future cron prompts and dependency seed files, only if Kenny explicitly adds scheduled behavior.
+- Future cron prompts and dependency files, only if Kenny explicitly adds scheduled behavior.
 - Workspace-local plugins and skills.
 - Local persona assets such as `workspace/assets/mira.jpg`.
 - Host-level OpenClaw restore assets under `openclaw/`, currently
@@ -34,9 +34,10 @@ git status --short
 git diff --stat
 ```
 
-The sync script is allowlist-based. It copies behavior files, local assets, and
-approved host-level OpenClaw files, then reseeds required memory paths without
-copying live memory history or QMD runtime state.
+The sync script is manifest-based. It copies only behavior files listed in
+`scripts/workspace-manifest.txt` plus approved host-level OpenClaw files. It
+does not copy live memory history, QMD runtime state, sessions, logs, cron run
+history, or credentials.
 
 ## Review Checklist
 
@@ -74,13 +75,7 @@ cd /home/kenny/mira
 ./scripts/restore-to-live.sh
 ```
 
-After restore, manually configure credentials, provider auth,
-Gmail/Google/Todoist/Telegram auth, Docker Compose mounts/env, and device
-pairing as needed. The cron prompt files (`cron/*.md` and their capability
-helpers) are restored automatically; the actual schedule and delivery wiring
-in `~/.openclaw/cron/jobs.json` is not. Recreate jobs manually using
-`templates/cron-jobs.friend-safe.example.json` as a guide and the
-`openclaw cron add` / `openclaw cron edit` CLI to register them, then
-reauthorize any delivery channels and capability secrets each job depends on.
-QMD is installed at container startup by the restored entrypoint when Docker
-is configured to mount it.
+After restore, manually configure provider auth, Telegram auth, Gmail/Google
+OAuth for on-demand `gog` reads, Docker Compose mounts/env, and device pairing
+as needed. Mira has no cron jobs by default; keep `~/.openclaw/cron/jobs.json`
+empty unless Kenny explicitly adds scheduled behavior later.

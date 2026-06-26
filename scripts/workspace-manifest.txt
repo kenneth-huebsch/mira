@@ -1,0 +1,9 @@
+AGENTS.md
+SOUL.md
+IDENTITY.md
+USER.md
+TOOLS.md
+HEARTBEAT.md
+package.json
+package-lock.json
+skills/gog-reauth/SKILL.md

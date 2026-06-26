@@ -4,20 +4,6 @@
       "compaction": {
         "mode": "safeguard"
       },
-      "heartbeat": {
-        "ackMaxChars": 300,
-        "activeHours": {
-          "end": "22:30",
-          "start": "09:30",
-          "timezone": "America/New_York"
-        },
-        "every": "120m",
-        "isolatedSession": true,
-        "lightContext": true,
-        "model": "openrouter/openai/gpt-5-mini",
-        "suppressToolErrorWarnings": true,
-        "target": "last"
-      },
       "llm": {
         "idleTimeoutSeconds": 300
       },
@@ -28,7 +14,7 @@
         "mode": "off"
       },
       "thinkingDefault": "low",
-      "timeoutSeconds": 180,
+      "timeoutSeconds": 600,
       "workspace": "/home/node/.openclaw/workspace"
     }
   },
@@ -40,30 +26,11 @@
       }
     }
   },
-  "browser": {
-    "defaultProfile": "openclaw",
-    "enabled": true,
-    "noSandbox": true
-  },
   "channels": {
     "telegram": {
       "allowFrom": [
-        "7540422842",
-        "8790259622"
+        "7540422842"
       ],
-      "direct": {
-        "8790259622": {
-          "enabled": true,
-          "systemPrompt": "You are talking with Cayce \u2014 Kenny's wife. She has open access: feel free to share anything you would tell Kenny, including schedule, calendar, plans, current focus, family details, and life context. Use the same warm, candid, direct tone you use with Kenny \u2014 full personality, dry humor allowed \u2014 but with NO flirty, romantic, or affectionate banter; that register is exclusively for Kenny. You may read shared context files and Google Calendar via gog. You MUST NOT create, edit, or delete Google Calendar events on Kenny's calendars. If she says 'remember this' or 'put it on Kenny's calendar', acknowledge politely but explain you only do those for Kenny \u2014 offer to relay it to him instead.",
-          "tools": {
-            "deny": [
-              "write",
-              "edit",
-              "apply_patch"
-            ]
-          }
-        }
-      },
       "dmPolicy": "allowlist",
       "enabled": true,
       "groups": {
@@ -114,99 +81,18 @@
       }
     }
   },
-  "mcp": {
-    "servers": {
-      "todoist": {
-        "headers": {
-          "Authorization": "<set manually>"
-        },
-        "transport": "streamable-http",
-        "url": "https://ai.todoist.net/mcp"
-      }
-    }
-  },
-  "memory": {
-    "backend": "qmd",
-    "citations": "auto",
-    "qmd": {
-      "command": "/home/node/.openclaw/bin/qmd",
-      "includeDefaultMemory": true,
-      "limits": {
-        "maxResults": 6,
-        "timeoutMs": 4000
-      },
-      "paths": [
-        {
-          "name": "mira-root-docs",
-          "path": "/home/node/.openclaw/workspace",
-          "pattern": "*.md"
-        },
-        {
-          "name": "mira-skills",
-          "path": "/home/node/.openclaw/workspace/skills",
-          "pattern": "**/*.md"
-        },
-        {
-          "name": "mira-capabilities",
-          "path": "/home/node/.openclaw/workspace/capabilities",
-          "pattern": "**/*.md"
-        },
-        {
-          "name": "dripr-repo-skills",
-          "path": "/home/node/.openclaw/workspace/runtime/repos/dripr/.agent/skills",
-          "pattern": "**/SKILL.md"
-        }
-      ],
-      "scope": {
-        "default": "deny",
-        "rules": [
-          {
-            "action": "allow",
-            "match": {
-              "chatType": "direct"
-            }
-          }
-        ]
-      },
-      "searchMode": "search",
-      "sessions": {
-        "enabled": false
-      }
-    }
-  },
-  "meta": {
-    "lastTouchedAt": "2026-05-19T16:01:44.818Z",
-    "lastTouchedVersion": "2026.4.19-beta.1"
-  },
   "plugins": {
     "entries": {
       "anthropic": {
         "enabled": true
       },
-      "browser": {
-        "enabled": true
-      },
-      "deepseek": {
-        "enabled": true
-      },
       "openrouter": {
-        "enabled": true
-      },
-      "output-hygiene-plugin": {
-        "enabled": true
-      },
-      "stepfun": {
-        "enabled": true
-      },
-      "xiaomi": {
         "enabled": true
       }
     },
     "installs": {},
     "load": {
-      "paths": [
-        "~/.openclaw/extensions/output-hygiene-plugin"
-      ]
+      "paths": []
     }
   },
   "session": {
@@ -214,54 +100,14 @@
   },
   "skills": {
     "entries": {
-      "1password": "<set manually>",
-      "agent-browser": {
+      "coding-agent": {
         "enabled": true
       },
-      "apple-notes": {
-        "enabled": false
-      },
-      "apple-reminders": {
-        "enabled": false
-      },
-      "bear-notes": {
-        "enabled": false
-      },
-      "blogwatcher": {
-        "enabled": false
-      },
-      "blucli": {
-        "enabled": false
-      },
-      "bluebubbles": {
-        "enabled": false
-      },
-      "camsnap": {
-        "enabled": false
-      },
-      "clawhub": {
-        "enabled": false
-      },
-      "coding-agent": {
-        "enabled": false
-      },
-      "discord": {
-        "enabled": false
-      },
-      "eightctl": {
-        "enabled": false
-      },
-      "gemini": {
-        "enabled": false
-      },
       "gh-issues": {
-        "enabled": false
-      },
-      "gifgrep": {
-        "enabled": false
+        "enabled": true
       },
       "github": {
-        "enabled": false
+        "enabled": true
       },
       "gog": {
         "enabled": true
@@ -269,106 +115,10 @@
       "gog-reauth": {
         "enabled": true
       },
-      "goplaces": {
-        "enabled": false
-      },
-      "himalaya": {
-        "enabled": false
-      },
-      "imsg": {
-        "enabled": false
-      },
-      "mcporter": {
-        "enabled": false
-      },
       "model-usage": {
         "enabled": false
       },
-      "multi-search-engine": {
-        "enabled": false
-      },
-      "nano-pdf": {
-        "enabled": false
-      },
-      "node-connect": {
-        "enabled": false
-      },
-      "notion": {
-        "enabled": false
-      },
-      "obsidian": {
-        "enabled": false
-      },
-      "openai-whisper": {
-        "enabled": false
-      },
-      "openai-whisper-api": {
-        "enabled": false
-      },
-      "openhue": {
-        "enabled": false
-      },
-      "oracle": {
-        "enabled": false
-      },
-      "ordercli": {
-        "enabled": false
-      },
-      "peekaboo": {
-        "enabled": false
-      },
-      "quick-reminders": {
-        "enabled": true
-      },
-      "sag": {
-        "enabled": false
-      },
       "session-logs": {
-        "enabled": false
-      },
-      "sherpa-onnx-tts": {
-        "enabled": false
-      },
-      "skill-creator": {
-        "enabled": false
-      },
-      "slack": {
-        "enabled": false
-      },
-      "songsee": {
-        "enabled": false
-      },
-      "sonoscli": {
-        "enabled": false
-      },
-      "spotify-player": {
-        "enabled": false
-      },
-      "summarize": {
-        "enabled": false
-      },
-      "things-mac": {
-        "enabled": false
-      },
-      "tmux": {
-        "enabled": false
-      },
-      "trello": {
-        "enabled": false
-      },
-      "video-frames": {
-        "enabled": false
-      },
-      "voice-call": {
-        "enabled": false
-      },
-      "wacli": {
-        "enabled": false
-      },
-      "weather": {
-        "enabled": false
-      },
-      "xurl": {
         "enabled": false
       }
     }
@@ -380,17 +130,6 @@
     "profile": "coding",
     "sessions": {
       "visibility": "agent"
-    },
-    "web": {
-      "search": {
-        "provider": "brave"
-      }
     }
-  },
-  "wizard": {
-    "lastRunAt": "2026-04-05T01:43:50.047Z",
-    "lastRunCommand": "onboard",
-    "lastRunMode": "local",
-    "lastRunVersion": "2026.4.4"
   }
 }

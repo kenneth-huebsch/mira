@@ -1,8 +1,12 @@
 # mira
 
-Friend-safe OpenClaw home for running and recreating Mira.
+Friend-safe OpenClaw home for running and recreating Mira as Kenny's coding
+agent.
 
-This repo is allowed to contain personalized behavior, account conventions, chat IDs, and calendar IDs. It must not contain credentials, provider API keys, OAuth tokens, bot tokens, gateway tokens, device auth, live sessions, or logs.
+This repo may contain behavior docs, account conventions needed for on-demand
+Gmail, and Telegram allowlist IDs. It must not contain credentials, provider API
+keys, OAuth tokens, bot tokens, gateway tokens, device auth, live sessions, or
+logs.
 
 ## Layout
 
@@ -22,18 +26,22 @@ This repo is allowed to contain personalized behavior, account conventions, chat
 - `docs/cron-dependencies.md` records that no recurring cron prompts are configured by default.
 - `docs/source-change-audit.md` records whether local OpenClaw source changes matter for restore.
 
+## Default Role
+
+Mira is a generic coding agent. She should inspect repositories, make focused
+changes, protect Kenny's working tree, verify work with project tooling, and
+report concise results.
+
+Telegram DM remains enabled as Kenny's control surface. Gmail remains available
+only when Kenny asks Mira to check it. There are no Gmail crons, scheduled
+triage jobs, calendar workflows, Todoist workflows, or business operations
+capabilities by default.
+
 ## Memory System
 
-Mira does not use workspace memory files for now. Do not sync or restore
-`workspace/memory/*` unless Kenny explicitly asks to add memory back.
-
-QMD is enabled in `templates/openclaw.friend-safe.example.json` as a local
-read-only recall/search backend for selected markdown docs and workspace skills.
-It is intentionally not backfilled from historical JSONL memory, and session
-transcript indexing is off by default.
-
-Do not commit QMD runtime state: `~/.openclaw/agents/*/qmd/`, QMD indexes,
-session exports, and accumulated memory history are private runtime data.
+Mira does not use workspace memory files or QMD by default. Do not sync or
+restore `workspace/memory/*`, QMD indexes, session exports, or accumulated
+private memory history unless Kenny explicitly asks to add memory back.
 
 ## Update The Backup
 
@@ -50,6 +58,8 @@ If the diff looks right, commit and push.
 
 ## Safety Line
 
-The sync script is allowlist-based. It copies known behavior files and seeds required memory files, but it does not copy accumulated memory history, runtime logs, sessions, device state, credentials, or tokens.
+The sync script is manifest-based. It copies only the behavior files listed in
+`scripts/workspace-manifest.txt`; it does not copy accumulated memory history,
+runtime logs, sessions, device state, credentials, or tokens.
 
 Provider API keys live in ignored per-instance secret env files under `.openclaw/secrets/`, never in tracked files or global shell startup files. See `RUNBOOK.md` for the OpenRouter rotation procedure.

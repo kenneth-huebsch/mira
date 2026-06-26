@@ -4,58 +4,20 @@ This file documents behavior-bearing files that cron jobs or cron context inject
 
 ## Cron Prompts
 
-- `workspace/cron/CLOUDWATCH_DASHBOARD.md`
-- `workspace/cron/DRIPR_EDUCATION_TOPICS_CHECK.md`
-- `workspace/cron/DRIPR_INBOX_TRIAGE.md`
-- `workspace/cron/DRIPR_REDDIT_FOLLOWUPS.md`
-- `workspace/cron/MYSQL_NEW_USERS.md`
+- None configured.
 
 ## Required Supporting Files
 
-- `workspace/AGENTS.md` (present) - Standing execution rules, mode policy, cron policy, and privacy rules.
-- `workspace/USER.md` (present) - Shared non-tool, non-rule preferences and context.
-- `workspace/TOOLS.md` (present) - Tool account, calendar, Gmail, MySQL, CloudWatch, Todoist, Telegram, OpenClaw cron creation, and skill conventions.
-- `workspace/capabilities/dripr_inbox_triage/README.md` (present) - Capability overview for Dripr Inbox Triage, including source addresses and Gmail boundaries.
-- `workspace/capabilities/dripr_inbox_triage/DRIPR_INBOX_TRIAGE.md` (present) - Capability-owned behavior for judging dripr mail and writing Kenny-facing summaries.
-- `workspace/capabilities/dripr_inbox_triage/dripr_inbox_triage.py` (present) - Helper used by Dripr Inbox Triage to search Gmail and prepare compact message records.
-- `workspace/capabilities/mysql_new_users/README.md` (present) - Capability overview for MySQL New Users, including setup and credential boundaries.
-- `workspace/capabilities/mysql_new_users/MYSQL_NEW_USERS.md` (present) - Capability-owned behavior for summarizing new users and setup failures.
-- `workspace/capabilities/mysql_new_users/mysql_new_users.py` (present) - Helper used by MySQL New Users to query MySQL and prepare compact user records.
-- `workspace/capabilities/cloudwatch_dashboard/README.md` (present) - Capability overview for CloudWatch Dashboard, including setup and credential boundaries.
-- `workspace/capabilities/cloudwatch_dashboard/CLOUDWATCH_DASHBOARD.md` (present) - Capability-owned behavior for summarizing dashboard threshold breaches and setup failures.
-- `workspace/capabilities/cloudwatch_dashboard/cloudwatch_dashboard.py` (present) - Helper used by CloudWatch Dashboard to query CloudWatch and prepare compact issue records.
-- `workspace/capabilities/dripr_production_debug/README.md` (present) - Capability overview for Dripr Production Debug, including live repo setup and safety boundaries.
-- `workspace/capabilities/dripr_production_debug/DRIPR_PRODUCTION_DEBUG.md` (present) - Capability-owned behavior for long-running Dripr production investigations.
-- `workspace/capabilities/dripr_production_debug/dripr_production_debug.py` (present) - Helper used by Dripr Production Debug for repo checks, approved tests, read-only MySQL, and CloudWatch logs.
-- `workspace/skills/dripr-production-debug/SKILL.md` (present) - Interactive skill that routes Dripr debugging requests into a detached read-only investigation.
-- `workspace/capabilities/dripr_coding/README.md` (present) - Capability overview for Dripr Coding, including live repo setup and prompt-to-PR boundaries.
-- `workspace/capabilities/dripr_coding/DRIPR_CODING.md` (present) - Capability-owned behavior for detached Dripr coding runs.
-- `workspace/capabilities/dripr_coding/dripr_coding.py` (present) - Helper used by Dripr Coding for repo refresh, preflight checks, prompt-to-PR launch, and Dripr skill catalog listing.
-- `workspace/capabilities/dripr_coding/skills_catalog.py` (present) - Shared Dripr repo skill catalog parser used by coding and debug helpers.
-- `workspace/skills/dripr-coding/SKILL.md` (present) - Interactive skill that routes Dripr coding requests into a detached prompt-to-PR run.
-- `workspace/capabilities/dripr_education_topics/README.md` (present) - Capability overview for interactive Dripr education topic drafting and gated publish.
-- `workspace/capabilities/dripr_education_topics/DRIPR_EDUCATION_TOPICS.md` (present) - Capability-owned behavior for interactive education topic review and publish.
-- `workspace/capabilities/dripr_education_topics/dripr_education_topics.py` (present) - Helper used by Dripr Education Topics for repo sync, next-month prod check, prod-to-staging copy, recent-topic lookup, Bedrock image generation, and gated production API publish.
-- `workspace/skills/dripr-education-topics/SKILL.md` (present) - Interactive skill for drafting and publishing monthly Dripr education topics with Kenny review.
-- `workspace/skills/native-airtable/SKILL.md` (present) - ClawHub Airtable skill used by Dripr Reddit Follow-Ups to read bases, tables, and records via `AIRTABLE_PAT`.
-- `workspace/capabilities/dripr_reddit_followups/README.md` (present) - Capability overview for Dripr Reddit Follow-Ups, including Airtable skill install and credential boundaries.
-- `workspace/capabilities/dripr_reddit_followups/DRIPR_REDDIT_FOLLOWUPS.md` (present) - Capability-owned behavior for summarizing Reddit follow-up rows.
-- `workspace/capabilities/dripr_reddit_followups/dripr_reddit_followups.py` (present) - Helper used by Dripr Reddit Follow-Ups to query Airtable through the native-airtable skill and prepare compact follow-up records.
+- `workspace/AGENTS.md` (present) - Standing coding workflow, privacy, Gmail, Telegram, and cron policy.
+- `workspace/USER.md` (present) - Kenny's coding collaboration preferences.
+- `workspace/TOOLS.md` (present) - Coding tool, on-demand Gmail, Telegram, and cron conventions.
 
 ## QMD Recall Backend
 
-QMD is configured in `templates/openclaw.friend-safe.example.json` as a
-read-only memory search backend over selected markdown sources:
+QMD is not configured by default in the coding-only Mira template.
 
-- root workspace docs (`workspace/*.md`)
-- capability docs (`workspace/capabilities/**/*.md`)
-- workspace skills (`workspace/skills/**/*.md`)
-
-QMD is read-only recall over selected markdown docs. Historical JSONL memory is
-not present in Mira's blueprint, and session transcript indexing is disabled by default.
-Do not add QMD indexes, session exports, or `~/.openclaw/agents/*/qmd/` runtime
-state to this dependency map or to the backup allowlist.
+Do not add QMD indexes, session exports, or `~/.openclaw/agents/*/qmd/` runtime state to this dependency map or to the backup allowlist.
 
 ## Sync Rule
 
-Run `scripts/sync-from-live.sh` after changing Mira behavior. It copies the allowlisted behavior files without copying accumulated private history.
+Run `scripts/sync-from-live.sh` after changing Mira behavior. It copies the manifest-listed behavior files without copying accumulated private history.

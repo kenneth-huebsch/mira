@@ -75,8 +75,12 @@ file.
 
 ## Runtime Boundary
 
-Mira's scheduled helpers run through OpenClaw `exec` in the gateway container,
-with workspace paths rooted at `/home/node/.openclaw/workspace`. Container
-runtime dependencies are prepared by `openclaw/entrypoint.sh`; live credentials
-stay under `/home/kenny/mira/.openclaw` on the host and map into
-`/home/node/.openclaw` inside the container.
+Mira's coding and on-demand Gmail commands run through OpenClaw `exec` in the
+gateway container, with workspace paths rooted at
+`/home/node/.openclaw/workspace`. Container runtime dependencies are prepared by
+`openclaw/entrypoint.sh`; live credentials stay under
+`/home/kenny/mira/.openclaw` on the host and map into `/home/node/.openclaw`
+inside the container.
+
+Mira has no cron jobs by default. If scheduled behavior is added later, document
+the prompt and dependencies in the blueprint before relying on it.

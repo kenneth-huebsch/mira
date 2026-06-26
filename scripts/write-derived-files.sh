@@ -48,22 +48,8 @@ def write_json(path: Path, data) -> None:
 
 
 def cron_restore_template(config):
-    if not isinstance(config, dict):
-        return config
-    jobs = []
-    for job in config.get("jobs", []):
-        if not isinstance(job, dict):
-            continue
-        schedule = job.get("schedule") if isinstance(job.get("schedule"), dict) else {}
-        if job.get("deleteAfterRun") is True and schedule.get("kind") == "at":
-            continue
-        cleaned = {
-            key: redact(value)
-            for key, value in job.items()
-            if key not in {"createdAtMs", "updatedAtMs", "state"}
-        }
-        jobs.append(cleaned)
-    return {"version": config.get("version", 1), "jobs": jobs}
+    version = config.get("version", 1) if isinstance(config, dict) else 1
+    return {"version": version, "jobs": []}
 
 
 def read_json(path: Path):
@@ -73,41 +59,16 @@ def read_json(path: Path):
         return None
 
 
-openclaw_config = read_json(live_home / "openclaw.json")
-if openclaw_config is not None:
-    write_json(root / "templates" / "openclaw.friend-safe.example.json", redact(openclaw_config))
-
 jobs_config = read_json(live_home / "cron" / "jobs.json")
 if jobs_config is not None:
     write_json(root / "templates" / "cron-jobs.friend-safe.example.json", cron_restore_template(jobs_config))
 
-cron_files = sorted((workspace / "cron").glob("*.md"))
+cron_dir = workspace / "cron"
+cron_files = sorted(cron_dir.glob("*.md")) if cron_dir.exists() else []
 known_dependencies = {
-    "workspace/AGENTS.md": "Standing execution rules, mode policy, cron policy, and privacy rules.",
-    "workspace/USER.md": "Shared non-tool, non-rule preferences and context.",
-    "workspace/TOOLS.md": "Tool account, calendar, Gmail, MySQL, CloudWatch, Todoist, Telegram, OpenClaw cron creation, and skill conventions.",
-    "workspace/capabilities/dripr_inbox_triage/README.md": "Capability overview for Dripr Inbox Triage, including source addresses and Gmail boundaries.",
-    "workspace/capabilities/dripr_inbox_triage/DRIPR_INBOX_TRIAGE.md": "Capability-owned behavior for judging dripr mail and writing Kenny-facing summaries.",
-    "workspace/capabilities/dripr_inbox_triage/dripr_inbox_triage.py": "Helper used by Dripr Inbox Triage to search Gmail and prepare compact message records.",
-    "workspace/capabilities/mysql_new_users/README.md": "Capability overview for MySQL New Users, including setup and credential boundaries.",
-    "workspace/capabilities/mysql_new_users/MYSQL_NEW_USERS.md": "Capability-owned behavior for summarizing new users and setup failures.",
-    "workspace/capabilities/mysql_new_users/mysql_new_users.py": "Helper used by MySQL New Users to query MySQL and prepare compact user records.",
-    "workspace/capabilities/cloudwatch_dashboard/README.md": "Capability overview for CloudWatch Dashboard, including setup and credential boundaries.",
-    "workspace/capabilities/cloudwatch_dashboard/CLOUDWATCH_DASHBOARD.md": "Capability-owned behavior for summarizing dashboard threshold breaches and setup failures.",
-    "workspace/capabilities/cloudwatch_dashboard/cloudwatch_dashboard.py": "Helper used by CloudWatch Dashboard to query CloudWatch and prepare compact issue records.",
-    "workspace/capabilities/dripr_production_debug/README.md": "Capability overview for Dripr Production Debug, including live repo setup and safety boundaries.",
-    "workspace/capabilities/dripr_production_debug/DRIPR_PRODUCTION_DEBUG.md": "Capability-owned behavior for long-running Dripr production investigations.",
-    "workspace/capabilities/dripr_production_debug/dripr_production_debug.py": "Helper used by Dripr Production Debug for repo checks, approved tests, read-only MySQL, and CloudWatch logs.",
-    "workspace/skills/dripr-production-debug/SKILL.md": "Interactive skill that routes Dripr debugging requests into a detached read-only investigation.",
-    "workspace/capabilities/dripr_coding/README.md": "Capability overview for Dripr Coding, including live repo setup and prompt-to-PR boundaries.",
-    "workspace/capabilities/dripr_coding/DRIPR_CODING.md": "Capability-owned behavior for detached Dripr coding runs.",
-    "workspace/capabilities/dripr_coding/dripr_coding.py": "Helper used by Dripr Coding for repo refresh, preflight checks, prompt-to-PR launch, and Dripr skill catalog listing.",
-    "workspace/capabilities/dripr_coding/skills_catalog.py": "Shared Dripr repo skill catalog parser used by coding and debug helpers.",
-    "workspace/skills/dripr-coding/SKILL.md": "Interactive skill that routes Dripr coding requests into a detached prompt-to-PR run.",
-    "workspace/capabilities/dripr_education_topics/README.md": "Capability overview for interactive Dripr education topic drafting and gated publish.",
-    "workspace/capabilities/dripr_education_topics/DRIPR_EDUCATION_TOPICS.md": "Capability-owned behavior for interactive education topic review and publish.",
-    "workspace/capabilities/dripr_education_topics/dripr_education_topics.py": "Helper used by Dripr Education Topics for repo sync, next-month prod check, prod-to-staging copy, recent-topic lookup, Bedrock image generation, and gated production API publish.",
-    "workspace/skills/dripr-education-topics/SKILL.md": "Interactive skill for drafting and publishing monthly Dripr education topics with Kenny review.",
+    "workspace/AGENTS.md": "Standing coding workflow, privacy, Gmail, Telegram, and cron policy.",
+    "workspace/USER.md": "Kenny's coding collaboration preferences.",
+    "workspace/TOOLS.md": "Coding tool, on-demand Gmail, Telegram, and cron conventions.",
 }
 
 rows = ["# Cron Dependencies", "", "This file documents behavior-bearing files that cron jobs or cron context injection depend on.", ""]
@@ -127,21 +88,13 @@ for dep, reason in known_dependencies.items():
 rows.append("")
 rows.append("## QMD Recall Backend")
 rows.append("")
-rows.append("QMD is configured in `templates/openclaw.friend-safe.example.json` as a")
-rows.append("read-only memory search backend over selected markdown sources:")
+rows.append("QMD is not configured by default in the coding-only Mira template.")
 rows.append("")
-rows.append("- root workspace docs (`workspace/*.md`)")
-rows.append("- capability docs (`workspace/capabilities/**/*.md`)")
-rows.append("- workspace skills (`workspace/skills/**/*.md`)")
-rows.append("")
-rows.append("QMD is read-only recall over selected markdown docs. Historical JSONL memory is")
-rows.append("not present in Mira's blueprint, and session transcript indexing is disabled by default.")
-rows.append("Do not add QMD indexes, session exports, or `~/.openclaw/agents/*/qmd/` runtime")
-rows.append("state to this dependency map or to the backup allowlist.")
+rows.append("Do not add QMD indexes, session exports, or `~/.openclaw/agents/*/qmd/` runtime state to this dependency map or to the backup allowlist.")
 rows.append("")
 rows.append("## Sync Rule")
 rows.append("")
-rows.append("Run `scripts/sync-from-live.sh` after changing Mira behavior. It copies the allowlisted behavior files without copying accumulated private history.")
+rows.append("Run `scripts/sync-from-live.sh` after changing Mira behavior. It copies the manifest-listed behavior files without copying accumulated private history.")
 rows.append("")
 (root / "docs" / "cron-dependencies.md").write_text("\n".join(rows))
 PY

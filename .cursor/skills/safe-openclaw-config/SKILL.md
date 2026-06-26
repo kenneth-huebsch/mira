@@ -12,8 +12,8 @@ Use this skill for live OpenClaw configuration changes.
 Prefer:
 
 ```bash
-docker exec openclaw-openclaw-gateway-1 openclaw config set <path> <value>
-docker exec openclaw-openclaw-gateway-1 openclaw config validate
+docker exec --user node openclaw-mira-openclaw-gateway-1 openclaw config set <path> <value>
+docker exec --user node openclaw-mira-openclaw-gateway-1 openclaw config validate
 ```
 
 For cron changes, use `openclaw cron edit` instead of config editing.
@@ -23,9 +23,9 @@ For cron changes, use `openclaw cron edit` instead of config editing.
 If the CLI says a restart is required:
 
 ```bash
-docker restart openclaw-openclaw-gateway-1
+docker restart openclaw-mira-openclaw-gateway-1
 docker ps --format '{{.Names}} {{.Status}}'
-docker exec openclaw-openclaw-gateway-1 openclaw health
+docker exec --user node openclaw-mira-openclaw-gateway-1 openclaw health
 ```
 
 Wait until the container is healthy before calling the work done.
@@ -37,8 +37,8 @@ Container-side config writes can accidentally leave `/home/node/.openclaw/opencl
 If logs show `EACCES: permission denied, open '/home/node/.openclaw/openclaw.json'`, fix ownership exactly as OpenClaw recommends:
 
 ```bash
-docker exec -u root openclaw-openclaw-gateway-1 chown 1000 /home/node/.openclaw/openclaw.json
-docker restart openclaw-openclaw-gateway-1
+docker exec -u root openclaw-mira-openclaw-gateway-1 chown 1000 /home/node/.openclaw/openclaw.json
+docker restart openclaw-mira-openclaw-gateway-1
 ```
 
 Then verify health again.
@@ -48,7 +48,7 @@ Then verify health again.
 After changing config, verify from inside the container:
 
 ```bash
-docker exec openclaw-openclaw-gateway-1 sh -lc 'python3 - <<'"'"'PY'"'"'
+docker exec --user node openclaw-mira-openclaw-gateway-1 sh -lc 'python3 - <<'"'"'PY'"'"'
 import json
 with open("/home/node/.openclaw/openclaw.json") as f:
     data = json.load(f)
@@ -69,5 +69,5 @@ Also inspect the host-mounted file when permissions allow:
 - If the gateway does not become healthy, inspect recent logs before making further changes:
 
 ```bash
-docker logs --since 2m openclaw-openclaw-gateway-1
+docker logs --since 2m openclaw-mira-openclaw-gateway-1
 ```
