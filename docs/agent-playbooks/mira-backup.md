@@ -13,6 +13,9 @@ Allowed friend-safe content:
 - Host-level OpenClaw restore assets under `openclaw/`, currently
   `openclaw/docker-compose.yml` and `openclaw/entrypoint.sh`.
 - Friend-safe config templates with credentials redacted.
+- Empty memory scaffold templates and policy docs.
+- Workspace-local memory helper skills, such as `memory-cold-store` and
+  `external-memory`, but not their runtime stores or service data.
 - Restore docs and agent playbooks.
 
 Never include:
@@ -20,7 +23,10 @@ Never include:
 - Provider API keys, OAuth tokens, bot tokens, gateway tokens, or passwords.
 - `~/.openclaw/credentials/**`, `gcal-tokens/**`, `gogcli/credentials.json`, device auth, or auth profiles.
 - Sessions, logs, browser/chromium state, delivery queues, cron run history, or dependency folders.
-- Accumulated private memory history unless Kenny explicitly asks for it.
+- Accumulated private memory history unless Kenny explicitly asks for it,
+  including live `SESSION-STATE.md`, `MEMORY.md`, `DREAMS.md`,
+  `memory/*`, vector stores, LanceDB databases, git-notes stores, cloud memory
+  exports, Mem0 service data, and session memory indexes.
 - QMD runtime state, indexes, downloaded models, or session exports, including
   `~/.openclaw/agents/*/qmd/` and `~/.openclaw/runtime/qmd/`.
 
@@ -35,8 +41,13 @@ git diff --stat
 
 The sync script is manifest-based. It copies only behavior files listed in
 `scripts/workspace-manifest.txt` plus approved host-level OpenClaw files. It
-does not copy live memory history, QMD runtime state, sessions, logs, cron run
-history, or credentials.
+does not copy live memory history, vector indexes, git-notes stores, QMD runtime
+state, sessions, logs, cron run history, or credentials.
+
+Memory scaffold templates are intentionally not copied from the live workspace
+through `scripts/workspace-manifest.txt`. They live under
+`templates/memory-scaffold/` and are used only by `scripts/restore-to-live.sh`
+when corresponding live memory files are missing.
 
 ## Review Checklist
 
@@ -47,7 +58,7 @@ Before committing or pushing:
 3. Run a token scan. At minimum:
 
 ```bash
-rg -n "(Bearer\\s+[A-Za-z0-9._-]{20,}|AIza[0-9A-Za-z_-]{20,}|ya29\\.[0-9A-Za-z_-]+|gh[pousr]_[0-9A-Za-z_]{20,}|sk-[0-9A-Za-z_-]{20,}|BEGIN (RSA|OPENSSH|PRIVATE) KEY)" /home/kenny/mira
+rg -n "(Bearer\\s+[A-Za-z0-9._-]{20,}|AIza[0-9A-Za-z_-]{20,}|ya29\\.[0-9A-Za-z_-]+|gh[pousr]_[0-9A-Za-z_]{20,}|sk-[0-9A-Za-z_-]{20,}|sk-or-v1-[0-9A-Za-z_-]{20,}|BEGIN (RSA|OPENSSH|PRIVATE) KEY)" /home/kenny/mira
 ```
 
 4. If the scan finds a real secret, remove it, fix the generator or allowlist, and regenerate.
@@ -75,6 +86,7 @@ cd /home/kenny/mira
 ```
 
 After restore, manually configure provider auth, Telegram auth, Gmail/Google
-OAuth for on-demand `gog` reads, Docker Compose mounts/env, and device pairing
-as needed. Mira has no cron jobs by default; keep `~/.openclaw/cron/jobs.json`
-empty unless Kenny explicitly adds scheduled behavior later.
+OAuth for on-demand `gog` reads, Docker Compose mounts/env, device pairing, and
+ignored memory service env files such as `.openclaw/secrets/memory.env` for
+Mem0. Mira has no cron jobs by default; keep `~/.openclaw/cron/jobs.json` empty
+unless Kenny explicitly adds scheduled behavior later.

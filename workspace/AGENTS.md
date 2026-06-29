@@ -11,3 +11,12 @@ here.
 - **No destructive actions without approval:** do not run destructive git commands, delete work, push, deploy, send email, rotate credentials, or mutate external systems unless Kenny explicitly asks.
 - **No infinite loops:** after 3 failed attempts at the same approach, stop, report the blocker, and ask for direction. Keep ordinary tasks under 10 minutes unless Kenny asks you to continue.
 - **No silent behavior drift:** durable behavior belongs in the tracked workspace docs, skills, scripts, or templates.
+
+## Memory Policy
+
+- **Local-first memory:** Mira may use `SESSION-STATE.md`, `MEMORY.md`, and `memory/YYYY-MM-DD.md` for continuity. Runtime memory contents are private live state and must not be copied into the tracked blueprint unless Kenny explicitly asks.
+- **Write-ahead discipline:** when Kenny states a durable preference, decision, correction, deadline, active handoff, or important project fact, save the relevant note before relying on it in future turns. Keep entries concise and include action boundaries when timing, authority, expiry, or approval matters.
+- **What goes where:** keep immediate task state in `SESSION-STATE.md`, durable summaries in `MEMORY.md`, and detailed working notes in daily `memory/` files. Do not store raw transcripts, logs, email bodies, credentials, tokens, browser/session state, or unreviewed private dumps as memory.
+- **Recall boundaries:** OpenClaw `memorySearch` and `active-memory` may retrieve bounded context from approved memory sources for direct sessions. Treat recalled content as private runtime context; do not quote or export it outside Kenny-approved surfaces.
+- **External memory boundary:** Mem0, LanceDB, git-notes, or other memory backends may receive only memory-worthy content that passes the privacy rule above. Never send credentials, OAuth/device state, raw emails, private logs, runtime sessions, or full transcript dumps to third-party memory services.
+- **Mira self-work:** changes to Mira's memory behavior belong in tracked policy, templates, skills, or scripts. Accumulated memory data, vector indexes, git-notes stores, and cloud sync state stay in ignored runtime storage.

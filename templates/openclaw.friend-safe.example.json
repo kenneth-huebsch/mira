@@ -15,7 +15,36 @@
       },
       "thinkingDefault": "low",
       "timeoutSeconds": 600,
-      "workspace": "/home/node/.openclaw/workspace"
+      "workspace": "/home/node/.openclaw/workspace",
+      "memorySearch": {
+        "enabled": true,
+        "provider": "openai",
+        "model": "openai/text-embedding-3-small",
+        "remote": {
+          "baseUrl": "https://openrouter.ai/api/v1",
+          "apiKey": "${OPENROUTER_API_KEY}"
+        },
+        "sources": [
+          "memory"
+        ],
+        "query": {
+          "maxResults": 6,
+          "minScore": 0.3,
+          "hybrid": {
+            "mmr": {
+              "enabled": true
+            },
+            "temporalDecay": {
+              "enabled": true
+            }
+          }
+        },
+        "sync": {
+          "onSessionStart": true,
+          "onSearch": true,
+          "watch": true
+        }
+      }
     }
   },
   "auth": {
@@ -82,12 +111,51 @@
     }
   },
   "plugins": {
+    "allow": [
+      "memory-lancedb"
+    ],
+    "slots": {
+      "memory": "memory-lancedb"
+    },
     "entries": {
       "anthropic": {
         "enabled": true
       },
       "openrouter": {
         "enabled": true
+      },
+      "active-memory": {
+        "enabled": true,
+        "config": {
+          "enabled": true,
+          "agents": [
+            "main"
+          ],
+          "allowedChatTypes": [
+            "direct"
+          ],
+          "queryMode": "recent",
+          "promptStyle": "balanced",
+          "timeoutMs": 15000,
+          "maxSummaryChars": 220,
+          "persistTranscripts": false,
+          "logging": true
+        }
+      },
+      "memory-lancedb": {
+        "enabled": true,
+        "config": {
+          "dbPath": "~/.openclaw/memory/lancedb",
+          "embedding": {
+            "apiKey": "${OPENROUTER_API_KEY}",
+            "baseUrl": "https://openrouter.ai/api/v1",
+            "model": "openai/text-embedding-3-small",
+            "dimensions": 1536
+          },
+          "autoRecall": true,
+          "autoCapture": false,
+          "captureMaxChars": 500
+        }
       }
     },
     "installs": {},
@@ -106,10 +174,16 @@
       "cursor-agent-login": {
         "enabled": true
       },
+      "external-memory": {
+        "enabled": true
+      },
       "gog": {
         "enabled": true
       },
       "gog-reauth": {
+        "enabled": true
+      },
+      "memory-cold-store": {
         "enabled": true
       },
       "model-usage": {
@@ -121,6 +195,11 @@
     }
   },
   "tools": {
+    "allow": [
+      "memory_recall",
+      "memory_store",
+      "memory_forget"
+    ],
     "exec": {
       "host": "gateway"
     },

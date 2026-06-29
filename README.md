@@ -15,7 +15,9 @@ logs.
 - `.openclaw/` is the ignored live runtime state for this Mira instance.
 - `openclaw-src/` is the ignored OpenClaw source checkout for this Mira instance.
 - `RUNBOOK.md` documents how to start, stop, and run CLI commands for Mira.
-- `templates/` contains friend-safe examples of runtime config with credential fields redacted. Mira has no cron jobs configured by default.
+- `templates/` contains friend-safe examples of runtime config with credential
+  fields redacted, empty memory scaffold files under `templates/memory-scaffold/`,
+  and `templates/memory.env.example`. Mira has no cron jobs configured by default.
 - `openclaw/` contains host-level OpenClaw files needed to recreate this Docker
   setup, currently `docker-compose.yml` and `entrypoint.sh`.
 - `scripts/sync-from-live.sh` updates the blueprint from the running host.
@@ -66,9 +68,27 @@ templates, playbooks, and blueprint-only docs, edit the repo directly.
 
 ## Memory System
 
-Mira does not use workspace memory files or QMD by default. Do not sync or
-restore `workspace/memory/*`, QMD indexes, session exports, or accumulated
-private memory history unless Kenny explicitly asks to add memory back.
+Mira uses a local-first memory stack for continuity:
+
+- `SESSION-STATE.md` for hot working state.
+- `MEMORY.md` for curated durable summaries.
+- `memory/YYYY-MM-DD.md` for daily working notes.
+- `DREAMS.md` for optional consolidation review.
+- OpenClaw `memorySearch` and `active-memory` for bounded recall in direct sessions.
+- `memory-lancedb` under ignored runtime storage for vector-backed warm memory.
+- `workspace/skills/memory-cold-store/` for high-value git-notes cold storage.
+- `workspace/skills/external-memory/` for explicit, approved Mem0 dry-run/live calls.
+
+The blueprint tracks policy and empty restore scaffolding only.
+`scripts/restore-to-live.sh` creates missing live memory files from
+`templates/memory-scaffold/` without overwriting existing runtime memory. Do not
+sync accumulated memory files, vector indexes, git-notes stores, cloud memory
+exports, QMD indexes, session exports, or private memory history unless Kenny
+explicitly asks for that data.
+
+Memory debugging commands and privacy boundaries live in `RUNBOOK.md` and
+`workspace/TOOLS.md`. The active cloud memory provider is Mem0 only; service keys
+belong in ignored files under `.openclaw/secrets/`.
 
 ## Update The Backup
 

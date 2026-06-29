@@ -7,6 +7,7 @@ TARGET_WORKSPACE="${TARGET_WORKSPACE:-$TARGET_OPENCLAW_HOME/workspace}"
 BLUEPRINT_WORKSPACE="$BLUEPRINT_ROOT/workspace"
 OPENCLAW_SOURCE="${OPENCLAW_SOURCE:-$BLUEPRINT_ROOT/openclaw-src}"
 MANIFEST="$BLUEPRINT_ROOT/scripts/workspace-manifest.txt"
+MEMORY_TEMPLATE_DIR="$BLUEPRINT_ROOT/templates/memory-scaffold"
 
 copy_file() {
   local rel="$1"
@@ -47,11 +48,31 @@ clean_managed_workspace() {
     "$TARGET_WORKSPACE/.clawhub" \
     "$TARGET_WORKSPACE/capabilities" \
     "$TARGET_WORKSPACE/cron" \
-    "$TARGET_WORKSPACE/memory" \
     "$TARGET_WORKSPACE/plugins" \
     "$TARGET_WORKSPACE/runtime" \
     "$TARGET_WORKSPACE/skills"
   echo "cleaned managed workspace directories"
+}
+
+restore_memory_scaffold() {
+  mkdir -p "$TARGET_WORKSPACE/memory"
+
+  for name in SESSION-STATE.md MEMORY.md DREAMS.md; do
+    local src="$MEMORY_TEMPLATE_DIR/$name"
+    local dst="$TARGET_WORKSPACE/$name"
+    if [[ -f "$src" && ! -e "$dst" ]]; then
+      cp -p "$src" "$dst"
+      echo "created memory scaffold: $name"
+    fi
+  done
+
+  local today
+  today="$(date +%F)"
+  local daily_dst="$TARGET_WORKSPACE/memory/$today.md"
+  if [[ -f "$MEMORY_TEMPLATE_DIR/daily-template.md" && ! -e "$daily_dst" ]]; then
+    sed "s/YYYY-MM-DD/$today/g" "$MEMORY_TEMPLATE_DIR/daily-template.md" > "$daily_dst"
+    echo "created memory scaffold: memory/$today.md"
+  fi
 }
 
 clean_managed_workspace
@@ -60,6 +81,8 @@ while IFS= read -r rel || [[ -n "$rel" ]]; do
   [[ -z "$rel" || "$rel" == \#* ]] && continue
   copy_file "$rel"
 done < "$MANIFEST"
+
+restore_memory_scaffold
 
 restore_openclaw_file "docker-compose.yml"
 restore_openclaw_file "entrypoint.sh"
@@ -71,4 +94,5 @@ Workspace behavior restored. Now manually configure:
 - $TARGET_OPENCLAW_HOME/cron/jobs.json as an empty jobs config unless Kenny adds scheduled behavior
 - Telegram credentials and Mira Gmail OAuth for on-demand Gmail checks
 - Provider secrets under $TARGET_OPENCLAW_HOME/secrets/ before starting the container
+- Memory service secrets under $TARGET_OPENCLAW_HOME/secrets/ if memory search or Mem0 is enabled
 MSG

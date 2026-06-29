@@ -39,6 +39,105 @@ Runtime prerequisites: GitHub CLI auth must work, the private harness repo must
 be readable, and Cursor CLI must be authenticated. Use
 `skills/cursor-agent-login/SKILL.md` when Cursor auth is missing.
 
+## Memory
+
+Mira's memory system is local-first. Live memory files live in the workspace:
+
+- `SESSION-STATE.md` - hot working state for the active task.
+- `MEMORY.md` - curated durable summaries.
+- `memory/YYYY-MM-DD.md` - daily working notes and detailed observations.
+- `DREAMS.md` - optional OpenClaw dreaming summaries for human review.
+
+These files are runtime memory, not blueprint behavior. Do not copy accumulated
+memory contents, vector databases, git-notes stores, session exports, or cloud
+sync state into tracked files unless Kenny explicitly asks.
+
+Useful OpenClaw memory checks inside Mira's agent runtime:
+
+```bash
+openclaw config validate
+openclaw plugins list
+openclaw memory status
+openclaw memory status --deep
+openclaw memory search "query"
+```
+
+From host-side wrapper checks, command availability can differ from the in-agent
+runtime. Prefer testing memory from a fresh Mira DM when validating end-to-end
+agent behavior.
+
+Mira's memory search and LanceDB embeddings use OpenRouter's OpenAI-compatible
+embeddings endpoint with `OPENROUTER_API_KEY` loaded from ignored secret env
+files. `active-memory` is enabled for direct `main` sessions to add bounded
+pre-reply recall; it should not persist raw transcripts.
+
+LanceDB is the active memory plugin. Its runtime database lives under ignored
+storage at `~/.openclaw/memory/lancedb` in the container, mapped from
+`/home/kenny/mira/.openclaw/memory/lancedb` on the host. Use:
+
+```bash
+openclaw memory status
+openclaw memory status --deep
+openclaw memory store "durable memory text"
+openclaw memory search "query"
+openclaw memory index --force
+```
+
+In a confirmed fresh DM, `openclaw memory status` should report
+`memory-lancedb`, the LanceDB backend path, and tables such as `episodic`,
+`semantic`, and `working`.
+
+Host-side debugging patterns:
+
+```bash
+cd /home/kenny/mira
+./scripts/openclaw-cli.sh config validate
+./scripts/openclaw-cli.sh plugins list
+```
+
+Memory service secrets belong in ignored per-instance files under
+`.openclaw/secrets/`, not in tracked config, docs, templates, shell startup
+files, or memory notes. External memory services such as Mem0 are for approved
+durable summaries only; do not upload raw transcripts, emails, logs,
+credentials, tokens, or browser/session state.
+
+### Git-Notes Cold Store
+
+Use `skills/memory-cold-store/memory_cold_store.py` for high-value durable
+memory such as decisions, lessons, durable corrections, handoffs, and project
+landmarks. The git-notes repository lives under ignored runtime storage at
+`~/.openclaw/memory/git-notes`.
+
+```bash
+python3 skills/memory-cold-store/memory_cold_store.py remember "content" --type decision --topic memory --importance high
+python3 skills/memory-cold-store/memory_cold_store.py search "query"
+python3 skills/memory-cold-store/memory_cold_store.py list
+python3 skills/memory-cold-store/memory_cold_store.py doctor
+```
+
+Do not store raw transcripts, logs, email bodies, credentials, tokens,
+browser/session state, or unreviewed private dumps in the cold store.
+
+### External Memory
+
+Use `skills/external-memory/external_memory.py` for explicit, approved Mem0
+operations. Dry-run is the default; add `--live` only after checking the exact
+content is safe for a third-party memory service.
+
+```bash
+python3 skills/external-memory/external_memory.py add "approved durable summary" --category preference
+python3 skills/external-memory/external_memory.py search "query"
+```
+
+Live calls require ignored secrets in `.openclaw/secrets/memory.env`:
+
+```bash
+MEM0_API_KEY=...
+```
+
+Never upload raw transcripts, raw emails, logs, credentials, tokens, browser
+state, session state, or unreviewed memory exports.
+
 ## Gmail With `gog`
 
 Mira may check her Gmail on demand when Kenny asks. There are no Gmail crons by

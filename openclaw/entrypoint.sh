@@ -32,6 +32,14 @@ prepare_npm_runtime() {
   chown -R node:node "$npm_cache_dir"
 }
 
+ensure_python_memory_runtime() {
+  if su -m -s /bin/sh node -c 'python3 -c "import mem0" >/dev/null 2>&1'; then
+    return 0
+  fi
+
+  su -m -s /bin/sh node -c 'python3 -m pip install --user --quiet mem0ai'
+}
+
 prepare_gh_runtime() {
   xdg_config_home="${XDG_CONFIG_HOME:-/home/node/.openclaw}"
   gh_config_dir="${GH_CONFIG_DIR:-${xdg_config_home}/gh}"
@@ -136,6 +144,7 @@ install_gogcli() {
 ensure_runtime_tools
 prepare_gogcli_runtime
 prepare_npm_runtime
+ensure_python_memory_runtime
 prepare_gh_runtime
 ensure_github_cli_runtime
 install_gogcli

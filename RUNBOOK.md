@@ -100,6 +100,118 @@ Do not put provider API keys in `~/.bashrc`, tracked docs, templates, or
 `OPENROUTER_API_KEY`; the token value belongs only in the ignored secret env
 file.
 
+## Memory Runtime
+
+Mira's live memory files are in `/home/kenny/mira/.openclaw/workspace`:
+
+- `SESSION-STATE.md` for hot working state.
+- `MEMORY.md` for curated durable summaries.
+- `memory/YYYY-MM-DD.md` for daily working notes.
+- `DREAMS.md` for optional consolidation review.
+
+The blueprint tracks empty scaffold templates under `templates/memory-scaffold/`
+and restores them only when the corresponding live memory files are missing.
+Existing memory files are preserved by `scripts/restore-to-live.sh`.
+
+Mira's memory search uses OpenRouter's OpenAI-compatible embeddings endpoint via
+`OPENROUTER_API_KEY`; the live key is loaded from ignored secret env files, not
+tracked config. Useful checks inside Mira's agent runtime:
+
+```bash
+openclaw config validate
+openclaw plugins list
+openclaw memory status
+openclaw memory status --deep
+openclaw memory search "recent preference"
+```
+
+From host-side wrapper checks, command availability can differ from the in-agent
+runtime. Prefer testing memory from a fresh Mira DM when validating end-to-end
+agent behavior.
+
+The `active-memory` plugin is enabled for direct `main` sessions. It should add
+bounded pre-reply recall without persisting raw transcripts. Verify it through
+`openclaw plugins list`, config inspection, and a fresh Mira DM that references a
+known stored memory.
+
+LanceDB is the active memory plugin. The container path is
+`~/.openclaw/memory/lancedb`; on this host it maps to
+`/home/kenny/mira/.openclaw/memory/lancedb`.
+
+```bash
+openclaw memory status
+openclaw memory status --deep
+openclaw memory store "durable memory text"
+openclaw memory search "recent preference"
+openclaw memory index --force
+```
+
+In a confirmed fresh DM, `openclaw memory status` should report
+`memory-lancedb`, the LanceDB backend path, and tables such as `episodic`,
+`semantic`, and `working`.
+
+Host-side debugging checklist:
+
+```bash
+cd /home/kenny/mira
+./scripts/openclaw-cli.sh config validate
+./scripts/openclaw-cli.sh plugins list
+MIRA_MEMORY_COLD_STORE_DIR=/home/kenny/mira/.openclaw/memory/git-notes \
+  python3 /home/kenny/mira/.openclaw/workspace/skills/memory-cold-store/memory_cold_store.py doctor
+python3 /home/kenny/mira/.openclaw/workspace/skills/external-memory/external_memory.py \
+  search "communication preferences"
+```
+
+If a host-side `openclaw memory ...` command is unavailable or shows different
+tool exposure than a real conversation, verify from a fresh Mira DM before
+changing config; CLI command surfaces have differed across OpenClaw builds.
+
+Memory service secrets such as embedding provider keys or Mem0
+belong in ignored per-instance files under `/home/kenny/mira/.openclaw/secrets/`.
+`scripts/start-openclaw.sh` and `scripts/openclaw-cli.sh` source
+`scripts/load-openclaw-env.sh`, which loads `openrouter.env` for
+`OPENROUTER_API_KEY` and `memory.env` for `MEM0_API_KEY` when those ignored files
+exist.
+Do not commit live memory contents, vector indexes, git-notes stores, cloud
+memory exports, session memory indexes, or service keys.
+
+Git-notes cold memory uses a workspace-local helper and an ignored runtime repo:
+
+```bash
+python3 /home/kenny/mira/.openclaw/workspace/skills/memory-cold-store/memory_cold_store.py doctor
+python3 /home/kenny/mira/.openclaw/workspace/skills/memory-cold-store/memory_cold_store.py search "query"
+```
+
+From the host, use Mira's live runtime path explicitly:
+
+```bash
+MIRA_MEMORY_COLD_STORE_DIR=/home/kenny/mira/.openclaw/memory/git-notes \
+  python3 /home/kenny/mira/.openclaw/workspace/skills/memory-cold-store/memory_cold_store.py doctor
+```
+
+Optional Mem0 keys live in:
+
+```bash
+/home/kenny/mira/.openclaw/secrets/memory.env
+```
+
+Use `templates/memory.env.example` for the redacted shape. Dry-run verification
+does not need keys:
+
+```bash
+python3 /home/kenny/mira/.openclaw/workspace/skills/external-memory/external_memory.py \
+  add "approved durable summary" --category preference
+python3 /home/kenny/mira/.openclaw/workspace/skills/external-memory/external_memory.py \
+  search "communication preferences"
+```
+
+Live external memory calls require `--live` and the matching key in
+`memory.env`. Do not upload raw transcripts, raw emails, logs, credentials,
+tokens, browser state, session state, or unreviewed memory exports.
+
+The managed OpenClaw `entrypoint.sh` installs the optional `mem0ai` Python
+package for live Mem0 calls when it is missing.
+
 ## Runtime Boundary
 
 Mira's harness routing and on-demand Gmail commands run through OpenClaw `exec`

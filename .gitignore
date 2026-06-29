@@ -39,8 +39,8 @@ auth-profiles.json
 workspace/.claude/settings.local.json
 workspace/.openclaw/workspace-state.json
 
-# Workspace memory is intentionally not synced for Mira.
-workspace/memory/*.jsonl
-workspace/memory/.dreams/
-workspace/memory/*.json
-workspace/memory/*.md
+# Workspace memory contents are live runtime state, not blueprint behavior.
+workspace/SESSION-STATE.md
+workspace/MEMORY.md
+workspace/DREAMS.md
+workspace/memory/
