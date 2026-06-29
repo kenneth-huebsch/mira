@@ -41,7 +41,7 @@ or confirms upstream now owns the behavior.
   - Mounts `entrypoint.sh`.
   - Exposes port `3500`.
 - `entrypoint.sh`
-  - Installs/links `gog`, GitHub CLI, Cursor CLI, optional `mem0ai`, and basic runtime tools for harness routing and memory helpers.
+  - Installs/links `gog`, GitHub CLI, Cursor CLI, `jq`, `ripgrep`, `python3-pip`, optional `mem0ai`, and basic runtime tools for harness routing, bundled skills, and memory helpers.
   - Prepares runtime dirs for `gogcli`, npm, and `gh`.
   - Drops back to the `node` user for the OpenClaw command.
 

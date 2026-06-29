@@ -32,7 +32,8 @@ Important files:
   for the OpenClaw gateway and CLI runtime.
 - `openclaw/entrypoint.sh` - host-level Docker entrypoint restored into the
   OpenClaw checkout; currently installs/links GitHub CLI, Cursor CLI, `gog`,
-  and the optional `mem0ai` package for live Mem0 calls.
+  `jq`, `ripgrep`, `python3-pip`, and the optional `mem0ai` package for live
+  Mem0 calls.
 
 Mira's own infrastructure:
 

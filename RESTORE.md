@@ -27,9 +27,10 @@ cd ~/mira
 ```
 
 This also restores `openclaw/entrypoint.sh` into the OpenClaw checkout so the
-Docker gateway can install/link GitHub CLI, Cursor CLI, `gog`, and optional
-`mem0ai` for harness routing, on-demand Gmail access, and live Mem0 calls when
-the compose file mounts that entrypoint.
+Docker gateway can install/link GitHub CLI, Cursor CLI, `gog`, `jq`,
+`ripgrep`, `python3-pip`, and optional `mem0ai` for harness routing, on-demand
+Gmail access, session-log search, and live Mem0 calls when the compose file
+mounts that entrypoint.
 
 5. Manually configure credentials and runtime secrets:
 
@@ -73,6 +74,8 @@ cd ~/mira
 - `python3 skills/memory-cold-store/memory_cold_store.py doctor` passes.
 - `python3 skills/external-memory/external_memory.py search "communication preferences"` runs as a dry-run without keys.
 - `git`, `gh`, and Cursor CLI are available in the gateway container.
+- `jq` and `rg` are available in the gateway container for bundled skills such
+  as `session-logs`.
 - `python3 skills/coding-harness/coding_harness.py check-config` passes after GitHub CLI, private harness repo access, and Cursor CLI auth are configured.
 
 ## What This Does Not Restore

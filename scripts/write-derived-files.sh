@@ -66,11 +66,15 @@ if jobs_config is not None:
 cron_dir = workspace / "cron"
 cron_files = sorted(cron_dir.glob("*.md")) if cron_dir.exists() else []
 known_dependencies = {
-    "workspace/AGENTS.md": "Standing harness-routing policy, privacy, Gmail, Telegram, and cron policy.",
+    "workspace/AGENTS.md": "Standing harness-routing policy, privacy, memory, Gmail, Telegram, and cron policy.",
     "workspace/USER.md": "Kenny's interaction preferences.",
-    "workspace/TOOLS.md": "Harness routing, on-demand Gmail, Telegram, and cron conventions.",
+    "workspace/TOOLS.md": "Harness routing, memory tools, on-demand Gmail, Telegram, and cron conventions.",
     "workspace/skills/coding-harness/SKILL.md": "Routes non-Mira coding requests through Kenny's private agent harness.",
     "workspace/skills/coding-harness/coding_harness.py": "Refreshes the harness and runs Cursor CLI against non-Mira target repos.",
+    "workspace/skills/memory-cold-store/SKILL.md": "Documents ignored git-notes cold memory.",
+    "workspace/skills/memory-cold-store/memory_cold_store.py": "Stores and searches high-value cold memories in ignored runtime storage.",
+    "workspace/skills/external-memory/SKILL.md": "Documents explicit Mem0-only external memory calls.",
+    "workspace/skills/external-memory/external_memory.py": "Performs dry-run or approved live Mem0 add/search calls.",
 }
 
 rows = ["# Cron Dependencies", "", "This file documents behavior-bearing files that cron jobs or cron context injection depend on.", ""]
