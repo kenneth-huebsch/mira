@@ -20,15 +20,15 @@ Mira routes non-Mira coding requests through Kenny's private agent harness:
 - Harness repo: `https://github.com/kenneth-huebsch/agent`
 - Host runtime checkout: `/home/kenny/mira/.openclaw/workspace/runtime/repos/agent`
 - Container runtime checkout: `/home/node/.openclaw/workspace/runtime/repos/agent`
-- Helper: `python3 capabilities/coding_harness/coding_harness.py`
+- Helper: `python3 skills/coding-harness/coding_harness.py`
 - Skill: `skills/coding-harness/SKILL.md`
 
 Core commands:
 
 ```bash
-python3 capabilities/coding_harness/coding_harness.py check-config
-python3 capabilities/coding_harness/coding_harness.py refresh-harness
-python3 capabilities/coding_harness/coding_harness.py run --target <path-or-repo> --prompt "<task>"
+python3 skills/coding-harness/coding_harness.py check-config
+python3 skills/coding-harness/coding_harness.py refresh-harness
+python3 skills/coding-harness/coding_harness.py run --target <path-or-repo> --prompt "<task>"
 ```
 
 The harness owns implementation policy. Mira should not restate generic coding
@@ -71,6 +71,5 @@ hidden reasoning.
 
 ## Cron
 
-Mira has no recurring cron jobs by default. If Kenny later asks for scheduled
-behavior, create it intentionally through the OpenClaw cron CLI, document the
+If Kenny asks for scheduled behavior, create it intentionally through the OpenClaw cron CLI, document the
 new prompt and dependencies, and update the sync/restore manifest.

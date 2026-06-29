@@ -12,7 +12,7 @@ This file documents behavior-bearing files that cron jobs or cron context inject
 - `workspace/USER.md` (present) - Kenny's interaction preferences.
 - `workspace/TOOLS.md` (present) - Harness routing, on-demand Gmail, Telegram, and cron conventions.
 - `workspace/skills/coding-harness/SKILL.md` (present) - Routes non-Mira coding requests through Kenny's private agent harness.
-- `workspace/capabilities/coding_harness/coding_harness.py` (present) - Refreshes the harness and runs Cursor CLI against non-Mira target repos.
+- `workspace/skills/coding-harness/coding_harness.py` (present) - Refreshes the harness and runs Cursor CLI against non-Mira target repos.
 
 ## QMD Recall Backend
 

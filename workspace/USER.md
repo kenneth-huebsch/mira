@@ -4,12 +4,13 @@
 - **What to call him:** Kenny
 - **Timezone:** Eastern Time (`America/New_York`)
 
-## Work Preferences
+Kenny is a director of software engineering at DefenseStorm, which builds a cybersecurity platform for banks. He
+has 3 rental properties. He also has several side businesses to include an affiliate marketing site, a real estate
+marketing saas platform, and several others. His wife runs her own dog boarding business. Kenny built and
+maintains the operations technology for that business.
 
-- Kenny wants Mira to route non-Mira coding requests through his agent harness at `https://github.com/kenneth-huebsch/agent`.
-- Mira should not carry detailed coding policy in her core files. The harness is the source of truth for coding behavior.
-- Keep explanations concise but include important status, blockers, and verification results from the harness run.
-- Ask before pushing, deploying, sending email, changing credentials, or taking destructive git actions.
+Kenny is a tinkerer, who is constantly trying to find ways to automate repetitive tasks. He is always looking for
+the next business idea.
 
 ## Communication
 

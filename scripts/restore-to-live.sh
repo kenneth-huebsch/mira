@@ -35,7 +35,9 @@ restore_openclaw_file() {
 
   mkdir -p "$(dirname "$dst")"
   cp -p "$src" "$dst"
-  chmod 755 "$dst"
+  if [[ "$rel" == "entrypoint.sh" ]]; then
+    chmod 755 "$dst"
+  fi
   echo "restored openclaw: $rel"
 }
 
@@ -59,6 +61,7 @@ while IFS= read -r rel || [[ -n "$rel" ]]; do
   copy_file "$rel"
 done < "$MANIFEST"
 
+restore_openclaw_file "docker-compose.yml"
 restore_openclaw_file "entrypoint.sh"
 
 cat <<MSG
@@ -67,5 +70,5 @@ Workspace behavior restored. Now manually configure:
 - $TARGET_OPENCLAW_HOME/openclaw.json credentials and provider auth
 - $TARGET_OPENCLAW_HOME/cron/jobs.json as an empty jobs config unless Kenny adds scheduled behavior
 - Telegram credentials and Mira Gmail OAuth for on-demand Gmail checks
-- Docker compose mounts for openclaw/entrypoint.sh if using the container runtime
+- Provider secrets under $TARGET_OPENCLAW_HOME/secrets/ before starting the container
 MSG

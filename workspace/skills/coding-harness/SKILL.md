@@ -16,7 +16,7 @@ Mira behavior files; self-work belongs to a separate future skill.
 2. Run the preflight:
 
    ```bash
-   python3 capabilities/coding_harness/coding_harness.py check-config
+   python3 skills/coding-harness/coding_harness.py check-config
    ```
 
    If this reports missing Cursor CLI auth, Kenny must authenticate Cursor CLI
@@ -25,13 +25,13 @@ Mira behavior files; self-work belongs to a separate future skill.
 3. Refresh the harness:
 
    ```bash
-   python3 capabilities/coding_harness/coding_harness.py refresh-harness
+   python3 skills/coding-harness/coding_harness.py refresh-harness
    ```
 
 4. Start the Cursor CLI harness run:
 
    ```bash
-   python3 capabilities/coding_harness/coding_harness.py run --target <path-or-repo> --prompt "<Kenny's coding request>"
+   python3 skills/coding-harness/coding_harness.py run --target <path-or-repo> --prompt "<Kenny's coding request>"
    ```
 
 5. Report the helper's final output to Kenny. Include blockers, changed files,

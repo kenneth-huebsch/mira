@@ -20,7 +20,7 @@ If logged in, verify the harness preflight:
 
 ```bash
 docker exec --user node openclaw-mira-openclaw-gateway-1 \
-  python3 /home/node/.openclaw/workspace/capabilities/coding_harness/coding_harness.py check-config
+  python3 /home/node/.openclaw/workspace/skills/coding-harness/coding_harness.py check-config
 ```
 
 ## Start Login

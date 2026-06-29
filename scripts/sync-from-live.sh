@@ -43,6 +43,7 @@ while IFS= read -r rel || [[ -n "$rel" ]]; do
   copy_file "$rel"
 done < "$MANIFEST"
 
+copy_openclaw_file "docker-compose.yml"
 copy_openclaw_file "entrypoint.sh"
 
 "$BLUEPRINT_ROOT/scripts/write-derived-files.sh"

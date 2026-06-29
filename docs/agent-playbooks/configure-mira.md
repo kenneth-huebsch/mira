@@ -17,9 +17,10 @@ Important files:
 - `TOOLS.md` - tool-specific conventions for harness routing, GitHub, on-demand Gmail, Telegram, and future crons. Do not put user preferences here.
 - `HEARTBEAT.md` - heartbeat behavior.
 - `cron/*.md` - scheduled behavior, if Kenny explicitly adds any. Mira has no cron prompts by default.
-- `skills/` - workspace-local skills.
-- `capabilities/` - helper scripts used by workspace-local skills.
+- `skills/` - workspace-local skills and their helper scripts.
 - `templates/openclaw.friend-safe.example.json` - restore-safe config shape.
+- `openclaw/docker-compose.yml` - Mira's source-local Docker Compose overrides
+  for the OpenClaw gateway and CLI runtime.
 - `openclaw/entrypoint.sh` - host-level Docker entrypoint restored into the
   OpenClaw checkout; currently installs/links GitHub CLI, Cursor CLI, and `gog`.
 

@@ -53,7 +53,7 @@ Use `templates/openclaw.friend-safe.example.json` as a structure reference, but 
 - On-demand Gmail reads work through `gog` after Gmail OAuth is restored.
 - The `coding-harness` skill and helper are restored.
 - `git`, `gh`, and Cursor CLI are available in the gateway container.
-- `python3 capabilities/coding_harness/coding_harness.py check-config` passes after GitHub CLI, private harness repo access, and Cursor CLI auth are configured.
+- `python3 skills/coding-harness/coding_harness.py check-config` passes after GitHub CLI, private harness repo access, and Cursor CLI auth are configured.
 
 ## What This Does Not Restore
 

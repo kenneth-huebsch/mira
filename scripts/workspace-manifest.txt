@@ -6,7 +6,7 @@ TOOLS.md
 HEARTBEAT.md
 package.json
 package-lock.json
-capabilities/coding_harness/coding_harness.py
+skills/coding-harness/coding_harness.py
 skills/coding-harness/SKILL.md
 skills/cursor-agent-login/SKILL.md
 skills/gog-reauth/SKILL.md

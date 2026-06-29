@@ -17,7 +17,7 @@ logs.
 - `RUNBOOK.md` documents how to start, stop, and run CLI commands for Mira.
 - `templates/` contains friend-safe examples of runtime config with credential fields redacted. Mira has no cron jobs configured by default.
 - `openclaw/` contains host-level OpenClaw files needed to recreate this Docker
-  setup, currently `entrypoint.sh`.
+  setup, currently `docker-compose.yml` and `entrypoint.sh`.
 - `scripts/sync-from-live.sh` updates the blueprint from the running host.
 - `scripts/restore-to-live.sh` copies the blueprint into a new OpenClaw workspace.
 - `AGENTS.md`, `CLAUDE.md`, and `GEMINI.md` give coding agents tool-agnostic operating instructions.
@@ -46,7 +46,7 @@ runtime and runs Cursor CLI against the target repo:
 - Harness repo: `https://github.com/kenneth-huebsch/agent`
 - Host runtime checkout: `/home/kenny/mira/.openclaw/workspace/runtime/repos/agent`
 - Container runtime checkout: `/home/node/.openclaw/workspace/runtime/repos/agent`
-- Helper: `workspace/capabilities/coding_harness/coding_harness.py`
+- Helper: `workspace/skills/coding-harness/coding_harness.py`
 - Skill: `workspace/skills/coding-harness/SKILL.md`
 
 Mira self-work is intentionally out of scope for this harness skill.

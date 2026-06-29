@@ -33,6 +33,33 @@ cd /home/kenny/mira
 ./scripts/openclaw-cli.sh dashboard --no-open
 ```
 
+Upgrade Mira's OpenClaw source:
+
+```bash
+cd /home/kenny/mira/openclaw-src
+git status --short
+GIT_TERMINAL_PROMPT=0 git fetch origin main
+git merge --ff-only FETCH_HEAD
+git status --short
+```
+
+If source files under `src/` are dirty, report them before upgrading. Mira's
+managed OpenClaw source-local files are `docker-compose.yml` and
+`entrypoint.sh`; keep those local changes and sync them back to the blueprint
+with `cd /home/kenny/mira && ./scripts/sync-from-live.sh`.
+
+Rebuild and recreate Mira's gateway after the source update:
+
+```bash
+cd /home/kenny/mira/openclaw-src
+docker build -t openclaw:local .
+cd /home/kenny/mira
+./scripts/start-openclaw.sh
+```
+
+The Docker build may be slow after a large upstream jump because the OpenClaw
+image runs dependency install, server build, UI build, and production pruning.
+
 ## Defaults
 
 - Compose project: `openclaw-mira`
@@ -92,14 +119,14 @@ Mira routes non-Mira coding requests through Kenny's private agent harness:
 - Harness repo: `https://github.com/kenneth-huebsch/agent`
 - Host runtime checkout: `/home/kenny/mira/.openclaw/workspace/runtime/repos/agent`
 - Container runtime checkout: `/home/node/.openclaw/workspace/runtime/repos/agent`
-- Helper: `/home/node/.openclaw/workspace/capabilities/coding_harness/coding_harness.py`
+- Helper: `/home/node/.openclaw/workspace/skills/coding-harness/coding_harness.py`
 
 Useful checks:
 
 ```bash
 cd /home/kenny/mira
 docker exec --user node openclaw-mira-openclaw-gateway-1 \
-  python3 /home/node/.openclaw/workspace/capabilities/coding_harness/coding_harness.py check-config
+  python3 /home/node/.openclaw/workspace/skills/coding-harness/coding_harness.py check-config
 ```
 
 The preflight requires GitHub CLI auth, private harness repo access, and Cursor

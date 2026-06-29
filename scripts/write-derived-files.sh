@@ -70,7 +70,7 @@ known_dependencies = {
     "workspace/USER.md": "Kenny's interaction preferences.",
     "workspace/TOOLS.md": "Harness routing, on-demand Gmail, Telegram, and cron conventions.",
     "workspace/skills/coding-harness/SKILL.md": "Routes non-Mira coding requests through Kenny's private agent harness.",
-    "workspace/capabilities/coding_harness/coding_harness.py": "Refreshes the harness and runs Cursor CLI against non-Mira target repos.",
+    "workspace/skills/coding-harness/coding_harness.py": "Refreshes the harness and runs Cursor CLI against non-Mira target repos.",
 }
 
 rows = ["# Cron Dependencies", "", "This file documents behavior-bearing files that cron jobs or cron context injection depend on.", ""]

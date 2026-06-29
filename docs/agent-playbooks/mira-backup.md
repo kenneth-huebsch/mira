@@ -11,7 +11,7 @@ Allowed friend-safe content:
 - Future cron prompts and dependency files, only if Kenny explicitly adds scheduled behavior.
 - Workspace-local plugins and skills.
 - Host-level OpenClaw restore assets under `openclaw/`, currently
-  `openclaw/entrypoint.sh`.
+  `openclaw/docker-compose.yml` and `openclaw/entrypoint.sh`.
 - Friend-safe config templates with credentials redacted.
 - Restore docs and agent playbooks.
 
