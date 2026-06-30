@@ -174,9 +174,6 @@
       "cursor-agent-login": {
         "enabled": true
       },
-      "external-memory": {
-        "enabled": true
-      },
       "gog": {
         "enabled": true
       },
@@ -184,6 +181,12 @@
         "enabled": true
       },
       "memory-cold-store": {
+        "enabled": true
+      },
+      "mira-memory": {
+        "enabled": true
+      },
+      "n8n": {
         "enabled": true
       },
       "model-usage": {
@@ -196,6 +199,9 @@
   },
   "tools": {
     "allow": [
+      "read",
+      "exec",
+      "process",
       "memory_recall",
       "memory_store",
       "memory_forget"

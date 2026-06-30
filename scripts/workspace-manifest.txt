@@ -9,8 +9,14 @@ package-lock.json
 skills/coding-harness/coding_harness.py
 skills/coding-harness/SKILL.md
 skills/cursor-agent-login/SKILL.md
-skills/external-memory/SKILL.md
-skills/external-memory/external_memory.py
 skills/gog-reauth/SKILL.md
 skills/memory-cold-store/SKILL.md
 skills/memory-cold-store/memory_cold_store.py
+skills/mira-memory/SKILL.md
+skills/mira-memory/mira_memory_check.py
+skills/n8n/.clawhub/origin.json
+skills/n8n/_meta.json
+skills/n8n/SKILL.md
+skills/n8n/scripts/n8n_api.py
+skills/n8n/scripts/n8n_optimizer.py
+skills/n8n/scripts/n8n_tester.py

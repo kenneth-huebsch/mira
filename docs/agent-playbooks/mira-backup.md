@@ -14,8 +14,8 @@ Allowed friend-safe content:
   `openclaw/docker-compose.yml` and `openclaw/entrypoint.sh`.
 - Friend-safe config templates with credentials redacted.
 - Empty memory scaffold templates and policy docs.
-- Workspace-local memory helper skills, such as `memory-cold-store` and
-  `external-memory`, but not their runtime stores or service data.
+- Workspace-local memory helper skills, such as `mira-memory` and
+  `memory-cold-store`, but not their runtime stores.
 - Restore docs and agent playbooks.
 
 Never include:
@@ -25,8 +25,8 @@ Never include:
 - Sessions, logs, browser/chromium state, delivery queues, cron run history, or dependency folders.
 - Accumulated private memory history unless Kenny explicitly asks for it,
   including live `SESSION-STATE.md`, `MEMORY.md`, `DREAMS.md`,
-  `memory/*`, vector stores, LanceDB databases, git-notes stores, cloud memory
-  exports, Mem0 service data, and session memory indexes.
+  `memory/*`, vector stores, LanceDB databases, git-notes stores, and session
+  memory indexes.
 - QMD runtime state, indexes, downloaded models, or session exports, including
   `~/.openclaw/agents/*/qmd/` and `~/.openclaw/runtime/qmd/`.
 
@@ -87,6 +87,6 @@ cd /home/kenny/mira
 
 After restore, manually configure provider auth, Telegram auth, Gmail/Google
 OAuth for on-demand `gog` reads, Docker Compose mounts/env, device pairing, and
-ignored memory service env files such as `.openclaw/secrets/memory.env` for
-Mem0. Mira has no cron jobs by default; keep `~/.openclaw/cron/jobs.json` empty
-unless Kenny explicitly adds scheduled behavior later.
+the ignored OpenRouter env file for memory embeddings. Mira has no cron jobs by
+default; keep `~/.openclaw/cron/jobs.json` empty unless Kenny explicitly adds
+scheduled behavior later.

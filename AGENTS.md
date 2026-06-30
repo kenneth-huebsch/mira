@@ -14,10 +14,11 @@ It should be usable by any coding agent, not only Cursor.
   `workspace/SESSION-STATE.md`, `workspace/DREAMS.md`, `workspace/memory/*`,
   vector indexes, git-notes stores, cloud memory exports, or session memory
   history into this repo unless Kenny explicitly asks for that data.
-- Mira's configured memory layers are OpenClaw `memorySearch`, `active-memory`,
-  `memory-lancedb`, the `memory-cold-store` git-notes helper, and Mem0-only
-  `external-memory`. Track their policy, templates, restore scaffolding, and
-  helper code; keep their runtime data ignored.
+- Mira's configured memory layers are local memory files, OpenClaw
+  `memorySearch`, `active-memory`, `memory-lancedb`, and the
+  `memory-cold-store` git-notes helper. Track their policy, templates, restore
+  scaffolding, and helper code; keep their runtime data ignored. Mira does not
+  use third-party cloud memory by default.
 - Mira does not use QMD by default. If Kenny later asks to add QMD back, treat it
   as a read-only recall backend over selected markdown docs, not as Mira's source
   of truth. Never copy QMD indexes, session exports, or

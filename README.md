@@ -16,8 +16,8 @@ logs.
 - `openclaw-src/` is the ignored OpenClaw source checkout for this Mira instance.
 - `RUNBOOK.md` documents how to start, stop, and run CLI commands for Mira.
 - `templates/` contains friend-safe examples of runtime config with credential
-  fields redacted, empty memory scaffold files under `templates/memory-scaffold/`,
-  and `templates/memory.env.example`. Mira has no cron jobs configured by default.
+  fields redacted and empty memory scaffold files under
+  `templates/memory-scaffold/`. Mira has no cron jobs configured by default.
 - `openclaw/` contains host-level OpenClaw files needed to recreate this Docker
   setup, currently `docker-compose.yml` and `entrypoint.sh`.
 - `scripts/sync-from-live.sh` updates the blueprint from the running host.
@@ -77,7 +77,7 @@ Mira uses a local-first memory stack for continuity:
 - OpenClaw `memorySearch` and `active-memory` for bounded recall in direct sessions.
 - `memory-lancedb` under ignored runtime storage for vector-backed warm memory.
 - `workspace/skills/memory-cold-store/` for high-value git-notes cold storage.
-- `workspace/skills/external-memory/` for explicit, approved Mem0 dry-run/live calls.
+- `workspace/skills/mira-memory/` for memory policy and health checks.
 
 The blueprint tracks policy and empty restore scaffolding only.
 `scripts/restore-to-live.sh` creates missing live memory files from
@@ -87,8 +87,7 @@ exports, QMD indexes, session exports, or private memory history unless Kenny
 explicitly asks for that data.
 
 Memory debugging commands and privacy boundaries live in `RUNBOOK.md` and
-`workspace/TOOLS.md`. The active cloud memory provider is Mem0 only; service keys
-belong in ignored files under `.openclaw/secrets/`.
+`workspace/TOOLS.md`. Mira does not use third-party cloud memory by default.
 
 ## Update The Backup
 

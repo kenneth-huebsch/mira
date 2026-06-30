@@ -28,9 +28,9 @@ cd ~/mira
 
 This also restores `openclaw/entrypoint.sh` into the OpenClaw checkout so the
 Docker gateway can install/link GitHub CLI, Cursor CLI, `gog`, `jq`,
-`ripgrep`, `python3-pip`, and optional `mem0ai` for harness routing, on-demand
-Gmail access, session-log search, and live Mem0 calls when the compose file
-mounts that entrypoint.
+`ripgrep`, `python3-pip`, and basic runtime tools for harness routing,
+on-demand Gmail access, session-log search, and memory checks when the compose
+file mounts that entrypoint.
 
 5. Manually configure credentials and runtime secrets:
 
@@ -41,7 +41,6 @@ mounts that entrypoint.
 - Device pairing/auth state as needed.
 - OpenRouter secret env at `.openclaw/secrets/openrouter.env` for model and
   memory embeddings.
-- Optional Mem0 secret env at `.openclaw/secrets/memory.env`.
 - Docker Compose env and volume mounts, including the restored
   `/home/kenny/mira/openclaw-src/entrypoint.sh` if using the container runtime.
 
@@ -69,10 +68,9 @@ cd ~/mira
 - Telegram DM works for Kenny after credentials are restored.
 - On-demand Gmail reads work through `gog` after Gmail OAuth is restored.
 - The `coding-harness` skill and helper are restored.
-- The `memory-cold-store` and `external-memory` skills and helpers are restored.
-- `openclaw memory status` reports `memory-lancedb` from a fresh Mira DM.
+- The `mira-memory` and `memory-cold-store` skills and helpers are restored.
+- `python3 skills/mira-memory/mira_memory_check.py` passes from the workspace.
 - `python3 skills/memory-cold-store/memory_cold_store.py doctor` passes.
-- `python3 skills/external-memory/external_memory.py search "communication preferences"` runs as a dry-run without keys.
 - `git`, `gh`, and Cursor CLI are available in the gateway container.
 - `jq` and `rg` are available in the gateway container for bundled skills such
   as `session-logs`.
@@ -81,8 +79,7 @@ cd ~/mira
 ## What This Does Not Restore
 
 - Live memory history.
-- LanceDB vector databases, git-notes cold stores, Mem0 service data, or cloud
-  memory exports.
+- LanceDB vector databases, git-notes cold stores, or session memory exports.
 - QMD indexes, downloaded models, session exports, or `~/.openclaw/agents/*/qmd/`.
 - Gmail OAuth tokens or Google credentials.
 - Telegram bot token or gateway token.

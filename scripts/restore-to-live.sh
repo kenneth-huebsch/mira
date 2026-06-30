@@ -94,5 +94,6 @@ Workspace behavior restored. Now manually configure:
 - $TARGET_OPENCLAW_HOME/cron/jobs.json as an empty jobs config unless Kenny adds scheduled behavior
 - Telegram credentials and Mira Gmail OAuth for on-demand Gmail checks
 - Provider secrets under $TARGET_OPENCLAW_HOME/secrets/ before starting the container
-- Memory service secrets under $TARGET_OPENCLAW_HOME/secrets/ if memory search or Mem0 is enabled
+- OpenRouter secret env under $TARGET_OPENCLAW_HOME/secrets/ if memory search is enabled
+- n8n secrets under $TARGET_OPENCLAW_HOME/secrets/n8n.env if the n8n skill is enabled
 MSG

@@ -120,9 +120,7 @@ tracked config. Useful checks inside Mira's agent runtime:
 ```bash
 openclaw config validate
 openclaw plugins list
-openclaw memory status
-openclaw memory status --deep
-openclaw memory search "recent preference"
+python3 skills/mira-memory/mira_memory_check.py
 ```
 
 From host-side wrapper checks, command availability can differ from the in-agent
@@ -139,16 +137,13 @@ LanceDB is the active memory plugin. The container path is
 `/home/kenny/mira/.openclaw/memory/lancedb`.
 
 ```bash
-openclaw memory status
-openclaw memory status --deep
-openclaw memory store "durable memory text"
-openclaw memory search "recent preference"
-openclaw memory index --force
+memory_recall query="recent preference" limit=5
+memory_store text="durable memory text" category="fact" importance=0.8
+memory_forget id="<memory-id>"
 ```
 
-In a confirmed fresh DM, `openclaw memory status` should report
-`memory-lancedb`, the LanceDB backend path, and tables such as `episodic`,
-`semantic`, and `working`.
+In a confirmed fresh DM, bounded recall should surface relevant approved memory
+without persisting raw transcripts.
 
 Host-side debugging checklist:
 
@@ -156,22 +151,21 @@ Host-side debugging checklist:
 cd /home/kenny/mira
 ./scripts/openclaw-cli.sh config validate
 ./scripts/openclaw-cli.sh plugins list
+docker exec --user node openclaw-mira-openclaw-gateway-1 \
+  sh -lc 'cd /home/node/.openclaw/workspace && python3 skills/mira-memory/mira_memory_check.py'
 MIRA_MEMORY_COLD_STORE_DIR=/home/kenny/mira/.openclaw/memory/git-notes \
   python3 /home/kenny/mira/.openclaw/workspace/skills/memory-cold-store/memory_cold_store.py doctor
-python3 /home/kenny/mira/.openclaw/workspace/skills/external-memory/external_memory.py \
-  search "communication preferences"
 ```
 
 If a host-side `openclaw memory ...` command is unavailable or shows different
 tool exposure than a real conversation, verify from a fresh Mira DM before
 changing config; CLI command surfaces have differed across OpenClaw builds.
 
-Memory service secrets such as embedding provider keys or Mem0
-belong in ignored per-instance files under `/home/kenny/mira/.openclaw/secrets/`.
+Memory service secrets such as embedding provider keys belong in ignored
+per-instance files under `/home/kenny/mira/.openclaw/secrets/`.
 `scripts/start-openclaw.sh` and `scripts/openclaw-cli.sh` source
 `scripts/load-openclaw-env.sh`, which loads `openrouter.env` for
-`OPENROUTER_API_KEY` and `memory.env` for `MEM0_API_KEY` when those ignored files
-exist.
+`OPENROUTER_API_KEY` when that ignored file exists.
 Do not commit live memory contents, vector indexes, git-notes stores, cloud
 memory exports, session memory indexes, or service keys.
 
@@ -189,28 +183,31 @@ MIRA_MEMORY_COLD_STORE_DIR=/home/kenny/mira/.openclaw/memory/git-notes \
   python3 /home/kenny/mira/.openclaw/workspace/skills/memory-cold-store/memory_cold_store.py doctor
 ```
 
-Optional Mem0 keys live in:
+## n8n Runtime
+
+The `n8n` skill requires ignored runtime secrets in:
 
 ```bash
-/home/kenny/mira/.openclaw/secrets/memory.env
+/home/kenny/mira/.openclaw/secrets/n8n.env
 ```
 
-Use `templates/memory.env.example` for the redacted shape. Dry-run verification
-does not need keys:
+Use `templates/n8n.env.example` for the redacted shape:
 
 ```bash
-python3 /home/kenny/mira/.openclaw/workspace/skills/external-memory/external_memory.py \
-  add "approved durable summary" --category preference
-python3 /home/kenny/mira/.openclaw/workspace/skills/external-memory/external_memory.py \
-  search "communication preferences"
+N8N_API_KEY=...
+N8N_BASE_URL=https://your-n8n.example
 ```
 
-Live external memory calls require `--live` and the matching key in
-`memory.env`. Do not upload raw transcripts, raw emails, logs, credentials,
-tokens, browser state, session state, or unreviewed memory exports.
+After creating or rotating that file, keep permissions at `600`, restart Mira,
+and verify from the skill directory with:
 
-The managed OpenClaw `entrypoint.sh` installs the optional `mem0ai` Python
-package for live Mem0 calls when it is missing.
+```bash
+python3 scripts/n8n_api.py list-workflows --pretty
+```
+
+Listing workflows is read-only. Creating, updating, activating, deactivating,
+deleting, or manually executing workflows may mutate external systems and needs
+explicit approval.
 
 ## Runtime Boundary
 

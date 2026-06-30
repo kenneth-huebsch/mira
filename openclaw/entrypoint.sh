@@ -2,9 +2,9 @@
 set -eu
 
 ensure_runtime_tools() {
-  if ! command -v jq >/dev/null 2>&1 || ! command -v rg >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1 || ! command -v git >/dev/null 2>&1 || ! command -v bash >/dev/null 2>&1 || ! python3 -m pip --version >/dev/null 2>&1; then
+  if ! command -v jq >/dev/null 2>&1 || ! command -v rg >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1 || ! command -v git >/dev/null 2>&1 || ! command -v bash >/dev/null 2>&1 || ! python3 -m pip --version >/dev/null 2>&1 || ! python3 -c 'import requests' >/dev/null 2>&1; then
     apt-get update -qq >/dev/null
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends jq ripgrep curl git bash ca-certificates python3-pip >/dev/null
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends jq ripgrep curl git bash ca-certificates python3-pip python3-requests >/dev/null
   fi
 }
 
@@ -32,12 +32,12 @@ prepare_npm_runtime() {
   chown -R node:node "$npm_cache_dir"
 }
 
-ensure_python_memory_runtime() {
-  if su -m -s /bin/sh node -c 'python3 -c "import mem0" >/dev/null 2>&1'; then
+ensure_python_requests_runtime() {
+  if su -m -s /bin/sh node -c 'python3 -c "import requests" >/dev/null 2>&1'; then
     return 0
   fi
 
-  su -m -s /bin/sh node -c 'python3 -m pip install --user --break-system-packages --quiet mem0ai'
+  su -m -s /bin/sh node -c 'python3 -m pip install --user --break-system-packages --quiet requests'
 }
 
 prepare_gh_runtime() {
@@ -144,7 +144,7 @@ install_gogcli() {
 ensure_runtime_tools
 prepare_gogcli_runtime
 prepare_npm_runtime
-ensure_python_memory_runtime
+ensure_python_requests_runtime
 prepare_gh_runtime
 ensure_github_cli_runtime
 install_gogcli

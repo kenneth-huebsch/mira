@@ -52,14 +52,12 @@ These files are runtime memory, not blueprint behavior. Do not copy accumulated
 memory contents, vector databases, git-notes stores, session exports, or cloud
 sync state into tracked files unless Kenny explicitly asks.
 
-Useful OpenClaw memory checks inside Mira's agent runtime:
+Useful memory checks inside Mira's agent runtime:
 
 ```bash
 openclaw config validate
 openclaw plugins list
-openclaw memory status
-openclaw memory status --deep
-openclaw memory search "query"
+python3 skills/mira-memory/mira_memory_check.py
 ```
 
 From host-side wrapper checks, command availability can differ from the in-agent
@@ -73,19 +71,17 @@ pre-reply recall; it should not persist raw transcripts.
 
 LanceDB is the active memory plugin. Its runtime database lives under ignored
 storage at `~/.openclaw/memory/lancedb` in the container, mapped from
-`/home/kenny/mira/.openclaw/memory/lancedb` on the host. Use:
+`/home/kenny/mira/.openclaw/memory/lancedb` on the host. Agents may use the
+OpenClaw memory tools when they are available in a session:
 
 ```bash
-openclaw memory status
-openclaw memory status --deep
-openclaw memory store "durable memory text"
-openclaw memory search "query"
-openclaw memory index --force
+memory_recall query="query" limit=5
+memory_store text="durable memory text" category="fact" importance=0.8
+memory_forget id="<memory-id>"
 ```
 
-In a confirmed fresh DM, `openclaw memory status` should report
-`memory-lancedb`, the LanceDB backend path, and tables such as `episodic`,
-`semantic`, and `working`.
+In a confirmed fresh DM, bounded recall should surface relevant approved memory
+without persisting raw transcripts.
 
 Host-side debugging patterns:
 
@@ -97,9 +93,8 @@ cd /home/kenny/mira
 
 Memory service secrets belong in ignored per-instance files under
 `.openclaw/secrets/`, not in tracked config, docs, templates, shell startup
-files, or memory notes. External memory services such as Mem0 are for approved
-durable summaries only; do not upload raw transcripts, emails, logs,
-credentials, tokens, or browser/session state.
+files, or memory notes. Mira does not use third-party cloud memory services by
+default.
 
 ### Git-Notes Cold Store
 
@@ -118,25 +113,34 @@ python3 skills/memory-cold-store/memory_cold_store.py doctor
 Do not store raw transcripts, logs, email bodies, credentials, tokens,
 browser/session state, or unreviewed private dumps in the cold store.
 
-### External Memory
+## n8n
 
-Use `skills/external-memory/external_memory.py` for explicit, approved Mem0
-operations. Dry-run is the default; add `--live` only after checking the exact
-content is safe for a third-party memory service.
+The `n8n` skill uses the n8n REST API through these environment variables:
 
 ```bash
-python3 skills/external-memory/external_memory.py add "approved durable summary" --category preference
-python3 skills/external-memory/external_memory.py search "query"
+N8N_API_KEY=...
+N8N_BASE_URL=https://your-n8n.example
 ```
 
-Live calls require ignored secrets in `.openclaw/secrets/memory.env`:
+On this host, keep the live values in ignored runtime state at
+`.openclaw/secrets/n8n.env`. `scripts/start-openclaw.sh` and
+`scripts/openclaw-cli.sh` load that file and pass `N8N_API_KEY` and
+`N8N_BASE_URL` into the OpenClaw gateway and CLI containers.
+
+n8n intentionally uses the workspace skill-plus-helper pattern, not a plugin
+tool. For Kenny-approved Telegram DM work, Mira may read the skill and run the
+helper scripts with `exec`; mutating n8n operations still require explicit
+approval.
+
+Useful verification from inside the skill directory:
 
 ```bash
-MEM0_API_KEY=...
+python3 scripts/n8n_api.py list-workflows --pretty
 ```
 
-Never upload raw transcripts, raw emails, logs, credentials, tokens, browser
-state, session state, or unreviewed memory exports.
+Listing and inspecting workflows is read-only. Creating, updating, activating,
+deactivating, deleting, or manually executing workflows can affect external
+systems; get explicit approval before taking those actions.
 
 ## Gmail With `gog`
 

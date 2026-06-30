@@ -73,8 +73,8 @@ known_dependencies = {
     "workspace/skills/coding-harness/coding_harness.py": "Refreshes the harness and runs Cursor CLI against non-Mira target repos.",
     "workspace/skills/memory-cold-store/SKILL.md": "Documents ignored git-notes cold memory.",
     "workspace/skills/memory-cold-store/memory_cold_store.py": "Stores and searches high-value cold memories in ignored runtime storage.",
-    "workspace/skills/external-memory/SKILL.md": "Documents explicit Mem0-only external memory calls.",
-    "workspace/skills/external-memory/external_memory.py": "Performs dry-run or approved live Mem0 add/search calls.",
+    "workspace/skills/mira-memory/SKILL.md": "Documents Mira's supported local-first memory stack.",
+    "workspace/skills/mira-memory/mira_memory_check.py": "Verifies Mira's local-first memory configuration and cold store.",
 }
 
 rows = ["# Cron Dependencies", "", "This file documents behavior-bearing files that cron jobs or cron context injection depend on.", ""]

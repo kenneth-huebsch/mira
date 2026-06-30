@@ -9,11 +9,11 @@ load_openclaw_secret_env() {
     set +a
   fi
 
-  local memory_env_file="${OPENCLAW_MEMORY_SECRET_ENV_FILE:-$BLUEPRINT_ROOT/.openclaw/secrets/memory.env}"
-  if [[ -f "$memory_env_file" ]]; then
+  local n8n_env_file="${OPENCLAW_N8N_SECRET_ENV_FILE:-$BLUEPRINT_ROOT/.openclaw/secrets/n8n.env}"
+  if [[ -f "$n8n_env_file" ]]; then
     set -a
     # shellcheck disable=SC1090
-    . "$memory_env_file"
+    . "$n8n_env_file"
     set +a
   fi
 }
