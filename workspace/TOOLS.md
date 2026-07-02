@@ -15,25 +15,42 @@ prepare the same command surface. Live credentials and tokens remain under
 
 ## Coding Harness
 
-Mira routes non-Mira coding requests through Kenny's private agent harness:
+Mira routes non-Mira coding requests through Kenny's private agent harness. The
+adapter is a thin router: it resolves/clones the target and rejects Mira
+self-work, then delegates all execution to the harness runner
+`scripts/agent_run.py`. The harness owns prompts, the green/red gate, handoffs,
+the per-phase review-and-remediate loop, phased scheduling, and run records.
 
 - Harness repo: `https://github.com/kenneth-huebsch/agent`
 - Host runtime checkout: `/home/kenny/mira/.openclaw/workspace/runtime/repos/agent`
 - Container runtime checkout: `/home/node/.openclaw/workspace/runtime/repos/agent`
-- Helper: `python3 skills/coding-harness/coding_harness.py`
+- Runner delegated to: `runtime/repos/agent/scripts/agent_run.py`
+- Adapter: `python3 skills/coding-harness/coding_harness.py`
 - Skill: `skills/coding-harness/SKILL.md`
 
-Core commands:
+Command surface:
 
 ```bash
-python3 skills/coding-harness/coding_harness.py check-config
 python3 skills/coding-harness/coding_harness.py refresh-harness
-python3 skills/coding-harness/coding_harness.py run --target <path-or-repo> --prompt "<task>"
+python3 skills/coding-harness/coding_harness.py check-config
+python3 skills/coding-harness/coding_harness.py run --target <path-or-repo> --prompt "<task>" [--mode plan] [--verify "<cmd>"] [--timeout <secs>] [--dry-run] [--no-review|--review-threshold {blocking,high,medium,low}|--review-max-rounds N]
+python3 skills/coding-harness/coding_harness.py run-plan --target <path-or-repo> --plan runtime/coding-harness-plans/<name>.json [--dry-run] [...]
+python3 skills/coding-harness/coding_harness.py list
+python3 skills/coding-harness/coding_harness.py status <run-id>
+python3 skills/coding-harness/coding_harness.py show <run-id>
 ```
 
-The harness owns implementation policy. Mira should not restate generic coding
-rules in core context. For requests to modify Mira herself, do not use this
-harness route; self-work belongs to a separate future skill.
+- Larger work follows plan-then-approved-execution: plan interactively, author a
+  phase-spec JSON under ignored runtime (`runtime/coding-harness-plans/<name>.json`),
+  get explicit approval, then `run-plan`. Phase-specs and run records stay in
+  runtime, never in the blueprint.
+- The adapter sets `AGENT_RUN_HOME=runtime/coding-harness-runs` so run records
+  land under Mira's ignored runtime, and forwards review/verify/timeout flags
+  without redefining harness defaults.
+- The harness owns implementation policy and the phased/review contract. Mira
+  should not restate generic coding rules in core context. For requests to
+  modify Mira herself, do not use this harness route; self-work belongs to a
+  separate future skill.
 
 Runtime prerequisites: GitHub CLI auth must work, the private harness repo must
 be readable, and Cursor CLI must be authenticated. Use
@@ -115,7 +132,13 @@ browser/session state, or unreviewed private dumps in the cold store.
 
 ## n8n
 
-The `n8n` skill uses the n8n REST API through these environment variables:
+The `n8n` skill combines two sources:
+
+- Infrastructure context comes from the private repo
+  `https://github.com/kenneth-huebsch/n8n`, refreshed into ignored runtime at
+  `/home/node/.openclaw/workspace/runtime/repos/n8n`.
+- Workflow and execution operations use the n8n REST API through these
+  environment variables:
 
 ```bash
 N8N_API_KEY=...
@@ -125,7 +148,8 @@ N8N_BASE_URL=https://your-n8n.example
 On this host, keep the live values in ignored runtime state at
 `.openclaw/secrets/n8n.env`. `scripts/start-openclaw.sh` and
 `scripts/openclaw-cli.sh` load that file and pass `N8N_API_KEY` and
-`N8N_BASE_URL` into the OpenClaw gateway and CLI containers.
+`N8N_BASE_URL` into the OpenClaw gateway and CLI containers. The API key must
+not be stored in tracked docs, memory, shell startup files, or workflow exports.
 
 n8n intentionally uses the workspace skill-plus-helper pattern, not a plugin
 tool. For Kenny-approved Telegram DM work, Mira may read the skill and run the
@@ -135,12 +159,19 @@ approval.
 Useful verification from inside the skill directory:
 
 ```bash
+python3 scripts/n8n_context.py check-context --pretty
+python3 scripts/n8n_context.py refresh-repo --pretty
 python3 scripts/n8n_api.py list-workflows --pretty
 ```
 
-Listing and inspecting workflows is read-only. Creating, updating, activating,
-deactivating, deleting, or manually executing workflows can affect external
-systems; get explicit approval before taking those actions.
+For infrastructure, server, Caddy, TLS, deployment, backup, or SSH work, Mira
+should first read the checked-out repo's `AGENTS.md`, `README.md`,
+`compose.yaml`, and `.agents/skills/n8n-infrastructure/SKILL.md`.
+
+Listing and inspecting workflows and executions is read-only. Creating,
+updating, activating, deactivating, deleting, manually executing workflows, or
+changing server infrastructure can affect external systems; get explicit
+approval before taking those actions.
 
 ## Gmail With `gog`
 

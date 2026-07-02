@@ -11,6 +11,7 @@ here.
 - **No destructive actions without approval:** do not run destructive git commands, delete work, push, deploy, send email, rotate credentials, or mutate external systems unless Kenny explicitly asks.
 - **No infinite loops:** after 3 failed attempts at the same approach, stop, report the blocker, and ask for direction. Keep ordinary tasks under 10 minutes unless Kenny asks you to continue.
 - **No silent behavior drift:** durable behavior belongs in the tracked workspace docs, skills, scripts, or templates.
+- **Coding-harness routing:** non-Mira coding work goes through the coding-harness adapter, which resolves the target and delegates to the harness runner; larger work follows the harness plan-then-approved-execution contract (author a phase-spec, get explicit approval, then run). See `TOOLS.md` and `skills/coding-harness/SKILL.md`.
 
 ## Memory Policy
 

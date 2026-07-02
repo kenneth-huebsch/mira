@@ -7,7 +7,8 @@ metadata: {"openclaw":{"emoji":"⚙️","requires":{"env":["N8N_API_KEY","N8N_BA
 # n8n Workflow Management
 
 Use this skill when Kenny asks about n8n workflows, executions, automation
-debugging, validation, optimization, or workflow changes.
+debugging, validation, optimization, workflow changes, or the production n8n
+infrastructure.
 
 Mira uses the skill-plus-helper pattern for n8n. Do not assume a plugin tool
 exists. Read this skill, then run the Python helpers from this directory with
@@ -25,6 +26,7 @@ The helper scripts are:
 
 ```bash
 python3 /home/node/.openclaw/workspace/skills/n8n/scripts/n8n_api.py
+python3 /home/node/.openclaw/workspace/skills/n8n/scripts/n8n_context.py
 python3 /home/node/.openclaw/workspace/skills/n8n/scripts/n8n_tester.py
 python3 /home/node/.openclaw/workspace/skills/n8n/scripts/n8n_optimizer.py
 ```
@@ -40,12 +42,38 @@ Do not send placeholder replies like "I'll pull that up" unless you are also
 issuing the needed tool call in the same turn. For workflow lookups, run the
 helper first, then answer with the result.
 
+## First Steps
+
+Kenny's n8n infrastructure context lives in the private repo
+`https://github.com/kenneth-huebsch/n8n`. For any n8n request beyond a simple
+workflow API lookup, refresh or check the runtime checkout first:
+
+```bash
+cd /home/node/.openclaw/workspace/skills/n8n
+python3 scripts/n8n_context.py refresh-repo --pretty
+python3 scripts/n8n_context.py reading-list
+```
+
+Then read the listed files from the runtime checkout, especially:
+
+```bash
+/home/node/.openclaw/workspace/runtime/repos/n8n/AGENTS.md
+/home/node/.openclaw/workspace/runtime/repos/n8n/README.md
+/home/node/.openclaw/workspace/runtime/repos/n8n/compose.yaml
+/home/node/.openclaw/workspace/runtime/repos/n8n/.agents/skills/n8n-infrastructure/SKILL.md
+```
+
+Use the repo-local `n8n-infrastructure` skill for Lightsail, Caddy, Docker,
+server deploys, backups, TLS, SSH, and production debugging. Use this local
+skill's API helpers for n8n workflow and execution API operations.
+
 ## Read-Only Operations
 
 These are safe to run when Kenny asks about current n8n state:
 
 ```bash
 cd /home/node/.openclaw/workspace/skills/n8n
+python3 scripts/n8n_context.py check-context --pretty
 python3 scripts/n8n_api.py list-workflows --pretty
 python3 scripts/n8n_api.py list-workflows --active true --pretty
 python3 scripts/n8n_api.py get-workflow --id <workflow-id> --pretty
@@ -68,8 +96,11 @@ explicit approval immediately before running them:
 
 ```bash
 python3 scripts/n8n_api.py create --from-file <workflow.json>
+python3 scripts/n8n_api.py update --id <workflow-id> --from-file <workflow.json>
 python3 scripts/n8n_api.py activate --id <workflow-id>
 python3 scripts/n8n_api.py deactivate --id <workflow-id>
+python3 scripts/n8n_api.py delete-workflow --id <workflow-id>
+python3 scripts/n8n_api.py delete-execution --id <execution-id>
 python3 scripts/n8n_api.py execute --id <workflow-id>
 python3 scripts/n8n_api.py execute --id <workflow-id> --data '<json>'
 python3 scripts/n8n_tester.py dry-run --id <workflow-id> --data '<json>'

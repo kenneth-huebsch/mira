@@ -106,8 +106,12 @@
       "entries": {
         "session-memory": {
           "enabled": false
+        },
+        "command-logger": {
+          "enabled": true
         }
-      }
+      },
+      "enabled": true
     }
   },
   "plugins": {

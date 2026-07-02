@@ -14,6 +14,9 @@ HARNESS_REPO = "https://github.com/kenneth-huebsch/agent.git"
 WORKSPACE = Path(os.environ.get("OPENCLAW_WORKSPACE", "/home/node/.openclaw/workspace"))
 RUNTIME_REPOS = WORKSPACE / "runtime" / "repos"
 HARNESS_DIR = RUNTIME_REPOS / "agent"
+# The harness owns all execution (prompts, gates, handoffs, review loop, phased
+# scheduling, run records). Mira only shells out to this runner.
+RUNNER = HARNESS_DIR / "scripts" / "agent_run.py"
 RUNS_DIR = WORKSPACE / "runtime" / "coding-harness-runs"
 os.environ.setdefault("GH_CONFIG_DIR", "/home/node/.openclaw/gh")
 MIRA_MARKERS = {
@@ -69,6 +72,11 @@ def check_config(_: argparse.Namespace) -> None:
     status["checks"]["harness_repo_access"] = repo_view.returncode == 0
     if repo_view.returncode != 0:
         status["harness_repo_error"] = (repo_view.stderr or repo_view.stdout).strip()
+
+    status["runner"] = str(RUNNER)
+    status["checks"]["harness_runner"] = RUNNER.exists()
+    if not RUNNER.exists():
+        status["harness_runner_error"] = f"{RUNNER} not found; run refresh-harness first"
 
     print_json(status)
     if not all(status["checks"].values()):
@@ -143,55 +151,100 @@ def resolve_target(target: str) -> Path:
     return destination
 
 
-def build_prompt(task: str, mode: str) -> str:
-    mode_text = "Use autonomous mode." if mode == "autonomous" else "Use planning mode."
-    return f"""You are running under Kenny's agent harness.
+def delegate(subcommand: str, extra_args: list[str]) -> None:
+    """Shell out to the harness runner, streaming its JSON and propagating exit.
 
-First read and follow:
-- {HARNESS_DIR / "AGENTS.md"}
-- relevant files under {HARNESS_DIR / "skills"}
-- relevant files under {HARNESS_DIR / "rules"}
+    The harness owns prompts, gates, handoffs, the review loop, phased
+    scheduling, and run records. Mira only sets ``AGENT_RUN_HOME`` so records
+    land under her ignored runtime and forwards already-resolved arguments.
+    """
+    if not RUNNER.exists():
+        raise RuntimeError(f"harness runner not found at {RUNNER}; run refresh-harness first")
+    RUNS_DIR.mkdir(parents=True, exist_ok=True)
+    env = dict(os.environ)
+    env["AGENT_RUN_HOME"] = str(RUNS_DIR)
+    command = [sys.executable or "python3", str(RUNNER), subcommand, *extra_args]
+    # Flush our own buffered output (e.g. refresh-harness JSON) before the child
+    # streams, so the combined output stays in call order under a pipe.
+    sys.stdout.flush()
+    sys.stderr.flush()
+    completed = subprocess.run(command, env=env)
+    if completed.returncode != 0:
+        sys.exit(completed.returncode)
 
-Project-local instructions in the target repo override the harness when they conflict.
 
-{mode_text}
+def add_review_flags(sub: argparse.ArgumentParser) -> None:
+    """Forward-only review flags: no defaults so Mira never forks gate semantics."""
+    sub.add_argument("--no-review", action="store_true", help="Forward --no-review to disable the harness review loop.")
+    sub.add_argument(
+        "--review-threshold",
+        choices=("blocking", "high", "medium", "low"),
+        default=None,
+        help="Forward the harness review threshold (default lives in the harness).",
+    )
+    sub.add_argument(
+        "--review-max-rounds",
+        type=int,
+        default=None,
+        help="Forward the harness max fix rounds (default lives in the harness).",
+    )
 
-Kenny's request:
-{task}
-"""
+
+def forwarded_review_args(args: argparse.Namespace) -> list[str]:
+    extra: list[str] = []
+    if getattr(args, "no_review", False):
+        extra.append("--no-review")
+    if getattr(args, "review_threshold", None):
+        extra += ["--review-threshold", args.review_threshold]
+    if getattr(args, "review_max_rounds", None) is not None:
+        extra += ["--review-max-rounds", str(args.review_max_rounds)]
+    return extra
 
 
 def run_harness(args: argparse.Namespace) -> None:
     refresh_harness(args)
     target = resolve_target(args.target)
-    RUNS_DIR.mkdir(parents=True, exist_ok=True)
-    prompt = build_prompt(args.prompt, args.mode)
-    command = [
-        "agent",
-        "--print",
-        "--trust",
-        "--workspace",
-        str(target),
-        prompt,
-    ]
-    if args.mode == "plan":
-        command.insert(1, "--mode=plan")
+    extra = ["--target", str(target), "--prompt", args.prompt]
+    if args.mode:
+        extra += ["--mode", args.mode]
+    if args.verify:
+        extra += ["--verify", args.verify]
+    if args.timeout is not None:
+        extra += ["--timeout", str(args.timeout)]
+    if args.dry_run:
+        extra.append("--dry-run")
+    extra += forwarded_review_args(args)
+    delegate("run", extra)
 
-    completed = run(command, check=False)
-    output = {
-        "target": str(target),
-        "harness": str(HARNESS_DIR),
-        "exit_code": completed.returncode,
-        "stdout": completed.stdout.strip(),
-        "stderr": completed.stderr.strip(),
-    }
-    print_json(output)
-    if completed.returncode != 0:
-        sys.exit(completed.returncode)
+
+def run_plan(args: argparse.Namespace) -> None:
+    refresh_harness(args)
+    target = resolve_target(args.target)
+    extra = ["--target", str(target), "--plan", args.plan]
+    if args.timeout is not None:
+        extra += ["--timeout", str(args.timeout)]
+    if args.dry_run:
+        extra.append("--dry-run")
+    extra += forwarded_review_args(args)
+    delegate("run-plan", extra)
+
+
+def status_cmd(args: argparse.Namespace) -> None:
+    delegate("status", [args.run_id])
+
+
+def list_cmd(_: argparse.Namespace) -> None:
+    delegate("list", [])
+
+
+def show_cmd(args: argparse.Namespace) -> None:
+    delegate("show", [args.run_id])
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Route Mira coding work through Kenny's agent harness.")
+    parser = argparse.ArgumentParser(
+        description="Resolve/clone a non-Mira target and delegate execution to Kenny's agent harness runner."
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     check_parser = subparsers.add_parser("check-config")
@@ -200,11 +253,34 @@ def main() -> None:
     refresh_parser = subparsers.add_parser("refresh-harness")
     refresh_parser.set_defaults(func=refresh_harness)
 
-    run_parser = subparsers.add_parser("run")
+    run_parser = subparsers.add_parser("run", help="Resolve/clone target, then delegate a single harness run.")
     run_parser.add_argument("--target", required=True, help="Container-visible path, GitHub URL, or owner/repo slug.")
     run_parser.add_argument("--prompt", required=True, help="Kenny's coding request.")
-    run_parser.add_argument("--mode", choices=("autonomous", "plan"), default="autonomous")
+    run_parser.add_argument("--mode", choices=("autonomous", "plan"), default=None, help="Forward the child mode (harness default is autonomous).")
+    run_parser.add_argument("--verify", default=None, help="Forward a verify shell command (part of the harness green gate).")
+    run_parser.add_argument("--timeout", type=int, default=None, help="Forward the per-run wall-clock ceiling in seconds.")
+    run_parser.add_argument("--dry-run", action="store_true", help="Forward --dry-run: build the run record without invoking agent.")
+    add_review_flags(run_parser)
     run_parser.set_defaults(func=run_harness)
+
+    plan_parser = subparsers.add_parser("run-plan", help="Resolve/clone target, then delegate an approved multi-phase plan.")
+    plan_parser.add_argument("--target", required=True, help="Container-visible path, GitHub URL, or owner/repo slug.")
+    plan_parser.add_argument("--plan", required=True, help="Path to an approved phase-spec JSON, e.g. runtime/coding-harness-plans/<name>.json.")
+    plan_parser.add_argument("--timeout", type=int, default=None, help="Forward the per-phase wall-clock ceiling in seconds.")
+    plan_parser.add_argument("--dry-run", action="store_true", help="Forward --dry-run: build records for all phases without invoking agent.")
+    add_review_flags(plan_parser)
+    plan_parser.set_defaults(func=run_plan)
+
+    status_parser = subparsers.add_parser("status", help="Passthrough: print a run's status.json.")
+    status_parser.add_argument("run_id")
+    status_parser.set_defaults(func=status_cmd)
+
+    list_parser = subparsers.add_parser("list", help="Passthrough: list run records under Mira's runtime.")
+    list_parser.set_defaults(func=list_cmd)
+
+    show_parser = subparsers.add_parser("show", help="Passthrough: show status, handoff, and git snapshot for a run-id.")
+    show_parser.add_argument("run_id")
+    show_parser.set_defaults(func=show_cmd)
 
     args = parser.parse_args()
     try:

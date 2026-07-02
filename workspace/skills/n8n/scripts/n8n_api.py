@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
-"""
-n8n API client for Clawdbot
-Manages workflows, executions, and credentials via n8n REST API
-"""
+"""n8n API client for Mira's workspace-local n8n skill."""
 
 import os
 import sys
 import json
 import argparse
-import requests
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Dict, Any, List
+
+import requests
 
 
 class N8nClient:
@@ -35,14 +33,25 @@ class N8nClient:
     def _request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
         """Make API request"""
         url = f"{self.base_url}/api/v1/{endpoint.lstrip('/')}"
+        kwargs.setdefault("timeout", (10, 60))
         response = self.session.request(method, url, **kwargs)
         
         try:
             response.raise_for_status()
             return response.json() if response.content else {}
         except requests.exceptions.HTTPError as e:
-            error_msg = f"HTTP {response.status_code}: {response.text}"
+            error_text = response.text[:1000]
+            error_msg = f"HTTP {response.status_code}: {error_text}"
             raise Exception(error_msg) from e
+
+    @staticmethod
+    def _collection_items(response_data: Any) -> List[Dict[str, Any]]:
+        """Return list items from either raw arrays or n8n paginated responses."""
+        if isinstance(response_data, list):
+            return response_data
+        if isinstance(response_data, dict) and isinstance(response_data.get("data"), list):
+            return response_data["data"]
+        return []
     
     # Workflows
     def list_workflows(self, active: bool = None) -> List[Dict]:
@@ -74,11 +83,11 @@ class N8nClient:
     
     def activate_workflow(self, workflow_id: str) -> Dict:
         """Activate workflow"""
-        return self._request('PATCH', f'workflows/{workflow_id}', json={'active': True})
+        return self._request('POST', f'workflows/{workflow_id}/activate')
     
     def deactivate_workflow(self, workflow_id: str) -> Dict:
         """Deactivate workflow"""
-        return self._request('PATCH', f'workflows/{workflow_id}', json={'active': False})
+        return self._request('POST', f'workflows/{workflow_id}/deactivate')
     
     # Executions
     def list_executions(self, workflow_id: str = None, limit: int = 20) -> List[Dict]:
@@ -183,7 +192,9 @@ class N8nClient:
     # Optimization & Analytics
     def get_workflow_statistics(self, workflow_id: str, days: int = 7) -> Dict:
         """Get workflow execution statistics"""
-        executions = self.list_executions(workflow_id=workflow_id, limit=100)
+        executions = self._collection_items(
+            self.list_executions(workflow_id=workflow_id, limit=100)
+        )
         
         stats = {
             'total_executions': len(executions),
@@ -270,8 +281,9 @@ class N8nClient:
 def main():
     parser = argparse.ArgumentParser(description='n8n API Client')
     parser.add_argument('action', choices=[
-        'list-workflows', 'get-workflow', 'create', 'activate', 'deactivate',
-        'list-executions', 'get-execution', 'execute', 'validate', 'stats'
+        'list-workflows', 'get-workflow', 'create', 'update', 'delete-workflow',
+        'activate', 'deactivate', 'list-executions', 'get-execution',
+        'delete-execution', 'execute', 'validate', 'stats'
     ])
     parser.add_argument('--id', help='Workflow or execution ID')
     parser.add_argument('--active', type=lambda x: x.lower() == 'true', help='Filter by active status')
@@ -309,6 +321,18 @@ def main():
                 result = client.create_workflow(workflow_data)
             else:
                 raise ValueError("--from-file or --from-template required for create")
+        elif args.action == 'update':
+            if not args.id:
+                raise ValueError("--id required for update")
+            if not args.from_file:
+                raise ValueError("--from-file required for update")
+            with open(args.from_file, 'r') as f:
+                workflow_data = json.load(f)
+            result = client.update_workflow(args.id, workflow_data)
+        elif args.action == 'delete-workflow':
+            if not args.id:
+                raise ValueError("--id required for delete-workflow")
+            result = client.delete_workflow(args.id)
         elif args.action == 'activate':
             if not args.id:
                 raise ValueError("--id required for activate")
@@ -323,6 +347,10 @@ def main():
             if not args.id:
                 raise ValueError("--id required for get-execution")
             result = client.get_execution(args.id)
+        elif args.action == 'delete-execution':
+            if not args.id:
+                raise ValueError("--id required for delete-execution")
+            result = client.delete_execution(args.id)
         elif args.action == 'execute':
             if not args.id:
                 raise ValueError("--id required for execute")

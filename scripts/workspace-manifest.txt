@@ -18,5 +18,6 @@ skills/n8n/.clawhub/origin.json
 skills/n8n/_meta.json
 skills/n8n/SKILL.md
 skills/n8n/scripts/n8n_api.py
+skills/n8n/scripts/n8n_context.py
 skills/n8n/scripts/n8n_optimizer.py
 skills/n8n/scripts/n8n_tester.py
