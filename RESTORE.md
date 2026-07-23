@@ -32,20 +32,12 @@ ignored rollback metadata under `.openclaw/.restore-rollback/`, and never
 deletes `workspace/runtime` or overwrites existing memory. Consecutive restores
 therefore preserve run records, phase specs, checkouts, locks, and checkpoints.
 
-The restored `Dockerfile.mira` installs checksum/version-pinned tools at image
-build time. The runtime entrypoint performs no downloads or installation; it
-fails closed if exact tool versions or writable mounts are wrong.
-
-5. Build the upstream image, then the derived image:
+5. Build the upstream OpenClaw image:
 
 ```bash
 cd ~/mira/openclaw-src
 docker build -t openclaw:local .
-cd ~/mira
-./scripts/build-mira-image.sh
 ```
-
-Validate this in a disposable environment before production startup.
 
 6. Manually configure credentials and runtime secrets:
 

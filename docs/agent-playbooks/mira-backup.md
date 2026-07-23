@@ -10,8 +10,8 @@ Allowed friend-safe content:
 - Mira behavior docs, persona files, harness-routing skills, and helper scripts.
 - Future cron prompts and dependency files, only if Kenny explicitly adds scheduled behavior.
 - Workspace-local plugins and skills.
-- Host-level OpenClaw restore assets under `openclaw/`: hardened Compose,
-  `Dockerfile.mira`, pinned toolchain metadata, and validation-only entrypoint.
+- Host-level OpenClaw restore assets under `openclaw/`, currently
+  `openclaw/docker-compose.yml` and `openclaw/entrypoint.sh`.
 - Friend-safe config templates with credentials redacted.
 - Empty memory scaffold templates and policy docs.
 - Workspace-local memory helper skills, such as `mira-memory` and
@@ -75,9 +75,6 @@ rg -n "(Bearer\\s+[A-Za-z0-9._-]{20,}|AIza[0-9A-Za-z_-]{20,}|ya29\\.[0-9A-Za-z_-
 5. If the scan only finds documentation examples or redacted placeholders, proceed.
 6. Validate `harness.lock.json` contains the canonical repository, contract
    version 2, and the reviewed full immutable SHA. Run the offline unit suite.
-7. Build and start the derived image only in a disposable environment first;
-   verify exact tools, node ownership, writable mounts, auth persistence, and
-   gateway health before production rollout.
 
 ## Commit And Push
 

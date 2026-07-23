@@ -29,10 +29,7 @@ Important files:
   when live memory files are missing.
 - `openclaw/docker-compose.yml` - Mira's source-local Docker Compose overrides
   for the OpenClaw gateway and CLI runtime.
-- `openclaw/Dockerfile.mira` and `toolchain.lock.json` - derived image and pinned
-  tool metadata; downloads are checksum-verified at build time.
-- `openclaw/entrypoint.sh` - validation-only node entrypoint. It must not
-  download, install, chown, or otherwise mutate the image at startup.
+- `openclaw/entrypoint.sh` - Mira's source-local runtime tool setup.
 
 Mira's own infrastructure:
 
@@ -66,11 +63,7 @@ Mira's own infrastructure:
 11. Keep the OpenClaw outer timeout at 3600 seconds while the runner default is
     3000 seconds plus cancellation grace. The adapter must explicitly forward
     the policy default when `run` or `run-plan` omits `--timeout`.
-12. Keep derived-image base identity in `openclaw/toolchain.lock.json`: a
-    reviewed source revision and immutable image digest. `build-mira-image.sh`
-    validates both before passing every locked build value to Docker; do not
-    restore a mutable default in the Dockerfile or Compose.
-13. Sync and restore transactions must retain durable fsync-backed
+12. Sync and restore transactions must retain durable fsync-backed
     intent/applied journals and reconcile incomplete transactions before new
     work. Do not weaken canonical-root, non-symlink, duplicate-manifest, or
     beneath-root validation.

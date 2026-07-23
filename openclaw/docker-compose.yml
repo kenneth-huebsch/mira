@@ -1,12 +1,8 @@
 services:
   openclaw-gateway:
-    image: ${MIRA_OPENCLAW_IMAGE:-openclaw-mira:local}
-    user: "1000:1000"
-    read_only: true
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+    image: ${OPENCLAW_IMAGE:-openclaw:local}
+    user: root
+    entrypoint: ["/entrypoint.sh"]
     environment:
       HOME: /home/node
       TERM: xterm-256color
@@ -27,6 +23,7 @@ services:
     volumes:
       - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
+      - ./entrypoint.sh:/entrypoint.sh:ro
       ## Uncomment the lines below to enable sandbox isolation
       ## (agents.defaults.sandbox). Requires Docker CLI in the image
       ## (build with --build-arg OPENCLAW_INSTALL_DOCKER_CLI=1) or use
@@ -40,10 +37,6 @@ services:
       - "${OPENCLAW_BRIDGE_PORT:-18790}:18790"
       - "${OPENCLAW_UI_PORT:-3501}:3500"
     init: true
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,nodev,size=256m,uid=1000,gid=1000
-      - /home/node/.cache:rw,nosuid,nodev,size=256m,uid=1000,gid=1000
-      - /home/node/.npm:rw,nosuid,nodev,size=256m,uid=1000,gid=1000
     restart: unless-stopped
     command:
       [
@@ -69,12 +62,12 @@ services:
       start_period: 20s
 
   openclaw-cli:
-    image: ${MIRA_OPENCLAW_IMAGE:-openclaw-mira:local}
-    user: "1000:1000"
-    read_only: true
+    image: ${OPENCLAW_IMAGE:-openclaw:local}
+    user: root
     network_mode: "service:openclaw-gateway"
     cap_drop:
-      - ALL
+      - NET_RAW
+      - NET_ADMIN
     security_opt:
       - no-new-privileges:true
     environment:
@@ -98,13 +91,10 @@ services:
     volumes:
       - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,nodev,size=256m,uid=1000,gid=1000
-      - /home/node/.cache:rw,nosuid,nodev,size=256m,uid=1000,gid=1000
-      - /home/node/.npm:rw,nosuid,nodev,size=256m,uid=1000,gid=1000
+      - ./entrypoint.sh:/entrypoint.sh:ro
     stdin_open: true
     tty: true
     init: true
-    entrypoint: ["/usr/local/bin/mira-entrypoint", "node", "dist/index.js"]
+    entrypoint: ["/entrypoint.sh", "node", "dist/index.js"]
     depends_on:
       - openclaw-gateway

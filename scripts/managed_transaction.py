@@ -12,7 +12,7 @@ import time
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-OPENCLAW_FILES = ("docker-compose.yml", "entrypoint.sh", "Dockerfile.mira", "toolchain.lock.json")
+OPENCLAW_FILES = ("docker-compose.yml", "entrypoint.sh")
 
 
 def fsync_dir(path: Path) -> None:

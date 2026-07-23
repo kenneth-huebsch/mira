@@ -44,37 +44,21 @@ git status --short
 ```
 
 If source files under `src/` are dirty, report them before upgrading. Mira's
-managed OpenClaw source-local files are `docker-compose.yml`, `entrypoint.sh`,
-`Dockerfile.mira`, and `toolchain.lock.json`; keep those local changes and sync
-them back to the blueprint with
-`cd /home/kenny/mira && ./scripts/sync-from-live.sh`.
+managed OpenClaw source-local files are `docker-compose.yml` and
+`entrypoint.sh`; keep those local changes and sync them back to the blueprint
+with `cd /home/kenny/mira && ./scripts/sync-from-live.sh`.
 
-Rebuild the upstream and pinned derived images after the source update:
+Rebuild and recreate Mira's gateway after the source update:
 
 ```bash
 cd /home/kenny/mira/openclaw-src
 docker build -t openclaw:local .
 cd /home/kenny/mira
-# Review the new source revision and openclaw:local image digest, update
-# openclaw-src/toolchain.lock.json, then run scripts/sync-from-live.sh.
-./scripts/build-mira-image.sh
 ./scripts/start-openclaw.sh
 ```
 
 The Docker build may be slow after a large upstream jump because the OpenClaw
 image runs dependency install, server build, UI build, and production pruning.
-The derived-image script refuses a mutable or drifted base: it verifies the
-current source revision and local image ID/RepoDigest against
-`toolchain.lock.json`, then passes the locked digest, revision, package
-versions, tool versions, and checksums as Docker build arguments. Compose uses
-the already-built derived image and does not independently rebuild from an
-unchecked base.
-
-The hardened services run as uid/gid `1000:1000`. `scripts/start-openclaw.sh`
-creates the configured state/workspace directories when missing and fails
-closed if either root is symlinked or not owned by uid 1000. Correct fresh-host
-ownership before startup; the container does not elevate privileges to repair
-host mounts.
 
 ## Defaults
 
@@ -229,10 +213,8 @@ explicit approval.
 
 Mira's harness routing and on-demand Gmail commands run through OpenClaw `exec`
 in the gateway container, with workspace paths rooted at
-`/home/node/.openclaw/workspace`. Container runtime dependencies are installed
-in `openclaw/Dockerfile.mira` from pinned versions and checksum-verified
-artifacts. The node entrypoint performs no downloads and fails closed on tool
-version or writable-path errors. Live credentials stay under
+`/home/node/.openclaw/workspace`. Container runtime dependencies are prepared by
+`openclaw/entrypoint.sh`; live credentials stay under
 `/home/kenny/mira/.openclaw` on the host and map into `/home/node/.openclaw`
 inside the container.
 

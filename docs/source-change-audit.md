@@ -22,14 +22,12 @@ If a behavior change appears to require an upstream source patch, stop and
 document the limitation. Only use an OpenClaw fork or patch branch after Kenny
 explicitly approves it.
 
-Four local operational files are preserved separately:
+Two local source files are preserved separately:
 
 - `docker-compose.yml` is copied into `openclaw/docker-compose.yml` in this
   blueprint and restored to the OpenClaw checkout by `scripts/restore-to-live.sh`.
 - `entrypoint.sh` is copied into `openclaw/entrypoint.sh` in this blueprint and
   restored to the OpenClaw checkout by `scripts/restore-to-live.sh`.
-- `Dockerfile.mira` defines the reproducible derived runtime image.
-- `toolchain.lock.json` records reviewed tool versions and artifact checksums.
 
 Other source patches under `src/` should be treated as temporary. Report them
 before upgrading OpenClaw; clobber them only when Kenny explicitly approves it
@@ -38,20 +36,19 @@ or confirms upstream now owns the behavior.
 ## Current Local Source Changes
 
 - `docker-compose.yml`
-  - Builds/uses the derived image as node with all capabilities dropped,
-    no-new-privileges, read-only image filesystems, and bounded tmpfs mounts.
-  - Retains only the writable OpenClaw state/workspace mounts.
+  - Runs the gateway container as root with `entrypoint.sh`.
+  - Adds `GOG_KEYRING_BACKEND`, `GOG_KEYRING_PASSWORD`, and `XDG_CONFIG_HOME` env vars.
+  - Mounts `entrypoint.sh`.
+  - Exposes port `3500`.
 - `entrypoint.sh`
-  - Validates exact tools and writable paths, then executes as node.
-  - Performs no downloads, package installation, privilege changes, or chown.
-- `Dockerfile.mira` and `toolchain.lock.json`
-  - Install pinned Debian packages and checksum-verified Cursor/gog artifacts
-    over the separately built OpenClaw image.
+  - Installs/links `gog`, GitHub CLI, Cursor CLI, `jq`, `ripgrep`, `python3-pip`, and basic runtime tools for harness routing, bundled skills, and memory helpers.
+  - Prepares runtime dirs for `gogcli`, npm, and `gh`.
+  - Drops back to the `node` user for the OpenClaw command.
 
 ## Restore Decision
 
 For now, this blueprint does not fork OpenClaw source. It preserves Mira's
-container setup as the four managed files under `openclaw/`.
+container setup as `openclaw/docker-compose.yml` and `openclaw/entrypoint.sh`.
 
 If a future restore from latest upstream OpenClaw does not behave correctly,
 check whether the Docker Compose mount/env setup was restored and whether any

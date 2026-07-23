@@ -18,8 +18,7 @@ logs.
 - `templates/` contains friend-safe examples of runtime config with credential
   fields redacted and empty memory scaffold files under
   `templates/memory-scaffold/`. Mira has no cron jobs configured by default.
-- `openclaw/` contains the hardened derived-image Dockerfile, pinned toolchain
-  metadata, validation-only entrypoint, and Compose definition.
+- `openclaw/` contains Mira's source-local Docker Compose and entrypoint files.
 - `scripts/sync-from-live.sh` updates the blueprint from the running host.
 - `scripts/restore-to-live.sh` copies the blueprint into a new OpenClaw workspace.
 - `AGENTS.md`, `CLAUDE.md`, and `GEMINI.md` give coding agents tool-agnostic operating instructions.

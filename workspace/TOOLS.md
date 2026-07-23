@@ -9,10 +9,9 @@ prompts.
 Mira's OpenClaw `exec` tool runs inside the gateway container with workspace
 paths rooted at `/home/node/.openclaw/workspace`.
 
-Runtime dependencies are pinned and installed in `openclaw/Dockerfile.mira`.
-The runtime entrypoint only validates versions and writable paths; it never
-downloads or installs. Live credentials and tokens remain under `.openclaw`
-secrets/state and must not be copied into tracked files.
+Runtime dependencies belong in `openclaw/entrypoint.sh` so restored containers
+prepare the same command surface. Live credentials and tokens remain under
+`.openclaw` secrets/state and must not be copied into tracked files.
 
 ## Coding Harness
 
