@@ -20,8 +20,7 @@ reimplements those; she forwards flags and reports results.
 
 1. Identify the target repository. If Kenny did not provide a path, repo URL, or
    GitHub `owner/repo`, ask for it.
-2. Refresh the harness, then check config (refresh first so the runner check
-   passes on a fresh runtime):
+2. Materialize the tracked immutable harness pin, then check config:
 
    ```bash
    python3 skills/coding-harness/coding_harness.py refresh-harness
@@ -42,10 +41,11 @@ python3 skills/coding-harness/coding_harness.py run \
   [--mode plan] [--verify "<cmd>"] [--timeout <secs>] [--dry-run]
 ```
 
-The adapter resolves/clones the target and shells to the harness `run`
-subcommand. The harness builds the child prompt, runs the blocking child,
-applies the base gate (child exit 0 + `verify` passes + non-empty handoff), and
-then runs the review-and-remediate loop.
+Prefer structured v2 checks with
+`--verification-json '{"commands":[{"argv":["python3","-m","unittest"]}]}'`.
+`--verify` is legacy shell compatibility and is denied unless the tracked
+policy explicitly permits shell verification. The adapter emits exactly one
+JSON object containing `harness_revision` and `runner_result`.
 
 ## Larger work: plan, then approved phased execution
 
@@ -61,14 +61,35 @@ plan-then-approved-execution contract (`skills/phased-execution/SKILL.md` and
 
    ```json
    {
+     "schema_version": 2,
      "phases": [
-       {"id": "phase-1", "prompt": "...", "done": "...", "verify": "pytest tests/foo.py"},
-       {"id": "phase-2", "prompt": "...", "done": "...", "verify": "npm test"}
+       {
+         "id": "phase-1",
+         "prompt": "...",
+         "done": "...",
+         "verification": {
+           "commands": [
+             {"argv": ["python3", "-m", "pytest", "tests/foo.py"]}
+           ]
+         }
+       },
+       {
+         "id": "phase-2",
+         "prompt": "...",
+         "done": "...",
+         "verification": {
+           "commands": [
+             {"argv": ["npm", "test"]}
+           ]
+         }
+       }
      ]
    }
    ```
 
-   `id` and `prompt` are required. `done`, `verify`, `mode`
+   `schema_version: 2`, `id`, and `prompt` are required for the documented
+   shape. Use structured `verification.commands[].argv`; legacy `verify` shell
+   strings are denied by Mira's policy. `done`, `verification`, `mode`
    (`autonomous`/`plan`), `review`, `review_threshold`, and `review_max_rounds`
    are optional per-phase overrides. Phase-specs live in ignored runtime, not the
    blueprint.
@@ -98,7 +119,14 @@ Passthroughs to the harness runner (records live under Mira's ignored
 python3 skills/coding-harness/coding_harness.py list
 python3 skills/coding-harness/coding_harness.py status <run-id>
 python3 skills/coding-harness/coding_harness.py show <run-id>
+python3 skills/coding-harness/coding_harness.py resume <run-or-plan-id> [--restart-current-stage]
+python3 skills/coding-harness/coding_harness.py cancel <run-or-plan-id> --reason "<reason>"
 ```
+
+Resume never discards target work or reruns green phases. Drift fails closed;
+an interrupted implementation/fix needs explicit `--restart-current-stage`.
+Cancellation from another session requires the same run store and a verifiable
+recorded process; otherwise the request is persisted for later reconciliation.
 
 ## Reporting back
 
@@ -110,9 +138,25 @@ handoffs, and any remaining approval gates.
 
 - Accepted targets: container-visible paths, GitHub URLs, or GitHub `owner/repo`
   slugs.
-- Repositories cloned by the adapter live under
-  `/home/node/.openclaw/workspace/runtime/repos/`.
-- The adapter must reject Mira self-work targets.
+- Repositories cloned by the adapter use collision-free `owner--repo` paths
+  under `/home/node/.openclaw/workspace/runtime/repos/`; existing origins are
+  validated and targets are never auto-pulled. Fresh private clones use GitHub
+  CLI's credential helper without exporting or printing a token.
+- The adapter rejects symlink escapes and Mira, OpenClaw configuration,
+  workspace behavior, and the harness checkout or any repository nested below
+  it.
+
+## Updating the pin
+
+Do not point the lock at a branch, tag, or abbreviated SHA. Review and test a
+specific agent revision first, then update only the canonical repository URL,
+full lowercase 40-character SHA, and supported contract version in
+`harness.lock.json`. Run the offline contract tests and inspect the diff before
+using `refresh-harness` to materialize it detached.
+
+The path, environment, exact-revision, record, and Git checks are enforced.
+Prompts, hooks, and wrappers are advisory defense in depth and do not provide
+hard network isolation. External mutations remain explicit approval gates.
 
 ## Hard gates
 

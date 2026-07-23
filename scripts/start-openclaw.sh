@@ -25,5 +25,18 @@ if [[ ! -d "$OPENCLAW_SOURCE" ]]; then
   exit 1
 fi
 
+for writable_root in "$OPENCLAW_CONFIG_DIR" "$OPENCLAW_WORKSPACE_DIR"; do
+  if [[ -L "$writable_root" ]]; then
+    echo "refusing symlinked Mira runtime root: $writable_root" >&2
+    exit 1
+  fi
+  mkdir -p "$writable_root"
+  owner_uid="$(stat -c '%u' "$writable_root")"
+  if [[ "$owner_uid" != "1000" ]]; then
+    echo "Mira runtime root must be owned by uid 1000 for rootless startup: $writable_root (owner uid $owner_uid)" >&2
+    exit 1
+  fi
+done
+
 cd "$OPENCLAW_SOURCE"
 exec docker compose -p "$COMPOSE_PROJECT_NAME" "${compose_files[@]}" up -d openclaw-gateway

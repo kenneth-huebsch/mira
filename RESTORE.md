@@ -26,13 +26,28 @@ cd ~/mira
 ./scripts/restore-to-live.sh
 ```
 
-This also restores `openclaw/entrypoint.sh` into the OpenClaw checkout so the
-Docker gateway can install/link GitHub CLI, Cursor CLI, `gog`, `jq`,
-`ripgrep`, `python3-pip`, and basic runtime tools for harness routing,
-on-demand Gmail access, session-log search, and memory checks when the compose
-file mounts that entrypoint.
+Restore transactionally replaces only manifest-managed behavior and approved
+OpenClaw operational files. It rejects traversal/symlink destinations, retains
+ignored rollback metadata under `.openclaw/.restore-rollback/`, and never
+deletes `workspace/runtime` or overwrites existing memory. Consecutive restores
+therefore preserve run records, phase specs, checkouts, locks, and checkpoints.
 
-5. Manually configure credentials and runtime secrets:
+The restored `Dockerfile.mira` installs checksum/version-pinned tools at image
+build time. The runtime entrypoint performs no downloads or installation; it
+fails closed if exact tool versions or writable mounts are wrong.
+
+5. Build the upstream image, then the derived image:
+
+```bash
+cd ~/mira/openclaw-src
+docker build -t openclaw:local .
+cd ~/mira
+./scripts/build-mira-image.sh
+```
+
+Validate this in a disposable environment before production startup.
+
+6. Manually configure credentials and runtime secrets:
 
 - OpenClaw provider auth and model credentials.
 - Telegram bot token.
@@ -48,7 +63,7 @@ Use `templates/openclaw.friend-safe.example.json` as a structure reference for
 `memorySearch`, `active-memory`, `memory-lancedb`, and enabled skills, but do not
 copy placeholder credential values into production.
 
-6. Ensure the runtime memory plugin is installed if the fresh OpenClaw home does
+7. Ensure the runtime memory plugin is installed if the fresh OpenClaw home does
 not already have it:
 
 ```bash
@@ -57,9 +72,9 @@ cd ~/mira
 ./scripts/openclaw-cli.sh config validate
 ```
 
-7. Mira has no cron jobs by default. Only create scheduled behavior if Kenny explicitly asks for it.
+8. Mira has no cron jobs by default. Only create scheduled behavior if Kenny explicitly asks for it.
 
-8. Verify behavior:
+9. Verify behavior:
 
 - Interactive chat loads `AGENTS.md`, `SOUL.md`, `IDENTITY.md`, `USER.md`, `TOOLS.md`, and `HEARTBEAT.md`.
 - No inherited cron prompts or capability bundles are restored by default.
@@ -75,6 +90,9 @@ cd ~/mira
 - `jq` and `rg` are available in the gateway container for bundled skills such
   as `session-logs`.
 - `python3 skills/coding-harness/coding_harness.py check-config` passes after GitHub CLI, private harness repo access, and Cursor CLI auth are configured.
+- `refresh-harness` reports the full locked SHA and a detached, clean checkout.
+- The outer OpenClaw timeout is 3600 seconds, above the 3000-second runner
+  timeout plus 15-second cancellation grace.
 
 ## What This Does Not Restore
 

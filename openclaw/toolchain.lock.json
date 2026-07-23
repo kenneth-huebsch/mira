@@ -1,0 +1,26 @@
+{
+  "schema_version": 2,
+  "base_image": {
+    "source_tag": "openclaw:local",
+    "digest": "sha256:d410c388ca5f8f11acf20443ed6ea135cca79c6ae06120be9f408394ebf7f672",
+    "source_revision": "552ec2b49d4ab178ee09c7e5d7b6fa2c248e113e"
+  },
+  "gh_version": "2.23.0",
+  "debian_packages": {
+    "gh": "2.23.0+dfsg1-1",
+    "jq": "1.6-2.1+deb12u2",
+    "python3-pip": "23.0.1+dfsg-1",
+    "python3-requests": "2.28.1+dfsg-1",
+    "ripgrep": "13.0.0-4+b2"
+  },
+  "cursor": {
+    "version": "2026.07.20-8cc9c0b",
+    "linux_amd64_sha256": "6e9f17247ffeb5f8f7e2246b4bcd6bb26cb2d5a9f9a4b0012c9a80d868ed25b4",
+    "linux_arm64_sha256": "2986152b283c70a666b015035b2e99a96d13afd2660a587b8639417cfdd147fb"
+  },
+  "gogcli": {
+    "version": "0.12.0",
+    "linux_amd64_sha256": "a03fccbd67ea2e59a26a56e92de8918577f4bebe4b2f946823419777827cdab2",
+    "linux_arm64_sha256": "d7f20494d7eb0e8716631853d055ccbb368c7b81cb8165f55b45884bccb67b4b"
+  }
+}

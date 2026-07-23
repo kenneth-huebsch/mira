@@ -9,9 +9,10 @@ prompts.
 Mira's OpenClaw `exec` tool runs inside the gateway container with workspace
 paths rooted at `/home/node/.openclaw/workspace`.
 
-Runtime dependencies belong in `openclaw/entrypoint.sh` so restored containers
-prepare the same command surface. Live credentials and tokens remain under
-`.openclaw` secrets/state and must not be copied into tracked files.
+Runtime dependencies are pinned and installed in `openclaw/Dockerfile.mira`.
+The runtime entrypoint only validates versions and writable paths; it never
+downloads or installs. Live credentials and tokens remain under `.openclaw`
+secrets/state and must not be copied into tracked files.
 
 ## Coding Harness
 
@@ -21,7 +22,9 @@ self-work, then delegates all execution to the harness runner
 `scripts/agent_run.py`. The harness owns prompts, the green/red gate, handoffs,
 the per-phase review-and-remediate loop, phased scheduling, and run records.
 
-- Harness repo: `https://github.com/kenneth-huebsch/agent`
+- Harness repo: `https://github.com/kenneth-huebsch/agent.git`
+- Immutable revision and contract: `skills/coding-harness/harness.lock.json`
+- Adapter/runner policy: `skills/coding-harness/policy.json`
 - Host runtime checkout: `/home/kenny/mira/.openclaw/workspace/runtime/repos/agent`
 - Container runtime checkout: `/home/node/.openclaw/workspace/runtime/repos/agent`
 - Runner delegated to: `runtime/repos/agent/scripts/agent_run.py`
@@ -33,8 +36,10 @@ Command surface:
 ```bash
 python3 skills/coding-harness/coding_harness.py refresh-harness
 python3 skills/coding-harness/coding_harness.py check-config
-python3 skills/coding-harness/coding_harness.py run --target <path-or-repo> --prompt "<task>" [--mode plan] [--verify "<cmd>"] [--timeout <secs>] [--dry-run] [--no-review|--review-threshold {blocking,high,medium,low}|--review-max-rounds N]
+python3 skills/coding-harness/coding_harness.py run --target <path-or-repo> --prompt "<task>" [--mode plan] [--verification-json '<object>'|--verify "<legacy-shell-cmd>"] [--timeout <secs>] [--dry-run] [--no-review|--review-threshold {blocking,high,medium,low}|--review-max-rounds N] [--implement-model M|--plan-model M|--review-model M|--fix-model M]
 python3 skills/coding-harness/coding_harness.py run-plan --target <path-or-repo> --plan runtime/coding-harness-plans/<name>.json [--dry-run] [...]
+python3 skills/coding-harness/coding_harness.py resume <run-or-plan-id> [--restart-current-stage]
+python3 skills/coding-harness/coding_harness.py cancel <run-or-plan-id> --reason "<reason>"
 python3 skills/coding-harness/coding_harness.py list
 python3 skills/coding-harness/coding_harness.py status <run-id>
 python3 skills/coding-harness/coding_harness.py show <run-id>
@@ -45,15 +50,45 @@ python3 skills/coding-harness/coding_harness.py show <run-id>
   get explicit approval, then `run-plan`. Phase-specs and run records stay in
   runtime, never in the blueprint.
 - The adapter sets `AGENT_RUN_HOME=runtime/coding-harness-runs` so run records
-  land under Mira's ignored runtime, and forwards review/verify/timeout flags
-  without redefining harness defaults.
+  land under Mira's ignored runtime, and forwards v2 verification, policy,
+  model, resume, cancellation, review, and timeout options. Phase specs remain
+  under `runtime/coding-harness-plans`.
+- `refresh-harness` materializes the tracked full SHA detached; it never switches
+  to or pulls a branch. It verifies detached state even when the checkout was
+  already at the pinned SHA. Target clones use `owner--repo`, validate origin,
+  and are never auto-pulled. Fresh private clones use `gh auth git-credential`
+  without placing a GitHub token in command arguments or the delegated
+  environment.
+- The runner timeout is 3000 seconds, cancellation cleanup gets 15 seconds, and
+  OpenClaw's outer timeout is 3600 seconds. The adapter always forwards 3000
+  when `run` or `run-plan` omits `--timeout`, preventing the pinned runner's
+  older 3600 CLI default from overriding policy. Foreground signals are forwarded to
+  the runner process group. A second session can request cancellation only when
+  it can see the same run store and the runner can validate the recorded live
+  process; otherwise the request is recorded for reconciliation.
+- Resume preserves partial work. Interrupted mutating stages require
+  `--restart-current-stage`; drift fails closed and completed green phases do
+  not rerun.
+- The adapter and runner enforce pin, path, environment, record, and Git
+  invariants. Prompts, hooks, and command wrappers are defense in depth, not
+  hard network isolation; direct executables or network-capable code may bypass
+  advisory controls. External mutations still require explicit approval.
+- `run-plan` resolves relative phase-spec paths from the adapter invocation
+  directory before delegation and accepts only regular, canonical,
+  non-symlink files below `runtime/coding-harness-plans`. The harness checkout
+  and every repository nested beneath it are denied targets.
+- Delegation scrubs provider and integration secrets while fixing
+  `XDG_CONFIG_HOME=/home/node/.openclaw` and
+  `GH_CONFIG_DIR=/home/node/.openclaw/gh`, so authenticated CLI state remains
+  available from the persisted OpenClaw mount.
 - The harness owns implementation policy and the phased/review contract. Mira
   should not restate generic coding rules in core context. For requests to
   modify Mira herself, do not use this harness route; self-work belongs to a
   separate future skill.
 
-Runtime prerequisites: GitHub CLI auth must work, the private harness repo must
-be readable, and Cursor CLI must be authenticated. Use
+Runtime prerequisites: `gh auth status` must work, `gh repo view
+kenneth-huebsch/agent` must confirm private harness access, and `agent status`
+must confirm Cursor CLI authentication. Use
 `skills/cursor-agent-login/SKILL.md` when Cursor auth is missing.
 
 ## Memory

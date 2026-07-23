@@ -14,7 +14,7 @@
         "mode": "off"
       },
       "thinkingDefault": "low",
-      "timeoutSeconds": 600,
+      "timeoutSeconds": 3600,
       "workspace": "/home/node/.openclaw/workspace",
       "memorySearch": {
         "enabled": true,

@@ -1,0 +1,66 @@
+ARG OPENCLAW_BASE_IMAGE
+FROM ${OPENCLAW_BASE_IMAGE}
+
+USER root
+ARG TARGETARCH
+ARG OPENCLAW_BASE_DIGEST
+ARG OPENCLAW_SOURCE_REVISION
+ARG GH_DEBIAN_PACKAGE
+ARG JQ_DEBIAN_PACKAGE
+ARG PYTHON3_PIP_DEBIAN_PACKAGE
+ARG PYTHON3_REQUESTS_DEBIAN_PACKAGE
+ARG RIPGREP_DEBIAN_PACKAGE
+ARG GH_VERSION
+ARG CURSOR_VERSION
+ARG CURSOR_AMD64_SHA256
+ARG CURSOR_ARM64_SHA256
+ARG GOG_VERSION
+ARG GOG_AMD64_SHA256
+ARG GOG_ARM64_SHA256
+LABEL org.opencontainers.image.base.digest="${OPENCLAW_BASE_DIGEST}" \
+      org.opencontainers.image.base.source_revision="${OPENCLAW_SOURCE_REVISION}"
+
+# Debian package versions are tied to the reviewed bookworm repositories used
+# by the pinned upstream base image. A repository drift makes this layer fail.
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      "gh=${GH_DEBIAN_PACKAGE}" \
+      "jq=${JQ_DEBIAN_PACKAGE}" \
+      "python3-pip=${PYTHON3_PIP_DEBIAN_PACKAGE}" \
+      "python3-requests=${PYTHON3_REQUESTS_DEBIAN_PACKAGE}" \
+      "ripgrep=${RIPGREP_DEBIAN_PACKAGE}" && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    case "$TARGETARCH" in \
+      amd64) cursor_arch=x64; cursor_sha="$CURSOR_AMD64_SHA256"; gog_arch=amd64; gog_sha="$GOG_AMD64_SHA256" ;; \
+      arm64) cursor_arch=arm64; cursor_sha="$CURSOR_ARM64_SHA256"; gog_arch=arm64; gog_sha="$GOG_ARM64_SHA256" ;; \
+      *) echo "unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
+    esac; \
+    cursor_asset=/tmp/cursor-agent.tar.gz; \
+    curl -fsSL "https://downloads.cursor.com/lab/${CURSOR_VERSION}/linux/${cursor_arch}/agent-cli-package.tar.gz" -o "$cursor_asset"; \
+    echo "$cursor_sha  $cursor_asset" | sha256sum -c -; \
+    install -d "/opt/cursor-agent/${CURSOR_VERSION}"; \
+    tar --strip-components=1 -xzf "$cursor_asset" -C "/opt/cursor-agent/${CURSOR_VERSION}"; \
+    ln -s "/opt/cursor-agent/${CURSOR_VERSION}/cursor-agent" /usr/local/bin/agent; \
+    gog_asset="/tmp/gogcli.tar.gz"; \
+    curl -fsSL "https://github.com/steipete/gogcli/releases/download/v${GOG_VERSION}/gogcli_${GOG_VERSION}_linux_${gog_arch}.tar.gz" -o "$gog_asset"; \
+    echo "$gog_sha  $gog_asset" | sha256sum -c -; \
+    tar -xzf "$gog_asset" -C /usr/local/bin gog; \
+    chmod 0755 /usr/local/bin/gog; \
+    rm -f "$cursor_asset" "$gog_asset"; \
+    install -d -m 0700 -o node -g node \
+      /home/node/.cache /home/node/.npm /home/node/.openclaw/gh \
+      /home/node/.openclaw/gogcli /home/node/.openclaw/workspace
+
+COPY --chown=root:root entrypoint.sh /usr/local/bin/mira-entrypoint
+COPY --chown=root:root toolchain.lock.json /usr/local/share/mira/toolchain.lock.json
+RUN chmod 0755 /usr/local/bin/mira-entrypoint
+
+ENV CURSOR_AGENT_VERSION=${CURSOR_VERSION} \
+    GOGCLI_VERSION=${GOG_VERSION} \
+    GH_VERSION=${GH_VERSION} \
+    XDG_CONFIG_HOME=/home/node/.openclaw \
+    GH_CONFIG_DIR=/home/node/.openclaw/gh
+USER node
+ENTRYPOINT ["/usr/local/bin/mira-entrypoint"]
