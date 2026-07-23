@@ -4,6 +4,7 @@ dist/
 coverage/
 __pycache__/
 openclaw-src/
+.sync-rollback/
 
 # OpenClaw live state and credentials
 .openclaw/

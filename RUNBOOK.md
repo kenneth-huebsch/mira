@@ -238,10 +238,32 @@ docker exec --user node openclaw-mira-openclaw-gateway-1 \
   python3 /home/node/.openclaw/workspace/skills/coding-harness/coding_harness.py check-config
 ```
 
-The preflight requires GitHub CLI auth, private harness repo access, and Cursor
-CLI auth. If Cursor auth is missing, use
+The preflight runs `gh auth status`, a private `gh repo view` for the harness,
+and `agent status`. Fresh private clones use GitHub CLI's Git credential helper
+without exporting or printing a token. Delegation preserves the mounted CLI
+config locations at `/home/node/.openclaw` and `/home/node/.openclaw/gh` while
+scrubbing secret environment variables. If Cursor auth is missing, use
 `workspace/skills/cursor-agent-login/SKILL.md` or provide `CURSOR_API_KEY`
 through ignored runtime secrets before expecting coding runs to execute.
+
+`refresh-harness` materializes the exact full SHA in `harness.lock.json`
+detached; it never switches or pulls a branch. Update that lock only after
+reviewing and testing a specific immutable revision. Run records are under
+`runtime/coding-harness-runs`; phase specs are under
+`runtime/coding-harness-plans`.
+
+```bash
+python3 skills/coding-harness/coding_harness.py resume <run-or-plan-id> [--restart-current-stage]
+python3 skills/coding-harness/coding_harness.py cancel <run-or-plan-id> --reason "<reason>"
+```
+
+Interrupted mutating stages preserve partial work and need explicit restart.
+Second-session cancellation works only with the same run store and a verifiable
+recorded process; otherwise the request remains for reconciliation. The runner
+timeout is 3000 seconds, cancellation grace is 15 seconds, and the OpenClaw
+outer timeout is 3600 seconds. Pin, path, environment, Git, and record checks
+are enforced; prompts, hooks, and wrappers remain advisory defense in depth and
+do not provide hard network isolation.
 
 Mira self-work is intentionally out of scope for this harness skill.
 

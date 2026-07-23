@@ -1,0 +1,62 @@
+{
+  "schema_version": 2,
+  "adapter": {
+    "contract_version": 2,
+    "runtime_repos": "/home/node/.openclaw/workspace/runtime/repos",
+    "runs_dir": "/home/node/.openclaw/workspace/runtime/coding-harness-runs",
+    "denied_roots": [
+      "/home/kenny/mira",
+      "/home/node/.openclaw",
+      "/home/node/.openclaw/workspace",
+      "/home/node/.openclaw/workspace/runtime/repos/agent"
+    ]
+  },
+  "allowed_target_roots": [
+    "/home/node/.openclaw/workspace/runtime/repos"
+  ],
+  "inherited_environment_keys": [
+    "HOME",
+    "LANG",
+    "LC_ALL",
+    "LOGNAME",
+    "PATH",
+    "SHELL",
+    "TERM",
+    "TMPDIR",
+    "TZ",
+    "USER"
+  ],
+  "capability_environment": {},
+  "sensitive_path_patterns": [
+    "(^|/)(\\.env($|\\.)|[^/]*\\.env$|credentials?($|[./])|secrets?($|[./]))",
+    "\\.(pem|key|p12|pfx)$"
+  ],
+  "default_timeout_seconds": 3000,
+  "cancellation_grace_seconds": 15,
+  "allow_shell_verification": false,
+  "default_branches": [
+    "main",
+    "master"
+  ],
+  "guarded_commands": [
+    "git commit",
+    "git push",
+    "git reset --hard",
+    "git clean -f",
+    "gh pr create",
+    "gh pr merge",
+    "gh pr review",
+    "npm publish",
+    "pnpm publish",
+    "yarn publish",
+    "python -m twine upload",
+    "twine upload",
+    "kubectl apply",
+    "kubectl delete",
+    "helm install",
+    "helm upgrade",
+    "terraform apply",
+    "terraform destroy",
+    "docker push"
+  ]
+}

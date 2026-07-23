@@ -12,7 +12,9 @@ This file documents behavior-bearing files that cron jobs or cron context inject
 - `workspace/USER.md` (present) - Kenny's interaction preferences.
 - `workspace/TOOLS.md` (present) - Harness routing, memory tools, on-demand Gmail, Telegram, and cron conventions.
 - `workspace/skills/coding-harness/SKILL.md` (present) - Routes non-Mira coding requests through Kenny's private agent harness.
-- `workspace/skills/coding-harness/coding_harness.py` (present) - Refreshes the harness and runs Cursor CLI against non-Mira target repos.
+- `workspace/skills/coding-harness/coding_harness.py` (present) - Materializes the immutable harness pin and delegates runs against bounded target repos.
+- `workspace/skills/coding-harness/harness.lock.json` (present) - Pins the reviewed full harness revision and contract version.
+- `workspace/skills/coding-harness/policy.json` (present) - Defines target roots, environment allowlist, timeout, cancellation, and runner policy.
 - `workspace/skills/memory-cold-store/SKILL.md` (present) - Documents ignored git-notes cold memory.
 - `workspace/skills/memory-cold-store/memory_cold_store.py` (present) - Stores and searches high-value cold memories in ignored runtime storage.
 - `workspace/skills/mira-memory/SKILL.md` (present) - Documents Mira's supported local-first memory stack.

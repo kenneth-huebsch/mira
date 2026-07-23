@@ -43,6 +43,16 @@ The sync script is manifest-based. It copies only behavior files listed in
 `scripts/workspace-manifest.txt` plus approved host-level OpenClaw files. It
 does not copy live memory history, vector indexes, git-notes stores, QMD runtime
 state, sessions, logs, cron run history, or credentials.
+Sync and restore reject traversal and symlink destinations, stage all managed
+files before replacement, fsync staged files, backups, journals, replacements,
+and parent directories, and retain ignored rollback metadata. Each replacement
+has a durable intent/applied journal; the next invocation rolls back an
+incomplete transaction before starting new work. Both directions reject
+duplicate normalized manifest entries, non-canonical or symlinked roots, and
+any source or destination that cannot be proven beneath its declared root.
+Restore never
+deletes `workspace/runtime`; verify records, phase specs, checkouts, locks,
+checkpoints, and existing memory survive two restores.
 
 Memory scaffold templates are intentionally not copied from the live workspace
 through `scripts/workspace-manifest.txt`. They live under
@@ -63,6 +73,9 @@ rg -n "(Bearer\\s+[A-Za-z0-9._-]{20,}|AIza[0-9A-Za-z_-]{20,}|ya29\\.[0-9A-Za-z_-
 
 4. If the scan finds a real secret, remove it, fix the generator or allowlist, and regenerate.
 5. If the scan only finds documentation examples or redacted placeholders, proceed.
+6. Validate `harness.lock.json` contains the canonical repository, matching
+   numeric contract version, and the reviewed full immutable SHA. Run the
+   offline unit suite.
 
 ## Commit And Push
 

@@ -18,8 +18,7 @@ logs.
 - `templates/` contains friend-safe examples of runtime config with credential
   fields redacted and empty memory scaffold files under
   `templates/memory-scaffold/`. Mira has no cron jobs configured by default.
-- `openclaw/` contains host-level OpenClaw files needed to recreate this Docker
-  setup, currently `docker-compose.yml` and `entrypoint.sh`.
+- `openclaw/` contains Mira's source-local Docker Compose and entrypoint files.
 - `scripts/sync-from-live.sh` updates the blueprint from the running host.
 - `scripts/restore-to-live.sh` copies the blueprint into a new OpenClaw workspace.
 - `AGENTS.md`, `CLAUDE.md`, and `GEMINI.md` give coding agents tool-agnostic operating instructions.
@@ -42,16 +41,33 @@ capabilities by default.
 
 ## Harness Runtime
 
-For coding requests in other repos, Mira refreshes the harness into ignored
-runtime and runs Cursor CLI against the target repo:
+For coding requests in other repos, Mira materializes the reviewed immutable
+harness revision into ignored runtime and runs Cursor CLI against the target:
 
 - Harness repo: `https://github.com/kenneth-huebsch/agent`
 - Host runtime checkout: `/home/kenny/mira/.openclaw/workspace/runtime/repos/agent`
 - Container runtime checkout: `/home/node/.openclaw/workspace/runtime/repos/agent`
 - Helper: `workspace/skills/coding-harness/coding_harness.py`
 - Skill: `workspace/skills/coding-harness/SKILL.md`
+- Pin: `workspace/skills/coding-harness/harness.lock.json`
+- Policy: `workspace/skills/coding-harness/policy.json`
 
 Mira self-work is intentionally out of scope for this harness skill.
+Target clones use collision-free `owner--repo` paths and are not auto-pulled.
+Run records and phase specs remain under ignored `workspace/runtime/`.
+Restore replaces only manifest-managed files and never deletes runtime.
+
+Update the harness pin only after reviewing and testing a specific revision.
+The lock accepts only the canonical repository, matching numeric contract
+version, and a full lowercase 40-character SHA; `refresh-harness` checks out
+that SHA detached.
+
+The adapter explicitly forwards the 3000-second policy timeout for `run` and
+`run-plan`; cancellation cleanup is 15 seconds and the friend-safe OpenClaw
+outer timeout remains 3600 seconds. Phase-spec paths are canonical files below
+the runtime plans directory. Path, pin, environment, Git,
+and record checks are enforced; prompts, hooks, and wrappers are advisory
+defense in depth and do not provide hard network isolation.
 
 ## Infrastructure
 
@@ -107,5 +123,10 @@ If the diff looks right, commit and push.
 The sync script is manifest-based. It copies only the behavior files listed in
 `scripts/workspace-manifest.txt`; it does not copy accumulated memory history,
 runtime logs, sessions, device state, credentials, or tokens.
+
+Sync and restore use fsync-backed intent/applied journals. A later invocation
+reconciles an incomplete transaction before staging new work; normalized
+manifest duplicates, non-canonical roots, symlink roots, and root escapes fail
+closed.
 
 Provider API keys live in ignored per-instance secret env files under `.openclaw/secrets/`, never in tracked files or global shell startup files. See `RUNBOOK.md` for the OpenRouter rotation procedure.
