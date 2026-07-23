@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pinned, fail-closed adapter for the version-2 agent harness."""
+"""Pinned, fail-closed adapter for the agent harness."""
 from __future__ import annotations
 
 import argparse
@@ -40,7 +40,7 @@ POLICY_FIELDS = {
     "guarded_commands",
 }
 ADAPTER_POLICY_FIELDS = {"contract_version", "runtime_repos", "runs_dir", "denied_roots"}
-RUNNER_POLICY_PATH = RUNTIME / ".coding-harness-runner-policy-v2.json"
+RUNNER_POLICY_PATH = RUNTIME / ".coding-harness-runner-policy.json"
 
 
 class AdapterError(RuntimeError):
@@ -235,9 +235,16 @@ def verify_harness(lock: dict[str, Any]) -> None:
     runner = HARNESS_DIR / "scripts" / "agent_run.py"
     if runner.is_symlink() or not runner.is_file():
         raise AdapterError("pinned harness runner is missing or is a symlink")
-    help_result = command([sys.executable, str(runner), "--help"], cwd=HARNESS_DIR, check=False)
-    if help_result.returncode or "version-2" not in help_result.stdout:
-        raise AdapterError("pinned harness is not contract-version 2 compatible")
+    contract_result = command([sys.executable, str(runner), "contract"], cwd=HARNESS_DIR, check=False)
+    if contract_result.returncode:
+        raise AdapterError("pinned harness did not report its contract")
+    contract = strict_json(contract_result.stdout, "pinned harness contract")
+    expected = {
+        "contract_version": lock["contract_version"],
+        "schema_version": lock["contract_version"],
+    }
+    if contract != expected:
+        raise AdapterError("pinned harness contract does not match lock")
 
 
 def materialize_harness() -> dict[str, Any]:
@@ -492,7 +499,7 @@ def model_value(value: str) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = JsonArgumentParser(description="Pinned version-2 coding harness adapter.")
+    parser = JsonArgumentParser(description="Pinned coding harness adapter.")
     subs = parser.add_subparsers(dest="command", required=True, parser_class=JsonArgumentParser)
     subs.add_parser("refresh-harness")
     subs.add_parser("check-config")
@@ -501,7 +508,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--prompt", required=True)
     run.add_argument("--mode", choices=("autonomous", "plan"))
     run.add_argument("--verify")
-    run.add_argument("--verification-json", help="V2 verification object JSON or @path.")
+    run.add_argument("--verification-json", help="Structured verification object JSON or @path.")
     add_common(run)
     plan = subs.add_parser("run-plan")
     plan.add_argument("--target", required=True)

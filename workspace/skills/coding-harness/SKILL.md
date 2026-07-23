@@ -41,7 +41,7 @@ python3 skills/coding-harness/coding_harness.py run \
   [--mode plan] [--verify "<cmd>"] [--timeout <secs>] [--dry-run]
 ```
 
-Prefer structured v2 checks with
+Prefer structured checks with
 `--verification-json '{"commands":[{"argv":["python3","-m","unittest"]}]}'`.
 `--verify` is legacy shell compatibility and is denied unless the tracked
 policy explicitly permits shell verification. The adapter emits exactly one

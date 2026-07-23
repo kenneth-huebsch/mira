@@ -58,8 +58,9 @@ Run records and phase specs remain under ignored `workspace/runtime/`.
 Restore replaces only manifest-managed files and never deletes runtime.
 
 Update the harness pin only after reviewing and testing a specific revision.
-The lock accepts only the canonical repository, contract version 2, and a full
-lowercase 40-character SHA; `refresh-harness` checks out that SHA detached.
+The lock accepts only the canonical repository, matching numeric contract
+version, and a full lowercase 40-character SHA; `refresh-harness` checks out
+that SHA detached.
 
 The adapter explicitly forwards the 3000-second policy timeout for `run` and
 `run-plan`; cancellation cleanup is 15 seconds and the friend-safe OpenClaw

@@ -38,8 +38,8 @@ class AdapterContractTests(unittest.TestCase):
         runner.write_text(
             """#!/usr/bin/env python3
 import json, os, signal, sys, time
-if "--help" in sys.argv:
-    print("Blocking version-2 phased agent harness runner.")
+if sys.argv[1:2] == ["contract"]:
+    print(json.dumps({"contract_version": 2, "schema_version": 2}))
 elif sys.argv[1:2] == ["sleep"]:
     def stop(signum, frame):
         print(json.dumps({"signal": signum}))
@@ -58,7 +58,7 @@ else:
         )
         runner.chmod(0o755)
         git("add", ".", cwd=self.harness)
-        git("commit", "-qm", "fake v2", cwd=self.harness)
+        git("commit", "-qm", "fake harness", cwd=self.harness)
         self.sha = git("rev-parse", "HEAD", cwd=self.harness)
         self.lock = self.skill / "harness.lock.json"
         self.lock.write_text(json.dumps({

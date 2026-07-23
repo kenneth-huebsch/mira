@@ -70,7 +70,7 @@ known_dependencies = {
     "workspace/USER.md": "Kenny's interaction preferences.",
     "workspace/TOOLS.md": "Harness routing, memory tools, on-demand Gmail, Telegram, and cron conventions.",
     "workspace/skills/coding-harness/SKILL.md": "Routes non-Mira coding requests through Kenny's private agent harness.",
-    "workspace/skills/coding-harness/coding_harness.py": "Materializes the immutable harness pin and delegates v2 runs against bounded target repos.",
+    "workspace/skills/coding-harness/coding_harness.py": "Materializes the immutable harness pin and delegates runs against bounded target repos.",
     "workspace/skills/coding-harness/harness.lock.json": "Pins the reviewed full harness revision and contract version.",
     "workspace/skills/coding-harness/policy.json": "Defines target roots, environment allowlist, timeout, cancellation, and runner policy.",
     "workspace/skills/memory-cold-store/SKILL.md": "Documents ignored git-notes cold memory.",

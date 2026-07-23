@@ -49,7 +49,7 @@ python3 skills/coding-harness/coding_harness.py show <run-id>
   get explicit approval, then `run-plan`. Phase-specs and run records stay in
   runtime, never in the blueprint.
 - The adapter sets `AGENT_RUN_HOME=runtime/coding-harness-runs` so run records
-  land under Mira's ignored runtime, and forwards v2 verification, policy,
+  land under Mira's ignored runtime, and forwards verification, policy,
   model, resume, cancellation, review, and timeout options. Phase specs remain
   under `runtime/coding-harness-plans`.
 - `refresh-harness` materializes the tracked full SHA detached; it never switches

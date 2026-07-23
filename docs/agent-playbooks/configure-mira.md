@@ -56,9 +56,9 @@ Mira's own infrastructure:
 7. When adding a new helper script, skill, or host-level OpenClaw file, update `scripts/workspace-manifest.txt` or the restore script as appropriate.
 8. Keep Mira's persona consistent with `IDENTITY.md` and `SOUL.md`: she should speak as Mira, with continuity and judgment, not as a generic tool.
 9. Preserve explicit confirmation rules around external actions such as sending email, pushing code, deploying, or mutating production systems.
-10. Harness locks use only a reviewed full lowercase 40-character SHA and
-    contract version 2. Keep adapter denied roots in the tracked policy aligned
-    with its allowed runtime roots. The adapter emits a runner-only projection
+10. Harness locks use only a reviewed full lowercase 40-character SHA and a
+    matching numeric contract version. Keep adapter denied roots in the tracked
+    policy aligned with its allowed runtime roots. The adapter emits a runner-only projection
     because the runner correctly rejects adapter-specific unknown fields.
 11. Keep the OpenClaw outer timeout at 3600 seconds while the runner default is
     3000 seconds plus cancellation grace. The adapter must explicitly forward

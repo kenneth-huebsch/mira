@@ -73,8 +73,9 @@ rg -n "(Bearer\\s+[A-Za-z0-9._-]{20,}|AIza[0-9A-Za-z_-]{20,}|ya29\\.[0-9A-Za-z_-
 
 4. If the scan finds a real secret, remove it, fix the generator or allowlist, and regenerate.
 5. If the scan only finds documentation examples or redacted placeholders, proceed.
-6. Validate `harness.lock.json` contains the canonical repository, contract
-   version 2, and the reviewed full immutable SHA. Run the offline unit suite.
+6. Validate `harness.lock.json` contains the canonical repository, matching
+   numeric contract version, and the reviewed full immutable SHA. Run the
+   offline unit suite.
 
 ## Commit And Push
 
