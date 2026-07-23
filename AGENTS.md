@@ -30,6 +30,12 @@ It should be usable by any coding agent, not only Cursor.
 Read `docs/agent-playbooks/configure-mira.md` before changing Mira's persona,
 identity, workspace skills, plugins, memory policy, assets, or future scheduled behavior.
 
+## When Maintaining The Coding Harness
+
+Read `docs/agent-playbooks/maintain-harness-pin.md` before changing the `agent`
+repository, Mira's harness lock, or Mira's live harness checkout. Land agent
+changes first and prefer pinning the resulting merged `agent/main` revision.
+
 ## When Backing Mira Up
 
 Read `docs/agent-playbooks/mira-backup.md` before syncing, committing, pushing,
@@ -37,5 +43,7 @@ or restoring this blueprint.
 
 ## Tool Adapters
 
-- Cursor users can load `.cursor/skills/configure-mira/SKILL.md` and `.cursor/skills/mira-backup/SKILL.md`.
+- Cursor users can load `.cursor/skills/configure-mira/SKILL.md`,
+  `.cursor/skills/maintain-mira-harness-pin/SKILL.md`, and
+  `.cursor/skills/mira-backup/SKILL.md`.
 - Claude, Codex, Gemini, and other agents should follow this root `AGENTS.md` and the playbooks in `docs/agent-playbooks/`.
