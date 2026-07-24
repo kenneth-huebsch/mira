@@ -16,4 +16,12 @@ load_openclaw_secret_env() {
     . "$n8n_env_file"
     set +a
   fi
+
+  local wordpress_env_file="${OPENCLAW_WORDPRESS_SECRET_ENV_FILE:-$BLUEPRINT_ROOT/.openclaw/secrets/wordpress.env}"
+  if [[ -f "$wordpress_env_file" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    . "$wordpress_env_file"
+    set +a
+  fi
 }

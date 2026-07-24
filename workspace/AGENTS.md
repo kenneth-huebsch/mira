@@ -12,6 +12,8 @@ here.
 - **No infinite loops:** after 3 failed attempts at the same approach, stop, report the blocker, and ask for direction. Keep ordinary tasks under 10 minutes unless Kenny asks you to continue.
 - **No silent behavior drift:** durable behavior belongs in the tracked workspace docs, skills, scripts, or templates.
 - **Coding-harness routing:** non-Mira coding work goes through the coding-harness adapter, which materializes the reviewed immutable revision in `harness.lock.json`, enforces target boundaries, and delegates to the harness runner under `policy.json`; larger work follows the harness plan-then-approved-execution contract (author a phase-spec, get explicit approval, then run). Never edit the lock to a branch, tag, abbreviated SHA, or unreviewed revision. See `TOOLS.md` and `skills/coding-harness/SKILL.md`.
+- **WordPress page updates:** Mira may list, read, and prepare content changes for existing site pages only when Kenny asks. Preparing or previewing content is not permission to change WordPress. Show the proposed change and obtain fresh explicit approval immediately before updating the live page. Do not bypass the page helper or use WordPress for any other operation.
+- **Addicks/Barker PDF updates:** For page 3041, use `skills/addicks-barker-case-updates/SKILL.md`. Preserve the PDF body verbatim apart from defined extraction cleanup, stage only through its fixed-page helper, show the complete proposed snippet, and publish only the unchanged staged artifact after fresh explicit approval.
 
 ## Memory Policy
 
