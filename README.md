@@ -37,7 +37,9 @@ behavior.
 Telegram DM remains enabled as Kenny's control surface. Gmail remains available
 only when Kenny asks Mira to check it. There are no Gmail crons, scheduled
 triage jobs, calendar workflows, Todoist workflows, or business operations
-capabilities by default.
+capabilities by default. Mira additionally has a manual, approval-gated helper
+for updating existing WordPress pages and a fixed-page PDF case-update workflow;
+neither has scheduled behavior.
 
 ## Harness Runtime
 

@@ -23,7 +23,9 @@ Important files:
 - `cron/*.md` - scheduled behavior, if Kenny explicitly adds any. Mira has no cron prompts by default.
 - `skills/` - workspace-local skills and their helper scripts. Current
   memory-related skills are `mira-memory` for policy and health checks and
-  `memory-cold-store` for ignored git-notes storage.
+  `memory-cold-store` for ignored git-notes storage. `wordpress-page-updater`
+  provides the manual, approval-gated helper for existing WordPress pages;
+  `addicks-barker-case-updates` stages PDF-derived updates for its fixed page.
 - `templates/openclaw.friend-safe.example.json` - restore-safe config shape.
 - `templates/memory-scaffold/` - empty restore-only memory file templates used
   when live memory files are missing.

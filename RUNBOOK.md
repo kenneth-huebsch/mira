@@ -52,7 +52,7 @@ Rebuild and recreate Mira's gateway after the source update:
 
 ```bash
 cd /home/kenny/mira/openclaw-src
-docker build -t openclaw:local .
+docker build --build-arg OPENCLAW_EXTENSIONS=memory-lancedb -t openclaw:local .
 cd /home/kenny/mira
 ./scripts/start-openclaw.sh
 ```
@@ -208,6 +208,104 @@ python3 scripts/n8n_api.py list-workflows --pretty
 Listing workflows is read-only. Creating, updating, activating, deactivating,
 deleting, or manually executing workflows may mutate external systems and needs
 explicit approval.
+
+## WordPress Page Updater
+
+Mira uses the standard WordPress REST API to list, read, and update the content
+of existing pages. MCP and a WordPress-side custom plugin are not required.
+
+WordPress setup:
+
+1. Confirm the site uses HTTPS.
+2. Create a dedicated standard Editor user for Mira. An Author cannot edit
+   pages; do not use an Administrator account.
+3. In the dedicated user's profile, create an Application Password named
+   `Mira page updater`. Save it when shown; it cannot be retrieved later and
+   can be revoked independently.
+4. Copy `templates/wordpress.env.example` to the ignored runtime path below,
+   replace all placeholders, remove spaces from the Application Password, and
+   keep the file mode at `600`:
+
+```bash
+/home/kenny/mira/.openclaw/secrets/wordpress.env
+```
+
+Expected shape:
+
+```bash
+WORDPRESS_BASE_URL=https://your-wordpress-site.example
+WORDPRESS_USERNAME=dedicated-mira-editor
+WORDPRESS_APP_PASSWORD=replace-with-application-password-without-spaces
+```
+
+`scripts/start-openclaw.sh` and `scripts/openclaw-cli.sh` load this file and
+pass only these WordPress values to the gateway container. Never place the live
+password in tracked files, memory, chat, or shell startup files.
+
+Restart Mira after creating or rotating the file:
+
+```bash
+cd /home/kenny/mira
+./scripts/stop-openclaw.sh
+./scripts/start-openclaw.sh
+```
+
+Verify read-only access:
+
+```bash
+docker exec --user node openclaw-mira-openclaw-gateway-1 \
+  sh -lc 'cd /home/node/.openclaw/workspace/skills/wordpress-page-updater && python3 scripts/wordpress_page.py --pretty check'
+```
+
+The helper can list/search pages and accepts a page ID for read/update
+operations, but updates only page content. Updating an already-published page
+is immediately live, so Mira must fetch it, show the proposed diff, and obtain
+fresh explicit approval before the update call. The helper checks
+`modified_gmt` immediately before writing and refuses a stale preview.
+
+This site currently prepends repeated WPBakery `vc_shortcodes-default-css` and
+`vc_shortcodes-custom-css` `<style>` tags to REST responses. The helper strips
+only those exact known prefixes before JSON decoding. If the prefixes change or
+other markup appears, it fails closed; fix the WordPress plugin output rather
+than accepting arbitrary HTML around API responses.
+
+WordPress stores revisions for page updates. To roll back, open the page in
+WordPress admin, open **Revisions**, select the prior revision, and restore it.
+The helper intentionally does not expose rollback, delete, status, title, slug,
+author, page creation, or arbitrary REST operations.
+
+To revoke access, remove the named Application Password from the dedicated
+user's profile, delete the ignored `wordpress.env`, and restart Mira.
+
+### Addicks/Barker PDF Case Updates
+
+The specialized skill at
+`workspace/skills/addicks-barker-case-updates/SKILL.md` converts a supplied
+case-update PDF into a staged WPBakery insertion for page `3041`. OpenClaw's
+built-in `pdf` tool handles local paths, URLs, and inbound media references
+through the enabled bundled `document-extract` plugin and the configured
+OpenRouter `pdfModel`; no host PDF package is required.
+
+The target page must retain exactly one
+`[vc_column ... el_id="updates-column"]` and its black, left-aligned,
+50%-width top separator. The staging helper inserts a new separator and text
+box before that existing separator while preserving all prior page content.
+
+Useful checks:
+
+```bash
+cd /home/kenny/mira/.openclaw/workspace/skills/addicks-barker-case-updates
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover \
+  -s tests -p 'test_*.py'
+python3 scripts/case_update.py --help
+```
+
+Runtime artifacts live under ignored
+`workspace/runtime/addicks-barker-case-updates/`. `stage` never writes to
+WordPress. `publish` verifies the fixed page/URL, source `modified_gmt`, source
+content hash, manifest, and staged file hashes before updating. It still
+requires fresh explicit approval of the displayed snippet immediately before
+execution.
 
 ## Runtime Boundary
 

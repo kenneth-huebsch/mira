@@ -207,6 +207,77 @@ updating, activating, deactivating, deleting, manually executing workflows, or
 changing server infrastructure can affect external systems; get explicit
 approval before taking those actions.
 
+## WordPress Page Updater
+
+Mira's WordPress access is intentionally limited by her helper to listing,
+reading, and updating the content of existing pages. This uses the standard
+WordPress REST API, not MCP.
+
+Runtime configuration comes from ignored
+`.openclaw/secrets/wordpress.env`:
+
+```bash
+WORDPRESS_BASE_URL=https://your-wordpress-site.example
+WORDPRESS_USERNAME=dedicated-mira-editor
+WORDPRESS_APP_PASSWORD=...
+```
+
+The dedicated WordPress account needs the Editor role because WordPress Authors
+cannot edit pages.
+
+Inside the gateway container:
+
+```bash
+cd /home/node/.openclaw/workspace/skills/wordpress-page-updater
+python3 scripts/wordpress_page.py --pretty check
+python3 scripts/wordpress_page.py --pretty list
+python3 scripts/wordpress_page.py --pretty list --search "Page title"
+python3 scripts/wordpress_page.py --pretty get --page-id <id>
+python3 scripts/wordpress_page.py --pretty update \
+  --page-id <id> \
+  --content-file /home/node/.openclaw/workspace/runtime/wordpress-page-updater/proposed-content.html \
+  --expected-modified-gmt "<value-from-get>"
+```
+
+The helper accepts page IDs but stays within the WordPress pages API and updates
+only `content`. Do not use another HTTP client to bypass it. Listing and
+fetching are read-only. Updating changes the published page immediately: show a
+preview/diff and get fresh explicit approval immediately before the command. A
+stale `modified_gmt` fails closed so a newer edit is not silently overwritten.
+
+### Addicks/Barker PDF Case Updates
+
+Use `skills/addicks-barker-case-updates/SKILL.md` when Kenny supplies a PDF for
+the Addicks/Barker litigation update page. This specialized workflow is fixed
+to page ID `3041`, its canonical URL, and `el_id="updates-column"`.
+
+Use OpenClaw's built-in `pdf` tool to transcribe the date, direction, title,
+and body. Its extraction fallback is provided by the enabled bundled
+`document-extract` plugin and the configured OpenRouter `pdfModel`. The tool
+accepts local paths, URLs, and `media://inbound/...` references. Preserve body
+wording; remove only document furniture and PDF line wrapping as defined in
+the skill.
+
+Stage a validated snippet without changing WordPress:
+
+```bash
+cd /home/node/.openclaw/workspace/skills/addicks-barker-case-updates
+python3 scripts/case_update.py --pretty stage \
+  --snippet-file /home/node/.openclaw/workspace/runtime/addicks-barker-case-updates/draft-snippet.html
+```
+
+After showing the complete snippet and structural insertion preview, get fresh
+explicit approval. Publish only that hashed staged artifact:
+
+```bash
+python3 scripts/case_update.py --pretty publish \
+  --manifest /home/node/.openclaw/workspace/runtime/addicks-barker-case-updates/manifest.json
+```
+
+Staging is local and non-mutating. Publishing changes the live page. If page
+content, modification time, target URL, anchor, manifest, or staged hashes
+drift, fail closed and restage.
+
 ## Gmail With `gog`
 
 Mira may check her Gmail on demand when Kenny asks. There are no Gmail crons by

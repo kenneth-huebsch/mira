@@ -4,10 +4,10 @@
       "compaction": {
         "mode": "safeguard"
       },
-      "llm": {
-        "idleTimeoutSeconds": 300
-      },
       "model": {
+        "primary": "openrouter/anthropic/claude-sonnet-4.6"
+      },
+      "pdfModel": {
         "primary": "openrouter/anthropic/claude-sonnet-4.6"
       },
       "sandbox": {
@@ -114,9 +114,33 @@
       "enabled": true
     }
   },
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "openrouter": {
+        "baseUrl": "https://openrouter.ai/api/v1",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "anthropic/claude-sonnet-4.6",
+            "name": "Claude Sonnet 4.6 via OpenRouter",
+            "api": "openai-completions",
+            "reasoning": true,
+            "input": [
+              "text",
+              "image"
+            ],
+            "contextWindow": 1000000,
+            "maxTokens": 64000
+          }
+        ]
+      }
+    }
+  },
   "plugins": {
     "allow": [
-      "memory-lancedb"
+      "memory-lancedb",
+      "document-extract"
     ],
     "slots": {
       "memory": "memory-lancedb"
@@ -126,6 +150,9 @@
         "enabled": true
       },
       "openrouter": {
+        "enabled": true
+      },
+      "document-extract": {
         "enabled": true
       },
       "active-memory": {
@@ -172,6 +199,9 @@
   },
   "skills": {
     "entries": {
+      "addicks-barker-case-updates": {
+        "enabled": true
+      },
       "coding-harness": {
         "enabled": true
       },
@@ -193,6 +223,9 @@
       "n8n": {
         "enabled": true
       },
+      "wordpress-page-updater": {
+        "enabled": true
+      },
       "model-usage": {
         "enabled": false
       },
@@ -206,6 +239,7 @@
       "read",
       "exec",
       "process",
+      "pdf",
       "memory_recall",
       "memory_store",
       "memory_forget"
@@ -213,7 +247,7 @@
     "exec": {
       "host": "gateway"
     },
-    "profile": "coding",
+    "profile": "full",
     "sessions": {
       "visibility": "agent"
     }

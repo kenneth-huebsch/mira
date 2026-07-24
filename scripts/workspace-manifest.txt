@@ -12,6 +12,9 @@ skills/coding-harness/harness.lock.json
 skills/coding-harness/policy.json
 skills/cursor-agent-login/SKILL.md
 skills/gog-reauth/SKILL.md
+skills/addicks-barker-case-updates/SKILL.md
+skills/addicks-barker-case-updates/scripts/case_update.py
+skills/addicks-barker-case-updates/tests/test_case_update.py
 skills/memory-cold-store/SKILL.md
 skills/memory-cold-store/memory_cold_store.py
 skills/mira-memory/SKILL.md
@@ -23,3 +26,6 @@ skills/n8n/scripts/n8n_api.py
 skills/n8n/scripts/n8n_context.py
 skills/n8n/scripts/n8n_optimizer.py
 skills/n8n/scripts/n8n_tester.py
+skills/wordpress-page-updater/SKILL.md
+skills/wordpress-page-updater/scripts/wordpress_page.py
+skills/wordpress-page-updater/tests/test_wordpress_page.py
