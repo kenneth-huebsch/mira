@@ -91,15 +91,17 @@ git push
 ## Restore Workflow
 
 On a fresh host, clone upstream OpenClaw, complete onboarding, clone this repo,
-then run:
+then create the ignored `.openclaw/.env` at mode `600` for environment-style
+secrets and run:
 
 ```bash
 cd /home/kenny/mira
 ./scripts/restore-to-live.sh
 ```
 
-After restore, manually configure provider auth, Telegram auth, Gmail/Google
-OAuth for on-demand `gog` reads, Docker Compose mounts/env, device pairing, and
-the ignored OpenRouter env file for memory embeddings. Mira has no cron jobs by
-default; keep `~/.openclaw/cron/jobs.json` empty unless Kenny explicitly adds
-scheduled behavior later.
+After restore, manually configure `.openclaw/.env`, provider auth references,
+Gmail/Google OAuth for on-demand `gog` reads, Docker Compose mounts/env, and
+device pairing. For the default Telegram account, use `TELEGRAM_BOT_TOKEN` in
+`.env` with no Telegram credential property in `openclaw.json`. Mira has no
+cron jobs by default; keep `~/.openclaw/cron/jobs.json` empty unless Kenny
+explicitly adds scheduled behavior later.

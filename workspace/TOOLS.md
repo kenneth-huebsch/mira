@@ -142,10 +142,9 @@ cd /home/kenny/mira
 ./scripts/openclaw-cli.sh plugins list
 ```
 
-Memory service secrets belong in ignored per-instance files under
-`.openclaw/secrets/`, not in tracked config, docs, templates, shell startup
-files, or memory notes. Mira does not use third-party cloud memory services by
-default.
+Memory service secrets belong in `~/.openclaw/.env`, not in tracked
+config, docs, templates, shell startup files, or memory notes. Mira does not
+use third-party cloud memory services by default.
 
 ### Git-Notes Cold Store
 
@@ -180,10 +179,10 @@ N8N_BASE_URL=https://your-n8n.example
 ```
 
 On this host, keep the live values in ignored runtime state at
-`.openclaw/secrets/n8n.env`. `scripts/start-openclaw.sh` and
-`scripts/openclaw-cli.sh` load that file and pass `N8N_API_KEY` and
-`N8N_BASE_URL` into the OpenClaw gateway and CLI containers. The API key must
-not be stored in tracked docs, memory, shell startup files, or workflow exports.
+`~/.openclaw/.env`. The host wrappers load that file and pass `N8N_API_KEY`
+and `N8N_BASE_URL` into the OpenClaw gateway and CLI containers. The API key
+must not be stored in tracked docs, memory, shell startup files, or workflow
+exports.
 
 n8n intentionally uses the workspace skill-plus-helper pattern, not a plugin
 tool. For Kenny-approved Telegram DM work, Mira may read the skill and run the
@@ -213,8 +212,7 @@ Mira's WordPress access is intentionally limited by her helper to listing,
 reading, and updating the content of existing pages. This uses the standard
 WordPress REST API, not MCP.
 
-Runtime configuration comes from ignored
-`.openclaw/secrets/wordpress.env`:
+Runtime configuration comes from `~/.openclaw/.env`:
 
 ```bash
 WORDPRESS_BASE_URL=https://your-wordpress-site.example

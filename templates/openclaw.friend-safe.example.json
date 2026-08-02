@@ -66,8 +66,7 @@
         "*": {
           "requireMention": true
         }
-      },
-      "tokenFile": "<set manually>"
+      }
     }
   },
   "gateway": {

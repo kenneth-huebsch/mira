@@ -46,14 +46,16 @@ docker build --build-arg OPENCLAW_EXTENSIONS=memory-lancedb -t openclaw:local .
 - Gateway token.
 - Gmail/Google OAuth credentials for `gog`.
 - Device pairing/auth state as needed.
-- OpenRouter secret env at `.openclaw/secrets/openrouter.env` for model and
-  memory embeddings.
+- Unified environment secrets at `.openclaw/.env` for provider auth, Telegram,
+  integrations, and memory embeddings; use mode `600`.
 - Docker Compose env and volume mounts, including the restored
   `/home/kenny/mira/openclaw-src/entrypoint.sh` if using the container runtime.
 
 Use `templates/openclaw.friend-safe.example.json` as a structure reference for
 `memorySearch`, `active-memory`, `memory-lancedb`, and enabled skills, but do not
-copy placeholder credential values into production.
+copy placeholder credential values into production. For the default Telegram
+account, set `TELEGRAM_BOT_TOKEN` in `.openclaw/.env` and leave Telegram
+credential properties absent from `openclaw.json`.
 
 7. Ensure the runtime memory plugin is installed if the fresh OpenClaw home does
 not already have it:

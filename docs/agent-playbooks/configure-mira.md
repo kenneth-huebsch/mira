@@ -50,7 +50,7 @@ Mira's own infrastructure:
    `AGENTS.md` and memory mechanics in `TOOLS.md`; keep runtime memory files,
    indexes, git-notes stores, service keys, and session history out of the repo.
    `memorySearch` and LanceDB embeddings use `OPENROUTER_API_KEY` loaded from
-   ignored `openrouter.env`. Mira does not use third-party cloud memory by
+   ignored `.openclaw/.env`. Mira does not use third-party cloud memory by
    default.
 4. Keep tool mechanics in `TOOLS.md`: command shapes, Gmail account conventions, GitHub notes, Telegram boundaries, harness helper paths, and workspace-local skill notes. Do not put user preferences in `TOOLS.md`.
 5. Keep hard rules and workflow policy in `AGENTS.md`: safety lines, coding-harness routing, Gmail mutation confirmation rules, and cron policy.
@@ -69,6 +69,14 @@ Mira's own infrastructure:
     intent/applied journals and reconcile incomplete transactions before new
     work. Do not weaken canonical-root, non-symlink, duplicate-manifest, or
     beneath-root validation.
+13. Put environment-style secrets in `/home/kenny/mira/.openclaw/.env` at mode
+    `600`. Do not create new per-service files under `.openclaw/secrets/`.
+    OpenClaw-managed OAuth/device state and file-shaped private keys remain in
+    their native ignored stores.
+14. For default-account Telegram auth, set `TELEGRAM_BOT_TOKEN` in `.env` and
+    omit `botToken`, `tokenFile`, and `token` from `channels.telegram`. Update
+    `scripts/load-openclaw-env.sh`, Compose mappings, runtime docs, templates,
+    and service checks together when introducing another environment variable.
 
 ## Memory Restore Notes
 

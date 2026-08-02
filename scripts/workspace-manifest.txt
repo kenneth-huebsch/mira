@@ -26,6 +26,7 @@ skills/n8n/scripts/n8n_api.py
 skills/n8n/scripts/n8n_context.py
 skills/n8n/scripts/n8n_optimizer.py
 skills/n8n/scripts/n8n_tester.py
+skills/secrets-management/SKILL.md
 skills/wordpress-page-updater/SKILL.md
 skills/wordpress-page-updater/scripts/wordpress_page.py
 skills/wordpress-page-updater/tests/test_wordpress_page.py

@@ -75,19 +75,21 @@ Override these with environment variables only for recovery or migration work.
 
 ## Provider Credentials
 
-Mira's OpenRouter auth is per-instance, not global shell state. The live auth
-profile references `OPENROUTER_API_KEY` through a SecretRef-style env reference,
-and `scripts/start-openclaw.sh` plus `scripts/openclaw-cli.sh` load it from:
+Mira's environment-style secrets are per-instance, not global shell state. The
+live auth profile references `OPENROUTER_API_KEY` through a SecretRef-style env
+reference. OpenClaw reads its native fallback file, and
+`scripts/start-openclaw.sh` plus `scripts/openclaw-cli.sh` source that same file
+for Docker Compose interpolation:
 
 ```bash
-/home/kenny/mira/.openclaw/secrets/openrouter.env
+/home/kenny/mira/.openclaw/.env
 ```
 
 The scripts pass those values into Docker through `openclaw/provider-auth.compose.yml`, so the setup does not depend on global shell exports or source checkout defaults.
 
-That file is ignored runtime state and must not be committed. To rotate the
-OpenRouter token, edit `OPENROUTER_API_KEY` in that file, keep permissions at
-`600`, then restart this OpenClaw home:
+That file is ignored runtime state and must not be committed. Keep it at mode
+`600`. To rotate the OpenRouter token, replace `OPENROUTER_API_KEY` without
+printing its value, then restart this OpenClaw home:
 
 ```bash
 cd /home/kenny/mira
@@ -97,8 +99,11 @@ cd /home/kenny/mira
 
 Do not put provider API keys in `~/.bashrc`, tracked docs, templates, or
 `auth-profiles.json`. The expected live auth profile shape is a `keyRef` to
-`OPENROUTER_API_KEY`; the token value belongs only in the ignored secret env
-file.
+`OPENROUTER_API_KEY`; the token value belongs only in the ignored `.env` file.
+
+For the default Telegram account, put `TELEGRAM_BOT_TOKEN` in `.env` and omit
+`botToken`, `tokenFile`, and `token` from `channels.telegram`. OpenClaw uses its
+documented environment fallback. The `token` property is invalid for Telegram.
 
 ## Memory Runtime
 
@@ -114,7 +119,7 @@ and restores them only when the corresponding live memory files are missing.
 Existing memory files are preserved by `scripts/restore-to-live.sh`.
 
 Mira's memory search uses OpenRouter's OpenAI-compatible embeddings endpoint via
-`OPENROUTER_API_KEY`; the live key is loaded from ignored secret env files, not
+`OPENROUTER_API_KEY`; the live key is loaded from ignored `.openclaw/.env`, not
 tracked config. Useful checks inside Mira's agent runtime:
 
 ```bash
@@ -161,11 +166,10 @@ If a host-side `openclaw memory ...` command is unavailable or shows different
 tool exposure than a real conversation, verify from a fresh Mira DM before
 changing config; CLI command surfaces have differed across OpenClaw builds.
 
-Memory service secrets such as embedding provider keys belong in ignored
-per-instance files under `/home/kenny/mira/.openclaw/secrets/`.
+Memory service secrets such as embedding provider keys belong in the ignored
+`/home/kenny/mira/.openclaw/.env`.
 `scripts/start-openclaw.sh` and `scripts/openclaw-cli.sh` source
-`scripts/load-openclaw-env.sh`, which loads `openrouter.env` for
-`OPENROUTER_API_KEY` when that ignored file exists.
+`scripts/load-openclaw-env.sh`, which loads that unified file.
 Do not commit live memory contents, vector indexes, git-notes stores, cloud
 memory exports, session memory indexes, or service keys.
 
@@ -185,20 +189,20 @@ MIRA_MEMORY_COLD_STORE_DIR=/home/kenny/mira/.openclaw/memory/git-notes \
 
 ## n8n Runtime
 
-The `n8n` skill requires ignored runtime secrets in:
+The `n8n` skill requires these names in the ignored runtime environment file:
 
 ```bash
-/home/kenny/mira/.openclaw/secrets/n8n.env
+/home/kenny/mira/.openclaw/.env
 ```
 
-Use `templates/n8n.env.example` for the redacted shape:
+Use `templates/n8n.env.example` for the redacted variable-name snippet:
 
 ```bash
 N8N_API_KEY=...
 N8N_BASE_URL=https://your-n8n.example
 ```
 
-After creating or rotating that file, keep permissions at `600`, restart Mira,
+After creating or rotating those values, keep `.env` at mode `600`, restart Mira,
 and verify from the skill directory with:
 
 ```bash
@@ -222,12 +226,12 @@ WordPress setup:
 3. In the dedicated user's profile, create an Application Password named
    `Mira page updater`. Save it when shown; it cannot be retrieved later and
    can be revoked independently.
-4. Copy `templates/wordpress.env.example` to the ignored runtime path below,
-   replace all placeholders, remove spaces from the Application Password, and
-   keep the file mode at `600`:
+4. Merge the variable names from `templates/wordpress.env.example` into the
+   ignored runtime file below, replace all placeholders, remove spaces from the
+   Application Password, and keep the file mode at `600`:
 
 ```bash
-/home/kenny/mira/.openclaw/secrets/wordpress.env
+/home/kenny/mira/.openclaw/.env
 ```
 
 Expected shape:
@@ -275,7 +279,8 @@ The helper intentionally does not expose rollback, delete, status, title, slug,
 author, page creation, or arbitrary REST operations.
 
 To revoke access, remove the named Application Password from the dedicated
-user's profile, delete the ignored `wordpress.env`, and restart Mira.
+user's profile, remove the three `WORDPRESS_*` entries from `.env` without
+printing other values, and restart Mira.
 
 ### Addicks/Barker PDF Case Updates
 

@@ -15,8 +15,8 @@ logs.
 - `.openclaw/` is the ignored live runtime state for this Mira instance.
 - `openclaw-src/` is the ignored OpenClaw source checkout for this Mira instance.
 - `RUNBOOK.md` documents how to start, stop, and run CLI commands for Mira.
-- `templates/` contains friend-safe examples of runtime config with credential
-  fields redacted and empty memory scaffold files under
+- `templates/` contains friend-safe examples of runtime config and environment
+  variable names with credential values redacted, plus empty memory scaffold files under
   `templates/memory-scaffold/`. Mira has no cron jobs configured by default.
 - `openclaw/` contains Mira's source-local Docker Compose and entrypoint files.
 - `scripts/sync-from-live.sh` updates the blueprint from the running host.
@@ -131,4 +131,8 @@ reconciles an incomplete transaction before staging new work; normalized
 manifest duplicates, non-canonical roots, symlink roots, and root escapes fail
 closed.
 
-Provider API keys live in ignored per-instance secret env files under `.openclaw/secrets/`, never in tracked files or global shell startup files. See `RUNBOOK.md` for the OpenRouter rotation procedure.
+Environment-style secrets live in the ignored per-instance
+`.openclaw/.env`, never in tracked files or global shell startup files.
+OpenClaw-managed OAuth/device credentials and file-shaped private keys remain
+in their native ignored runtime stores. See `RUNBOOK.md` for rotation and
+verification procedures.
