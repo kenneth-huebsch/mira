@@ -36,12 +36,24 @@ Command surface:
 python3 skills/coding-harness/coding_harness.py refresh-harness
 python3 skills/coding-harness/coding_harness.py check-config
 python3 skills/coding-harness/coding_harness.py run --target <path-or-repo> --prompt "<task>" [--mode plan] [--verification-json '<object>'|--verify "<legacy-shell-cmd>"] [--timeout <secs>] [--dry-run] [--no-review|--review-threshold {blocking,high,medium,low}|--review-max-rounds N] [--implement-model M|--plan-model M|--review-model M|--fix-model M]
+# Preferred — notifies via Telegram on completion:
+bash skills/coding-harness/run_plan_notify.sh --target <path-or-repo> --plan runtime/coding-harness-plans/<name>.json [--dry-run] [...]
+# Direct (no notification):
 python3 skills/coding-harness/coding_harness.py run-plan --target <path-or-repo> --plan runtime/coding-harness-plans/<name>.json [--dry-run] [...]
 python3 skills/coding-harness/coding_harness.py resume <run-or-plan-id> [--restart-current-stage]
 python3 skills/coding-harness/coding_harness.py cancel <run-or-plan-id> --reason "<reason>"
 python3 skills/coding-harness/coding_harness.py list
 python3 skills/coding-harness/coding_harness.py status <run-id>
 python3 skills/coding-harness/coding_harness.py show <run-id>
+# Verify target repo independently before committing harness output:
+bash skills/coding-harness/verify_target.sh runtime/repos/<owner>--<repo>
+# Recover a phase that failed only on handoff mismatch (work passed):
+python3 skills/coding-harness/recover_phase.py <run-id> -m "commit message"
+# Strip completed green phases from a phase-spec before relaunching:
+python3 runtime/repos/agent/scripts/strip_completed_phases.py \
+  --spec runtime/coding-harness-plans/<name>.json \
+  --plan-record runtime/coding-harness-runs/<plan-id>/plan.json \
+  [--output runtime/coding-harness-plans/<name>-remaining.json]
 ```
 
 - Larger work follows plan-then-approved-execution: plan interactively, author a
@@ -310,3 +322,70 @@ hidden reasoning.
 
 If Kenny asks for scheduled behavior, create it intentionally through the OpenClaw cron CLI, document the
 new prompt and dependencies, and update the sync/restore manifest.
+
+## AWS
+
+Mira can interact with AWS from the container using the Node AWS SDK.
+All environment-style secrets live in `~/.openclaw/.env` (OpenClaw's native env fallback),
+which loads them into the gateway process and makes them available to exec
+calls without manual `export`. If `.env` is updated, restart the gateway to
+pick up the new values.
+
+```bash
+# .env format (all secrets consolidated):
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=***
+AWS_REGION=us-east-1
+N8N_API_KEY=...
+N8N_BASE_URL=...
+WORDPRESS_USERNAME=...
+WORDPRESS_APP_PASSWORD=...
+WORDPRESS_BASE_URL=...
+OPENROUTER_API_KEY=...
+TELEGRAM_BOT_TOKEN=...
+```
+
+The `aws` CLI is not in the OpenClaw base image. Install it on demand:
+
+```bash
+pip3 install --user --break-system-packages awscli
+```
+
+This install does not survive container rebuilds. For a permanent fix, add
+`awscli` to the OpenClaw entrypoint's `ensure_runtime_tools()` function.
+
+`cdk` is available via `npx cdk` from any repo that has `aws-cdk` as a
+dependency — no separate install needed.
+
+Verify identity before any mutation (matching the locks infra skill guard):
+
+```bash
+cd <target-repo>
+node -e "
+const { STSClient, GetCallerIdentityCommand } = require('@aws-sdk/client-sts');
+const sts = new STSClient({ region: process.env.AWS_REGION });
+sts.send(new GetCallerIdentityCommand({})).then(r => {
+  console.log('Account:', r.Account);
+  console.log('Arn:', r.Arn);
+}).catch(e => { console.error(e.message); process.exit(1); });
+"
+```
+
+The dedicated IAM user is `coding-agent` in account `580956784928`. Do not
+store credentials in tracked files, memory notes, or shell startup. AWS
+mutations (CDK deploys, DynamoDB writes, SSM changes, Cognito mutations)
+require explicit approval.
+
+The `LocksCodingAgentReadPolicy` managed policy (created by the OIDC stack)
+grants `dynamodb:GetItem`, `dynamodb:Query`, `dynamodb:Scan`, and
+`cloudformation:DescribeStacks` on Locks resources. The OIDC stack attaches it
+to the `coding-agent` IAM user automatically so live verification fails rather
+than silently skipping a missing read permission.
+
+### Harness AWS capability
+
+Phases that need AWS access should declare `"capabilities": ["aws"]` in the
+phase spec. The harness policy grants the `aws` capability, which passes
+`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION` to the child
+environment. This enables in-phase seeding, live API verification, and
+DynamoDB inspection without leaving the harness workflow.

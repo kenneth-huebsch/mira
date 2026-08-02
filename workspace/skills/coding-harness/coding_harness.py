@@ -384,6 +384,12 @@ def resolve_target(target: str, policy: dict[str, Any]) -> Path:
 
 def sanitized_environment(policy: dict[str, Any]) -> dict[str, str]:
     allowed = set(policy["inherited_environment_keys"])
+    # Include all capability environment keys so the runner can forward them
+    # to child processes that declare capabilities. The runner's policy.py
+    # still validates that each phase explicitly declares which capabilities
+    # it needs before those vars reach the child agent.
+    for keys in policy.get("capability_environment", {}).values():
+        allowed.update(keys)
     env = {key: value for key, value in os.environ.items() if key in allowed}
     env.update({
         "AGENT_RUN_HOME": str(RUNS_DIR),

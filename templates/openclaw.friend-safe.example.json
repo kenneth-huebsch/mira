@@ -5,7 +5,7 @@
         "mode": "safeguard"
       },
       "model": {
-        "primary": "openrouter/anthropic/claude-sonnet-4.6"
+        "primary": "openrouter/z-ai/glm-5.2"
       },
       "pdfModel": {
         "primary": "openrouter/anthropic/claude-sonnet-4.6"
@@ -131,6 +131,17 @@
             ],
             "contextWindow": 1000000,
             "maxTokens": 64000
+          },
+          {
+            "id": "z-ai/glm-5.2",
+            "name": "Z.ai: GLM 5.2 via OpenRouter",
+            "api": "openai-completions",
+            "reasoning": true,
+            "input": [
+              "text"
+            ],
+            "contextWindow": 1048576,
+            "maxTokens": 131072
           }
         ]
       }
