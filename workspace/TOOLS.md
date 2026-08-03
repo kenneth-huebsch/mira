@@ -39,7 +39,7 @@ python3 skills/coding-harness/coding_harness.py run --target <path-or-repo> --pr
 # Preferred — notifies via Telegram on completion:
 bash skills/coding-harness/run_plan_notify.sh --target <path-or-repo> --plan runtime/coding-harness-plans/<name>.json [--dry-run] [...]
 # Direct (no notification):
-python3 skills/coding-harness/coding_harness.py run-plan --target <path-or-repo> --plan runtime/coding-harness-plans/<name>.json [--dry-run] [...]
+python3 skills/coding-harness/coding_harness.py run-plan --target <path-or-repo> --plan runtime/coding-harness-plans/<name>.json [--strip-completed <prior-plan-id>] [--dry-run] [...]
 python3 skills/coding-harness/coding_harness.py resume <run-or-plan-id> [--restart-current-stage]
 python3 skills/coding-harness/coding_harness.py cancel <run-or-plan-id> --reason "<reason>"
 python3 skills/coding-harness/coding_harness.py list
@@ -49,11 +49,6 @@ python3 skills/coding-harness/coding_harness.py show <run-id>
 bash skills/coding-harness/verify_target.sh runtime/repos/<owner>--<repo>
 # Recover a phase that failed only on handoff mismatch (work passed):
 python3 skills/coding-harness/recover_phase.py <run-id> -m "commit message"
-# Strip completed green phases from a phase-spec before relaunching:
-python3 runtime/repos/agent/scripts/strip_completed_phases.py \
-  --spec runtime/coding-harness-plans/<name>.json \
-  --plan-record runtime/coding-harness-runs/<plan-id>/plan.json \
-  [--output runtime/coding-harness-plans/<name>-remaining.json]
 ```
 
 - Larger work follows plan-then-approved-execution: plan interactively, author a
@@ -80,6 +75,10 @@ python3 runtime/repos/agent/scripts/strip_completed_phases.py \
 - Resume preserves partial work. Interrupted mutating stages require
   `--restart-current-stage`; drift fails closed and completed green phases do
   not rerun.
+- To retry a terminal red plan after revising its full phase-spec, use
+  `run-plan --strip-completed <prior-plan-id>`. The runner creates a fresh
+  immutable plan, validates the prior records and target under lock, skips only
+  the unchanged contiguous green prefix, and records continuation provenance.
 - The adapter and runner enforce pin, path, environment, record, and Git
   invariants. Prompts, hooks, and command wrappers are defense in depth, not
   hard network isolation; direct executables or network-capable code may bypass
@@ -325,7 +324,8 @@ new prompt and dependencies, and update the sync/restore manifest.
 
 ## AWS
 
-Mira can interact with AWS from the container using the Node AWS SDK.
+Mira can interact with AWS from the container using the Node AWS SDK, the
+official AWS CLI v2, or the AWS CDK CLI.
 All environment-style secrets live in `~/.openclaw/.env` (OpenClaw's native env fallback),
 which loads them into the gateway process and makes them available to exec
 calls without manual `export`. If `.env` is updated, restart the gateway to
@@ -345,17 +345,23 @@ OPENROUTER_API_KEY=...
 TELEGRAM_BOT_TOKEN=...
 ```
 
-The `aws` CLI is not in the OpenClaw base image. Install it on demand:
+The entrypoint idempotently installs the official AWS CLI v2 `2.36.14` and
+`aws-cdk` `2.1134.0` into persistent versioned directories:
 
 ```bash
-pip3 install --user --break-system-packages awscli
+/home/node/.openclaw/tools/aws-cli/2.36.14
+/home/node/.openclaw/tools/aws-cdk/2.1134.0
 ```
 
-This install does not survive container rebuilds. For a permanent fix, add
-`awscli` to the OpenClaw entrypoint's `ensure_runtime_tools()` function.
+The entrypoint links `aws` and `cdk` through both
+`/home/node/.openclaw/bin` and `/usr/local/bin`. The AWS CLI archive is selected
+for Debian `amd64` or `arm64` and checksum-verified before extraction. These
+tools survive container replacement because their versioned installs live
+under the persistent OpenClaw home.
 
-`cdk` is available via `npx cdk` from any repo that has `aws-cdk` as a
-dependency — no separate install needed.
+Repository-local npm scripts and `npx` still naturally resolve a project's
+local `node_modules/.bin` before the global fallback, so projects can retain
+their own CDK pin.
 
 Verify identity before any mutation (matching the locks infra skill guard):
 

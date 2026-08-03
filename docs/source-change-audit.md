@@ -41,7 +41,15 @@ or confirms upstream now owns the behavior.
   - Mounts `entrypoint.sh`.
   - Exposes port `3500`.
 - `entrypoint.sh`
-  - Installs/links `gog`, GitHub CLI, Cursor CLI, `jq`, `ripgrep`, `python3-pip`, and basic runtime tools for harness routing, bundled skills, and memory helpers.
+  - Installs/links `gog`, GitHub CLI, Cursor CLI, `jq`, `ripgrep`,
+    `python3-pip`, and basic runtime tools for harness routing, bundled skills,
+    and memory helpers.
+  - Idempotently installs the checksum-pinned official AWS CLI v2 `2.36.14`
+    for Debian `amd64`/`arm64` under persistent OpenClaw storage and links
+    `aws` into the persistent and system command paths.
+  - Idempotently installs exact npm package `aws-cdk@2.1134.0` under persistent
+    OpenClaw storage and links `cdk` into the same command paths, without
+    changing repo-local npm resolution.
   - Prepares runtime dirs for `gogcli`, npm, and `gh`.
   - Drops back to the `node` user for the OpenClaw command.
 

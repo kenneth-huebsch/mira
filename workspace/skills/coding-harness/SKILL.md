@@ -100,12 +100,16 @@ plan-then-approved-execution contract (`skills/phased-execution/SKILL.md` and
    ```bash
    python3 skills/coding-harness/coding_harness.py run-plan \
      --target <path-or-repo> --plan runtime/coding-harness-plans/<name>.json \
+     [--strip-completed <prior-plan-id>] \
      [--timeout <secs>] [--dry-run] \
      [--no-review] [--review-threshold {blocking,high,medium,low}] [--review-max-rounds N]
    ```
 
    The harness auto-schedules approved phases in sequence and stops on the first
-   red gate.
+   red gate. After revising a failed plan, pass the new full phase-spec with
+   `--strip-completed <prior-plan-id>` to create a fresh plan that skips only
+   the prior plan's validated, unchanged contiguous green prefix. The harness
+   records continuation provenance and fails closed on drift or tampering.
 
 Use `--dry-run` to build run records without invoking `agent` when you want to
 confirm the plan shape before a real launch.

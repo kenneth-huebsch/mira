@@ -36,17 +36,27 @@ cd /home/kenny/mira
 Upgrade Mira's OpenClaw source:
 
 ```bash
+cd /home/kenny/mira
+./scripts/sync-from-live.sh
 cd /home/kenny/mira/openclaw-src
 git status --short
-GIT_TERMINAL_PROMPT=0 git fetch origin main
-git merge --ff-only FETCH_HEAD
+stable_tag="$(gh release view --repo openclaw/openclaw \
+  --json tagName,isPrerelease,isDraft \
+  --jq 'select(.isPrerelease == false and .isDraft == false) | .tagName')"
+test -n "$stable_tag"
+GIT_TERMINAL_PROMPT=0 git fetch origin tag "$stable_tag"
+git merge --ff-only "$stable_tag"
+git describe --tags --exact-match HEAD
 git status --short
 ```
 
 If source files under `src/` are dirty, report them before upgrading. Mira's
 managed OpenClaw source-local files are `docker-compose.yml` and
-`entrypoint.sh`; keep those local changes and sync them back to the blueprint
-with `cd /home/kenny/mira && ./scripts/sync-from-live.sh`.
+`entrypoint.sh`; preserve only those files across the fast-forward after syncing
+them to the blueprint. If Git refuses the fast-forward because they are dirty,
+stash exactly those two paths, merge the stable tag, then pop that stash and
+verify the source diff is still limited to those managed files. Do not follow
+untagged `main` or a prerelease when the goal is the newest stable deployment.
 
 Rebuild and recreate Mira's gateway after the source update:
 
@@ -71,6 +81,32 @@ image runs dependency install, server build, UI build, and production pruning.
 - UI/dev port: `3501`
 
 Override these with environment variables only for recovery or migration work.
+
+## Persistent AWS Tools
+
+`openclaw-src/entrypoint.sh`, mirrored as tracked
+`openclaw/entrypoint.sh`, idempotently provisions these exact tools under the
+persistent OpenClaw home:
+
+- Official AWS CLI v2 `2.36.14` at
+  `/home/node/.openclaw/tools/aws-cli/2.36.14`.
+- npm package `aws-cdk@2.1134.0` at
+  `/home/node/.openclaw/tools/aws-cdk/2.1134.0`.
+
+The entrypoint supports Debian `amd64` and `arm64`, verifies the pinned AWS
+archive checksum before extraction, and links `aws` and `cdk` into both
+`/home/node/.openclaw/bin` and `/usr/local/bin`. Version, install-root, bin-dir,
+and AWS checksum environment overrides are available for deliberate recovery
+work; the defaults remain the reviewed exact pins. Repository npm scripts still
+prefer their local `node_modules/.bin`.
+
+After a normal future image rebuild/recreation, verify the provisioned command
+surface inside the gateway:
+
+```bash
+aws --version
+cdk --version
+```
 
 
 ## Provider Credentials

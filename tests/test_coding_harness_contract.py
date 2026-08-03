@@ -264,12 +264,14 @@ else:
         plan_args = self.module.build_parser().parse_args([
             "run-plan", "--target", str(target),
             "--plan", "runtime/coding-harness-plans/documented.json", "--dry-run",
+            "--strip-completed", "prior-plan",
         ])
         combined, code = self.module.execute(plan_args)
         self.assertEqual(code, 0)
         argv = combined["runner_result"]["argv"]
         self.assertEqual(argv[argv.index("--timeout") + 1], "3000")
         self.assertEqual(Path(argv[argv.index("--plan") + 1]), plan.resolve())
+        self.assertEqual(argv[argv.index("--strip-completed") + 1], "prior-plan")
         parsed = json.loads(plan.read_text())
         self.assertEqual(parsed["schema_version"], 2)
         self.assertIn("commands", parsed["phases"][0]["verification"])
