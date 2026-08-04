@@ -9,8 +9,14 @@ Use this skill for coding work in repositories other than Mira's own repo/home.
 Do not use it for changes to `/home/kenny/mira`, Mira's OpenClaw runtime, or
 Mira behavior files; self-work belongs to a separate future skill.
 
-Mira is a thin router here. She resolves/clones the target repo and rejects
-self-work, then delegates all execution to the harness runner
+Mira owns the user-facing planning conversation. Use
+`skills/collaborative-planning/SKILL.md`, `skills/blueprint/SKILL.md`,
+`skills/risk-based-testing/SKILL.md`, and
+`skills/documentation-lookup/SKILL.md` when their triggers apply. These are
+Mira-adapted planning skills, not alternate execution routes.
+
+After planning, Mira is a thin execution router. She resolves/clones the target
+repo and rejects self-work, then delegates all execution to the harness runner
 (`runtime/repos/agent/scripts/agent_run.py`). The harness owns prompt
 construction, blocking child runs, the green/red gate, handoffs, the per-phase
 review-and-remediate loop, phased scheduling, and run records. Mira never
@@ -49,9 +55,9 @@ JSON object containing `harness_revision` and `runner_result`.
 
 ## Larger work: plan, then approved phased execution
 
-For work that is too large or risky for one run, follow the harness
-plan-then-approved-execution contract (`skills/phased-execution/SKILL.md` and
-`skills/collaborative-planning/SKILL.md` inside the refreshed harness checkout):
+For work that is too large or risky for one run, follow Mira's
+`skills/collaborative-planning/SKILL.md` and `skills/blueprint/SKILL.md`, then
+use the harness plan-then-approved-execution contract:
 
 1. **Plan interactively with Kenny.** Research the target, present options, and
    converge on an ordered set of phases. Each phase needs a clear done condition

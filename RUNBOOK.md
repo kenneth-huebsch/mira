@@ -141,6 +141,33 @@ For the default Telegram account, put `TELEGRAM_BOT_TOKEN` in `.env` and omit
 `botToken`, `tokenFile`, and `token` from `channels.telegram`. OpenClaw uses its
 documented environment fallback. The `token` property is invalid for Telegram.
 
+### AWS credentials and profiles
+
+AWS does not use `.env`. Keep the dedicated IAM user's key in:
+
+```bash
+/home/kenny/mira/.openclaw/aws/credentials
+```
+
+Keep role routing in `.openclaw/aws/config`. Both files must be mode `600` and
+their directory mode `700`. Compose supplies the explicit
+`AWS_SHARED_CREDENTIALS_FILE` and `AWS_CONFIG_FILE` paths, so no `~/.aws`
+symlinks are required.
+
+Use `AWS_PROFILE=coding-agent` for read-only inspection and CDK. Use
+`AWS_PROFILE=locks-publish` only for an explicitly approved Locks static-site
+publish or seed. Verify each profile without printing credentials:
+
+```bash
+docker exec --user node openclaw-mira-openclaw-gateway-1 \
+  sh -lc 'AWS_PROFILE=coding-agent aws sts get-caller-identity --output json'
+docker exec --user node openclaw-mira-openclaw-gateway-1 \
+  sh -lc 'AWS_PROFILE=locks-publish aws sts get-caller-identity --output json'
+```
+
+The publishing profile will not work until the Locks foundation stack has
+created `LocksAppPublishRole`.
+
 ## Memory Runtime
 
 Mira's live memory files are in `/home/kenny/mira/.openclaw/workspace`:

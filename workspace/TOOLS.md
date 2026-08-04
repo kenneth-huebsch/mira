@@ -16,10 +16,20 @@ prepare the same command surface. Live credentials and tokens remain under
 ## Coding Harness
 
 Mira routes non-Mira coding requests through Kenny's private agent harness. The
-adapter is a thin router: it resolves/clones the target and rejects Mira
-self-work, then delegates all execution to the harness runner
-`scripts/agent_run.py`. The harness owns prompts, the green/red gate, handoffs,
-the per-phase review-and-remediate loop, phased scheduling, and run records.
+live agent owns the user-facing planning conversation using the workspace
+planning skills when their triggers apply:
+
+- `skills/collaborative-planning/SKILL.md`
+- `skills/blueprint/SKILL.md`
+- `skills/risk-based-testing/SKILL.md`
+- `skills/documentation-lookup/SKILL.md`
+
+These are adapted planning guidance, not alternate execution routes. After a
+plan is approved, the adapter is a thin router: it resolves/clones the target
+and rejects Mira self-work, then delegates all execution to the harness runner
+`scripts/agent_run.py`. The harness owns execution prompts, the green/red gate,
+handoffs, the per-phase review-and-remediate loop, phased scheduling, and run
+records.
 
 - Harness repo: `https://github.com/kenneth-huebsch/agent.git`
 - Immutable revision and contract: `skills/coding-harness/harness.lock.json`
@@ -51,10 +61,11 @@ bash skills/coding-harness/verify_target.sh runtime/repos/<owner>--<repo>
 python3 skills/coding-harness/recover_phase.py <run-id> -m "commit message"
 ```
 
-- Larger work follows plan-then-approved-execution: plan interactively, author a
-  phase-spec JSON under ignored runtime (`runtime/coding-harness-plans/<name>.json`),
-  get explicit approval, then `run-plan`. Phase-specs and run records stay in
-  runtime, never in the blueprint.
+- Larger work follows plan-then-approved-execution: Mira researches and plans
+  interactively, authors a phase-spec JSON under ignored runtime
+  (`runtime/coding-harness-plans/<name>.json`), gets explicit approval, then
+  delegates it with `run-plan`. Phase-specs and run records stay in runtime,
+  never in the blueprint.
 - The adapter sets `AGENT_RUN_HOME=runtime/coding-harness-runs` so run records
   land under Mira's ignored runtime, and forwards verification, policy,
   model, resume, cancellation, review, and timeout options. Phase specs remain
@@ -326,24 +337,36 @@ new prompt and dependencies, and update the sync/restore manifest.
 
 Mira can interact with AWS from the container using the Node AWS SDK, the
 official AWS CLI v2, or the AWS CDK CLI.
-All environment-style secrets live in `~/.openclaw/.env` (OpenClaw's native env fallback),
-which loads them into the gateway process and makes them available to exec
-calls without manual `export`. If `.env` is updated, restart the gateway to
-pick up the new values.
+
+### Credential discovery and profiles
+
+OpenClaw's host env security policy blocks `AWS_ACCESS_KEY_ID`,
+`AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, and `AWS_SECURITY_TOKEN` from
+service dotenv loading and exec inheritance. Do not store AWS access keys in
+`.env` or generate a second credentials file from it.
+
+Mira uses AWS's native shared files:
+
+- Credentials: `~/.openclaw/aws/credentials`, mode `600`
+- Profile configuration: `~/.openclaw/aws/config`, mode `600`
+- Container paths are selected by inherited `AWS_SHARED_CREDENTIALS_FILE` and
+  `AWS_CONFIG_FILE`; no `~/.aws` symlinks are required
+- `coding-agent` is the default profile for read-only inspection and CDK
+- `locks-publish` assumes the short-lived `LocksAppPublishRole`
 
 ```bash
-# .env format (all secrets consolidated):
-AWS_ACCESS_KEY_ID=AKIA...
-AWS_SECRET_ACCESS_KEY=***
-AWS_REGION=us-east-1
-N8N_API_KEY=...
-N8N_BASE_URL=...
-WORDPRESS_USERNAME=...
-WORDPRESS_APP_PASSWORD=...
-WORDPRESS_BASE_URL=...
-OPENROUTER_API_KEY=...
-TELEGRAM_BOT_TOKEN=...
+# Confirm the long-lived bootstrap identity
+AWS_PROFILE=coding-agent aws sts get-caller-identity --output json
+
+# Confirm the short-lived publishing identity
+AWS_PROFILE=locks-publish aws sts get-caller-identity --output json
 ```
+
+The `coding-agent` IAM user has read-only Locks access and may assume only the
+exact Locks application, publishing, and CDK bootstrap roles. CDK uses the
+stack synthesizer and bootstrap metadata to select deployment roles.
+
+### CLI and CDK installation
 
 The entrypoint idempotently installs the official AWS CLI v2 `2.36.14` and
 `aws-cdk` `2.1134.0` into persistent versioned directories:
@@ -363,35 +386,33 @@ Repository-local npm scripts and `npx` still naturally resolve a project's
 local `node_modules/.bin` before the global fallback, so projects can retain
 their own CDK pin.
 
-Verify identity before any mutation (matching the locks infra skill guard):
-
-```bash
-cd <target-repo>
-node -e "
-const { STSClient, GetCallerIdentityCommand } = require('@aws-sdk/client-sts');
-const sts = new STSClient({ region: process.env.AWS_REGION });
-sts.send(new GetCallerIdentityCommand({})).then(r => {
-  console.log('Account:', r.Account);
-  console.log('Arn:', r.Arn);
-}).catch(e => { console.error(e.message); process.exit(1); });
-"
-```
+### Identity and permissions
 
 The dedicated IAM user is `coding-agent` in account `580956784928`. Do not
-store credentials in tracked files, memory notes, or shell startup. AWS
+store credentials in `.env`, tracked files, memory notes, or shell startup. AWS
 mutations (CDK deploys, DynamoDB writes, SSM changes, Cognito mutations)
 require explicit approval.
 
-The `LocksCodingAgentReadPolicy` managed policy (created by the OIDC stack)
-grants `dynamodb:GetItem`, `dynamodb:Query`, `dynamodb:Scan`, and
-`cloudformation:DescribeStacks` on Locks resources. The OIDC stack attaches it
-to the `coding-agent` IAM user automatically so live verification fails rather
-than silently skipping a missing read permission.
+For Locks operations:
+
+```bash
+# Foundation or application infrastructure. CDK assumes the scoped role.
+AWS_PROFILE=coding-agent npm run deploy:oidc
+AWS_PROFILE=coding-agent npm run deploy:infrastructure
+
+# Static assets and seed data use a one-hour publishing-role session.
+AWS_PROFILE=locks-publish npm run deploy:app
+AWS_PROFILE=locks-publish npm run seed
+```
+
+Run the account guard, tests, synthesis, and targeted CDK diff before
+infrastructure deployment. Show the diff and obtain fresh approval before
+mutating AWS. Follow the target repository's infrastructure skill.
 
 ### Harness AWS capability
 
 Phases that need AWS access should declare `"capabilities": ["aws"]` in the
-phase spec. The harness policy grants the `aws` capability, which passes
-`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION` to the child
-environment. This enables in-phase seeding, live API verification, and
-DynamoDB inspection without leaving the harness workflow.
+phase spec. The harness forwards only profile selection, region, and the
+trusted AWS config/credential file paths. Raw AWS access-key variables are not
+forwarded. A phase may select `locks-publish` for an approved publish or seed;
+otherwise retain `coding-agent`.

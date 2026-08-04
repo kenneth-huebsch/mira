@@ -22,6 +22,9 @@ Important files:
   memory contents.
 - `cron/*.md` - scheduled behavior, if Kenny explicitly adds any. Mira has no cron prompts by default.
 - `skills/` - workspace-local skills and their helper scripts. Current
+  planning skills are Mira-adapted `collaborative-planning`, `blueprint`,
+  `risk-based-testing`, and `documentation-lookup`; they hand approved work to
+  `coding-harness` rather than invoking the harness runner directly. Current
   memory-related skills are `mira-memory` for policy and health checks and
   `memory-cold-store` for ignored git-notes storage. `wordpress-page-updater`
   provides the manual, approval-gated helper for existing WordPress pages;
@@ -69,10 +72,13 @@ Mira's own infrastructure:
     intent/applied journals and reconcile incomplete transactions before new
     work. Do not weaken canonical-root, non-symlink, duplicate-manifest, or
     beneath-root validation.
-13. Put environment-style secrets in `/home/kenny/mira/.openclaw/.env` at mode
-    `600`. Do not create new per-service files under `.openclaw/secrets/`.
-    OpenClaw-managed OAuth/device state and file-shaped private keys remain in
-    their native ignored stores.
+13. Put environment-native secrets in `/home/kenny/mira/.openclaw/.env` at
+    mode `600`. Use each tool's native ignored credential store for
+    file-shaped credentials: AWS uses `.openclaw/aws/credentials` and
+    `.openclaw/aws/config`; OpenClaw-managed OAuth/device state and private keys
+    remain in their native ignored stores. Do not create per-service env files
+    or generic scripts that copy blocked environment variables into readable
+    credential files.
 14. For default-account Telegram auth, set `TELEGRAM_BOT_TOKEN` in `.env` and
     omit `botToken`, `tokenFile`, and `token` from `channels.telegram`. Update
     `scripts/load-openclaw-env.sh`, Compose mappings, runtime docs, templates,

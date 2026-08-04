@@ -6,11 +6,14 @@ TOOLS.md
 HEARTBEAT.md
 package.json
 package-lock.json
+skills/blueprint/SKILL.md
 skills/coding-harness/coding_harness.py
 skills/coding-harness/SKILL.md
 skills/coding-harness/harness.lock.json
 skills/coding-harness/policy.json
+skills/collaborative-planning/SKILL.md
 skills/cursor-agent-login/SKILL.md
+skills/documentation-lookup/SKILL.md
 skills/gog-reauth/SKILL.md
 skills/addicks-barker-case-updates/SKILL.md
 skills/addicks-barker-case-updates/scripts/case_update.py
@@ -26,6 +29,7 @@ skills/n8n/scripts/n8n_api.py
 skills/n8n/scripts/n8n_context.py
 skills/n8n/scripts/n8n_optimizer.py
 skills/n8n/scripts/n8n_tester.py
+skills/risk-based-testing/SKILL.md
 skills/secrets-management/SKILL.md
 skills/wordpress-page-updater/SKILL.md
 skills/wordpress-page-updater/scripts/wordpress_page.py

@@ -48,6 +48,10 @@ docker build --build-arg OPENCLAW_EXTENSIONS=memory-lancedb -t openclaw:local .
 - Device pairing/auth state as needed.
 - Unified environment secrets at `.openclaw/.env` for provider auth, Telegram,
   integrations, and memory embeddings; use mode `600`.
+- AWS's native shared files at `.openclaw/aws/credentials` and
+  `.openclaw/aws/config`, both mode `600` inside a mode-`700` directory. Use
+  `templates/aws.credentials.example` and `templates/aws.config.example` for
+  profile shape only; never copy placeholder values unchanged.
 - Docker Compose env and volume mounts, including the restored
   `/home/kenny/mira/openclaw-src/entrypoint.sh` if using the container runtime.
 
@@ -81,6 +85,10 @@ cd ~/mira
 - `python3 skills/mira-memory/mira_memory_check.py` passes from the workspace.
 - `python3 skills/memory-cold-store/memory_cold_store.py doctor` passes.
 - `git`, `gh`, and Cursor CLI are available in the gateway container.
+- `AWS_PROFILE=coding-agent aws sts get-caller-identity` resolves the expected
+  account through the explicit shared-file paths without `~/.aws` symlinks.
+- After the Locks foundation is restored, `AWS_PROFILE=locks-publish aws sts
+  get-caller-identity` resolves `LocksAppPublishRole`.
 - `jq` and `rg` are available in the gateway container for bundled skills such
   as `session-logs`.
 - `python3 skills/coding-harness/coding_harness.py check-config` passes after GitHub CLI, private harness repo access, and Cursor CLI auth are configured.

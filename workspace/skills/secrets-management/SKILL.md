@@ -1,6 +1,6 @@
 ---
 name: secrets-management
-description: "Manage secrets for Mira's workspace. Use when adding, updating, rotating, or auditing credentials and API keys."
+description: "Manage secrets for Mira. Use when adding, updating, rotating, auditing, or wiring credentials and API keys."
 metadata:
   openclaw:
     emoji: "🔐"
@@ -8,106 +8,124 @@ metadata:
 
 # Secrets Management
 
-## Single Source of Truth
+## Core rule
 
-Environment-style secrets live in `~/.openclaw/.env` (OpenClaw's native env
-fallback). On this host, that container path is backed by
-`/home/kenny/mira/.openclaw/.env`. OpenClaw loads it at process startup.
+Use the consumer's native credential mechanism. Do not force every secret into
+one file, and do not bypass OpenClaw's host-environment security policy by
+materializing every blocked variable into an agent-readable file.
 
-**Never** store secrets in:
-- Tracked workspace files (TOOLS.md, MEMORY.md, skills, etc.)
-- Shell startup files (~/.bashrc, ~/.profile)
-- Git repos (tracked or runtime)
-- Memory notes or daily logs
-- The old `secrets/*.env` pattern (deprecated)
+Never put secret values in tracked files, memory, chat, command output, shell
+startup files, logs, or repository-local `.env` files.
 
-## Format
+## Choose the storage shape
+
+| Secret type | Storage |
+|---|---|
+| Environment-native API key or password | `/home/kenny/mira/.openclaw/.env`, mode `600` |
+| AWS access key | `/home/kenny/mira/.openclaw/aws/credentials`, mode `600` |
+| AWS profile and role routing | `/home/kenny/mira/.openclaw/aws/config`, mode `600` |
+| OpenClaw OAuth/device credential | OpenClaw's native ignored runtime store |
+| GitHub credential | `gh`'s native ignored credential store |
+| Gmail OAuth credential | `gog`'s native ignored credential store |
+| Private key, certificate, or multiline credential | Dedicated ignored file, mode `600` |
+
+The containing directory for file-shaped credentials must be mode `700`.
+Tracked templates may contain variable names and profile shapes only, never
+credential values.
+
+## Environment-style secrets
+
+The ignored per-instance `.env` remains the source for consumers that actually
+expect environment variables, including provider, Telegram, n8n, and WordPress
+credentials.
+
+Rules:
+
+1. Use one exact `KEY=value` entry per variable.
+2. Keep the file mode `600`.
+3. Never display the file, even with a redaction pipeline. Audit names and
+   syntax with a parser that never emits values.
+4. Update Compose mappings when a container process needs a new variable.
+5. Restart through `/home/kenny/mira/scripts/stop-openclaw.sh` and
+   `start-openclaw.sh`, then run a service-specific read-only check.
+6. For default Telegram auth, use `TELEGRAM_BOT_TOKEN` and omit `botToken`,
+   `tokenFile`, and `token` from `channels.telegram`.
+
+## OpenClaw environment filtering
+
+OpenClaw filters security-sensitive environment names during service dotenv
+loading, host exec inheritance, or both. The exact lists are versioned framework
+behavior; inspect the current source before diagnosing a missing variable.
+
+Do not generalize from one blocked key to all provider keys. In particular:
+
+- AWS access-key variables are intentionally unavailable to Mira's exec calls.
+- `AWS_REGION` and `AWS_DEFAULT_REGION` can pass normally.
+- Trusted inherited `AWS_PROFILE`, `AWS_CONFIG_FILE`, and
+  `AWS_SHARED_CREDENTIALS_FILE` select AWS's native credential chain.
+
+When a variable is blocked, first use the consumer's documented native store,
+credential file, OAuth flow, role, or broker. Creating a conversion script that
+copies a blocked secret into another readable file requires an explicit,
+service-specific design review.
+
+## AWS profiles
+
+AWS uses one persistent credential file and one non-secret profile file:
+
+- Credentials: `~/.openclaw/aws/credentials`
+- Config: `~/.openclaw/aws/config`
+- Default profile: `coding-agent`
+- Publishing profile: `locks-publish`
+
+The `coding-agent` profile contains the dedicated IAM user's bootstrap key. Its
+durable permissions are read-only Locks access plus `sts:AssumeRole` for exact
+Locks and CDK roles. CDK automatically assumes the role declared by each stack
+or the appropriate bootstrap role.
+
+The `locks-publish` profile assumes `LocksAppPublishRole` for static-site
+publishing and data seeding. It uses short-lived STS credentials.
+
+Use:
 
 ```bash
-# ~/.openclaw/.env
-KEY=value
-# No quotes needed for simple values
-# No comments mixed with secret lines (keep it clean)
+# Read-only checks and CDK foundation/application deployment
+AWS_PROFILE=coding-agent aws sts get-caller-identity
+AWS_PROFILE=coding-agent npm run deploy:oidc
+AWS_PROFILE=coding-agent npm run deploy:infrastructure
+
+# Static publishing and seeding
+AWS_PROFILE=locks-publish aws sts get-caller-identity
+AWS_PROFILE=locks-publish npm run deploy:app
+AWS_PROFILE=locks-publish npm run seed
 ```
 
-## Rules
+Before any AWS mutation, verify the account and role, inspect the targeted CDK
+diff where applicable, and obtain fresh explicit approval. A conversational
+approval gate is not an IAM boundary.
 
-1. **One file, all secrets.** `~/.openclaw/.env` is the single source. Do not
-   create per-service `.env` files under `secrets/`.
+## Add or rotate a secret
 
-2. **Permissions.** The file must be mode `600`. Never print its values.
+1. Identify the consumer and its native credential mechanism.
+2. Edit the ignored host-side store without printing the old or new value.
+3. Preserve owner-only permissions using an atomic same-directory replacement.
+4. Update only friend-safe wiring, templates, and instructions.
+5. Restart or refresh the affected consumer.
+6. Verify identity or service access without displaying the credential.
+7. Revoke the old credential after the new path is confirmed.
 
-3. **Restart after changes.** From the host, restart through the instance
-   wrappers so Compose and OpenClaw both receive the new environment:
-   `cd /home/kenny/mira && ./scripts/stop-openclaw.sh &&
-   ./scripts/start-openclaw.sh`.
+For AWS key rotation, update only the `coding-agent` entry in the credentials
+file. Do not copy the key into `.env`. Verify both `coding-agent` and
+`locks-publish` with `aws sts get-caller-identity`.
 
-4. **No secrets in chat.** Never paste secret values into Telegram or any
-   channel. Reference them by name only.
+## Audit
 
-5. **Do not display the file.** Audit variable names and syntax with a parser
-   that never emits values. Do not rely on redacting a full-file dump after
-   reading it into tool output.
+An audit may report:
 
-6. **Telegram token.** Store it as `TELEGRAM_BOT_TOKEN=...`. For the default
-   Telegram account, omit `botToken`, `tokenFile`, and `token` from
-   `channels.telegram`; OpenClaw then uses its documented environment fallback.
-   `token` is not a valid Telegram channel config key.
+- expected variable or profile names;
+- file existence, owner, and numeric mode;
+- whether duplicate names or malformed entries exist;
+- read-only identity-check results.
 
-7. **Config wiring.** A value in `.env` is useful only if the consuming process
-   reads it. OpenClaw reads this file natively; Docker Compose interpolation is
-   handled by Mira's host wrappers, which source the same file before startup.
-   Add new Compose environment mappings when a service needs a variable in the
-   container.
-
-## Common Operations
-
-### Audit current secrets
-
-Verify that the file exists, has mode `600`, contains only valid `KEY=value`
-entries, has no duplicate names, and contains the required variable names.
-Never emit values.
-
-### Add a new secret
-
-Edit `/home/kenny/mira/.openclaw/.env` locally, add one `KEY=value` line, keep
-mode `600`, update Compose wiring if needed, then restart through Mira's host
-wrappers.
-
-### Rotate a secret
-
-Replace the existing key exactly once without printing either value, preserve
-mode `600`, restart through Mira's host wrappers, and run a service-specific
-read-only check.
-
-### Verify a secret is loaded
-
-Check only presence, for example with a script that prints `KEY_NAME=set` or
-`KEY_NAME=missing`. Never print the environment value.
-
-## Migration from secrets/*.env
-
-The old `secrets/*.env` pattern (n8n.env, wordpress.env, aws.env, etc.) is
-deprecated. All new environment-style secrets go in `~/.openclaw/.env`.
-
-When migrating:
-1. Merge each unique `KEY=value` entry into `~/.openclaw/.env` without
-   displaying values
-2. Update any documentation or scripts that reference `secrets/old-file.env`
-3. Update host and Compose wiring for the unified file
-4. Restart and run read-only service checks
-5. Remove legacy files only after all checks pass
-
-## What Belongs Here
-
-- API keys (OpenRouter, Anthropic, n8n, AWS, etc.)
-- Service credentials (WordPress, Telegram, etc.)
-- Debug/verbose flags that contain no secrets
-
-## What Does NOT Belong Here
-
-- AWS session tokens (use IAM roles or STS instead)
-- OAuth access/refresh tokens managed by OpenClaw or another credential store
-- Repository credentials (use gh auth)
-- Certificate/private-key or other multiline file credentials (mount as
-  mode-`600` files in ignored runtime state)
+It must never report values, prefixes, hashes of values, authorization headers,
+or full credential-file contents.

@@ -91,8 +91,9 @@ git push
 ## Restore Workflow
 
 On a fresh host, clone upstream OpenClaw, complete onboarding, clone this repo,
-then create the ignored `.openclaw/.env` at mode `600` for environment-style
-secrets and run:
+then create the ignored `.openclaw/.env` at mode `600` for environment-native
+secrets. Create AWS's ignored `.openclaw/aws/credentials` and
+`.openclaw/aws/config` at mode `600` inside a mode-`700` directory, then run:
 
 ```bash
 cd /home/kenny/mira

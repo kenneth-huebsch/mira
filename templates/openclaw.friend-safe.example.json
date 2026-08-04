@@ -212,10 +212,19 @@
       "addicks-barker-case-updates": {
         "enabled": true
       },
+      "blueprint": {
+        "enabled": true
+      },
       "coding-harness": {
         "enabled": true
       },
+      "collaborative-planning": {
+        "enabled": true
+      },
       "cursor-agent-login": {
+        "enabled": true
+      },
+      "documentation-lookup": {
         "enabled": true
       },
       "gog": {
@@ -231,6 +240,9 @@
         "enabled": true
       },
       "n8n": {
+        "enabled": true
+      },
+      "risk-based-testing": {
         "enabled": true
       },
       "wordpress-page-updater": {

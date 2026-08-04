@@ -54,6 +54,10 @@ harness revision into ignored runtime and runs Cursor CLI against the target:
 - Pin: `workspace/skills/coding-harness/harness.lock.json`
 - Policy: `workspace/skills/coding-harness/policy.json`
 
+Mira plans with workspace-local adaptations of `collaborative-planning`,
+`blueprint`, `risk-based-testing`, and `documentation-lookup`. Those skills
+shape the user-facing plan but never bypass the coding-harness adapter.
+
 Mira self-work is intentionally out of scope for this harness skill.
 Target clones use collision-free `owner--repo` paths and are not auto-pulled.
 Run records and phase specs remain under ignored `workspace/runtime/`.
@@ -133,6 +137,8 @@ closed.
 
 Environment-style secrets live in the ignored per-instance
 `.openclaw/.env`, never in tracked files or global shell startup files.
-OpenClaw-managed OAuth/device credentials and file-shaped private keys remain
-in their native ignored runtime stores. See `RUNBOOK.md` for rotation and
-verification procedures.
+AWS shared credentials and profile routing live in ignored
+`.openclaw/aws/credentials` and `.openclaw/aws/config`; OpenClaw-managed
+OAuth/device credentials and file-shaped private keys remain in their native
+ignored runtime stores. See `RUNBOOK.md` for rotation and verification
+procedures.
