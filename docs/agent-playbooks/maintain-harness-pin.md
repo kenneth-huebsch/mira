@@ -32,6 +32,24 @@ Prefer visible alignment over technically equivalent revisions:
 Functional changes to runner code, policies, hooks, or skills must be pinned
 before claiming Mira uses them.
 
+## Mira-adapted planning skills
+
+Mira keeps independent adaptations of selected harness planning skills under
+`workspace/skills/`: `collaborative-planning`, `blueprint`,
+`risk-based-testing`, and `documentation-lookup`. They intentionally do not load
+from the pinned runtime checkout and do not update automatically with the pin.
+
+When a harness update changes any corresponding source skill, compare it with
+Mira's adaptation and make an explicit decision:
+
+- port guidance that improves Mira's planning role;
+- leave harness-internal execution, model, path, and child-agent details in the
+  harness; or
+- record that no Mira change is needed.
+
+Do not overwrite the adapted copies mechanically. Preserve their rule that all
+implementation routes through Mira's `coding-harness` adapter.
+
 ## Update workflow
 
 1. Work in a normal `agent` checkout, not Mira's live pinned runtime checkout.

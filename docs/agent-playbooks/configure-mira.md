@@ -22,8 +22,13 @@ Important files:
   memory contents.
 - `cron/*.md` - scheduled behavior, if Kenny explicitly adds any. Mira has no cron prompts by default.
 - `skills/` - workspace-local skills and their helper scripts. Current
+  planning skills are Mira-adapted `collaborative-planning`, `blueprint`,
+  `risk-based-testing`, and `documentation-lookup`; they hand approved work to
+  `coding-harness` rather than invoking the harness runner directly. Current
   memory-related skills are `mira-memory` for policy and health checks and
-  `memory-cold-store` for ignored git-notes storage.
+  `memory-cold-store` for ignored git-notes storage. `wordpress-page-updater`
+  provides the manual, approval-gated helper for existing WordPress pages;
+  `addicks-barker-case-updates` stages PDF-derived updates for its fixed page.
 - `templates/openclaw.friend-safe.example.json` - restore-safe config shape.
 - `templates/memory-scaffold/` - empty restore-only memory file templates used
   when live memory files are missing.
@@ -48,7 +53,7 @@ Mira's own infrastructure:
    `AGENTS.md` and memory mechanics in `TOOLS.md`; keep runtime memory files,
    indexes, git-notes stores, service keys, and session history out of the repo.
    `memorySearch` and LanceDB embeddings use `OPENROUTER_API_KEY` loaded from
-   ignored `openrouter.env`. Mira does not use third-party cloud memory by
+   ignored `.openclaw/.env`. Mira does not use third-party cloud memory by
    default.
 4. Keep tool mechanics in `TOOLS.md`: command shapes, Gmail account conventions, GitHub notes, Telegram boundaries, harness helper paths, and workspace-local skill notes. Do not put user preferences in `TOOLS.md`.
 5. Keep hard rules and workflow policy in `AGENTS.md`: safety lines, coding-harness routing, Gmail mutation confirmation rules, and cron policy.
@@ -67,6 +72,17 @@ Mira's own infrastructure:
     intent/applied journals and reconcile incomplete transactions before new
     work. Do not weaken canonical-root, non-symlink, duplicate-manifest, or
     beneath-root validation.
+13. Put environment-native secrets in `/home/kenny/mira/.openclaw/.env` at
+    mode `600`. Use each tool's native ignored credential store for
+    file-shaped credentials: AWS uses `.openclaw/aws/credentials` and
+    `.openclaw/aws/config`; OpenClaw-managed OAuth/device state and private keys
+    remain in their native ignored stores. Do not create per-service env files
+    or generic scripts that copy blocked environment variables into readable
+    credential files.
+14. For default-account Telegram auth, set `TELEGRAM_BOT_TOKEN` in `.env` and
+    omit `botToken`, `tokenFile`, and `token` from `channels.telegram`. Update
+    `scripts/load-openclaw-env.sh`, Compose mappings, runtime docs, templates,
+    and service checks together when introducing another environment variable.
 
 ## Memory Restore Notes
 

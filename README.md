@@ -15,8 +15,8 @@ logs.
 - `.openclaw/` is the ignored live runtime state for this Mira instance.
 - `openclaw-src/` is the ignored OpenClaw source checkout for this Mira instance.
 - `RUNBOOK.md` documents how to start, stop, and run CLI commands for Mira.
-- `templates/` contains friend-safe examples of runtime config with credential
-  fields redacted and empty memory scaffold files under
+- `templates/` contains friend-safe examples of runtime config and environment
+  variable names with credential values redacted, plus empty memory scaffold files under
   `templates/memory-scaffold/`. Mira has no cron jobs configured by default.
 - `openclaw/` contains Mira's source-local Docker Compose and entrypoint files.
 - `scripts/sync-from-live.sh` updates the blueprint from the running host.
@@ -37,7 +37,9 @@ behavior.
 Telegram DM remains enabled as Kenny's control surface. Gmail remains available
 only when Kenny asks Mira to check it. There are no Gmail crons, scheduled
 triage jobs, calendar workflows, Todoist workflows, or business operations
-capabilities by default.
+capabilities by default. Mira additionally has a manual, approval-gated helper
+for updating existing WordPress pages and a fixed-page PDF case-update workflow;
+neither has scheduled behavior.
 
 ## Harness Runtime
 
@@ -51,6 +53,10 @@ harness revision into ignored runtime and runs Cursor CLI against the target:
 - Skill: `workspace/skills/coding-harness/SKILL.md`
 - Pin: `workspace/skills/coding-harness/harness.lock.json`
 - Policy: `workspace/skills/coding-harness/policy.json`
+
+Mira plans with workspace-local adaptations of `collaborative-planning`,
+`blueprint`, `risk-based-testing`, and `documentation-lookup`. Those skills
+shape the user-facing plan but never bypass the coding-harness adapter.
 
 Mira self-work is intentionally out of scope for this harness skill.
 Target clones use collision-free `owner--repo` paths and are not auto-pulled.
@@ -129,4 +135,10 @@ reconciles an incomplete transaction before staging new work; normalized
 manifest duplicates, non-canonical roots, symlink roots, and root escapes fail
 closed.
 
-Provider API keys live in ignored per-instance secret env files under `.openclaw/secrets/`, never in tracked files or global shell startup files. See `RUNBOOK.md` for the OpenRouter rotation procedure.
+Environment-style secrets live in the ignored per-instance
+`.openclaw/.env`, never in tracked files or global shell startup files.
+AWS shared credentials and profile routing live in ignored
+`.openclaw/aws/credentials` and `.openclaw/aws/config`; OpenClaw-managed
+OAuth/device credentials and file-shaped private keys remain in their native
+ignored runtime stores. See `RUNBOOK.md` for rotation and verification
+procedures.

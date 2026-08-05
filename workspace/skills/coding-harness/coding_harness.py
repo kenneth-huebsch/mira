@@ -384,6 +384,12 @@ def resolve_target(target: str, policy: dict[str, Any]) -> Path:
 
 def sanitized_environment(policy: dict[str, Any]) -> dict[str, str]:
     allowed = set(policy["inherited_environment_keys"])
+    # Include all capability environment keys so the runner can forward them
+    # to child processes that declare capabilities. The runner's policy.py
+    # still validates that each phase explicitly declares which capabilities
+    # it needs before those vars reach the child agent.
+    for keys in policy.get("capability_environment", {}).values():
+        allowed.update(keys)
     env = {key: value for key, value in os.environ.items() if key in allowed}
     env.update({
         "AGENT_RUN_HOME": str(RUNS_DIR),
@@ -513,6 +519,7 @@ def build_parser() -> argparse.ArgumentParser:
     plan = subs.add_parser("run-plan")
     plan.add_argument("--target", required=True)
     plan.add_argument("--plan", required=True)
+    plan.add_argument("--strip-completed", metavar="PRIOR_PLAN_ID")
     add_common(plan)
     for name in ("status", "show"):
         child = subs.add_parser(name)
@@ -598,10 +605,16 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     target = resolve_target(args.target, policy)
     if args.command == "run-plan":
         plan = resolve_plan_path(args.plan)
+        continuation = (
+            ["--strip-completed", args.strip_completed]
+            if args.strip_completed is not None
+            else []
+        )
         return delegate(
             "run-plan",
             [
                 "--target", str(target), "--plan", str(plan),
+                *continuation,
                 *forwarding_flags(args, default_timeout=policy["default_timeout_seconds"]),
             ],
         )
