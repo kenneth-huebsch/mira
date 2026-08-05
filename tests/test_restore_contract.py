@@ -56,6 +56,8 @@ class RestoreContractTests(unittest.TestCase):
             "coding-harness-runs/run-1/status.json",
             "coding-harness-runs/run-1/checkpoint.json",
             "coding-harness-runs/run-1/.lock",
+            "coding-harness-runs/run-1/browser/screenshot.png",
+            "coding-harness-runs/run-1/browser/cleanup.json",
             "coding-harness-plans/spec.json",
             "repos/project/.git/HEAD",
         )

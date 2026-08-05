@@ -55,6 +55,23 @@
       }
     }
   },
+  "browser": {
+    "enabled": true,
+    "evaluateEnabled": false,
+    "headless": true,
+    "noSandbox": true,
+    "defaultProfile": "openclaw",
+    "snapshotDefaults": {
+      "mode": "efficient"
+    },
+    "ssrfPolicy": {
+      "dangerouslyAllowPrivateNetwork": true,
+      "allowedHostnames": [
+        "localhost",
+        "127.0.0.1"
+      ]
+    }
+  },
   "channels": {
     "telegram": {
       "allowFrom": [
@@ -150,7 +167,8 @@
   "plugins": {
     "allow": [
       "memory-lancedb",
-      "document-extract"
+      "document-extract",
+      "browser"
     ],
     "slots": {
       "memory": "memory-lancedb"
@@ -163,6 +181,9 @@
         "enabled": true
       },
       "document-extract": {
+        "enabled": true
+      },
+      "browser": {
         "enabled": true
       },
       "active-memory": {
@@ -262,6 +283,7 @@
       "exec",
       "process",
       "pdf",
+      "browser",
       "memory_recall",
       "memory_store",
       "memory_forget"

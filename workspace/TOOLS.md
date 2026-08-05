@@ -112,6 +112,32 @@ kenneth-huebsch/agent` must confirm private harness access, and `agent status`
 must confirm Cursor CLI authentication. Use
 `skills/cursor-agent-login/SKILL.md` when Cursor auth is missing.
 
+### Browser QA
+
+For coding work, the Cursor CLI child owns browser testing because it has the
+target checkout and can fix and retest the same code. Add
+`"capabilities": ["browser"]` only to phases that need interactive UI QA. The
+harness exposes its pinned `playwright-cli` command, assigns a unique headless
+in-memory session, writes screenshots/traces below that phase's ignored run
+record, and closes the session on every exit path.
+
+Prefer a target repository's existing Playwright tests when they cover the
+flow. Use interactive browser QA for local, preview, or staging behavior that
+needs snapshots, clicks, responsive inspection, console/network checks, or
+visual evidence. Do not use `npx` to fetch a second browser tool, request a
+persistent profile, save storage state, attach a personal browser, enter real
+production credentials, or mutate production data.
+
+Mira's direct OpenClaw `browser` tool is available for a harmless inspection or
+diagnostic that does not belong in a coding phase. Use the managed `openclaw`
+profile, not `user` or `chrome`, and clear its cookies and local/session storage
+before stopping it when the direct task ends. Coding verification still belongs
+to the browser-capable child. The managed profile permits private-network
+navigation because local application testing requires it and OpenClaw's
+local-CDP path cannot enforce strict redirect-hop inspection. Treat every
+reachable private endpoint as sensitive and navigate only to the requested
+local, preview, or staging target.
+
 ## Memory
 
 Mira's memory system is local-first. Live memory files live in the workspace:

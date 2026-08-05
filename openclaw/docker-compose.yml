@@ -27,6 +27,7 @@ services:
       OPENCLAW_VERBOSE: ${OPENCLAW_VERBOSE:-}
       GOG_KEYRING_BACKEND: ${GOG_KEYRING_BACKEND:-file}
       GOG_KEYRING_PASSWORD: ${GOG_KEYRING_PASSWORD:-}
+      PLAYWRIGHT_CLI_BIN: /home/node/.openclaw/tools/playwright-cli/playwright-cli
       XDG_CONFIG_HOME: ${XDG_CONFIG_HOME:-/home/node/.openclaw}
       TZ: ${OPENCLAW_TZ:-UTC}
     volumes:
