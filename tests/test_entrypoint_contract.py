@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import tempfile
@@ -71,6 +72,47 @@ class EntrypointContractTests(unittest.TestCase):
             self.assertIn(f" /usr/local/bin/{command}", script)
         self.assertIn("chown -R node:node", script)
         self.assertIn("unzip ca-certificates", script)
+
+    def test_playwright_cli_is_pinned_private_and_uses_baked_chromium(self) -> None:
+        script = TRACKED_ENTRYPOINT.read_text(encoding="utf-8")
+        compose = (REPO / "openclaw/docker-compose.yml").read_text(encoding="utf-8")
+        runbook = (REPO / "RUNBOOK.md").read_text(encoding="utf-8")
+        restore = (REPO / "RESTORE.md").read_text(encoding="utf-8")
+
+        self.assertIn("OPENCLAW_PLAYWRIGHT_CLI_VERSION:-0.1.17", script)
+        self.assertIn('"@playwright/cli@${playwright_cli_version}"', script)
+        self.assertIn(
+            'require("playwright-core").chromium.executablePath()', script
+        )
+        self.assertIn("PLAYWRIGHT_MCP_BROWSER=chromium", script)
+        self.assertIn("PLAYWRIGHT_MCP_EXECUTABLE_PATH=", script)
+        self.assertNotIn("/usr/local/bin/playwright-cli", script)
+        self.assertIn(
+            "PLAYWRIGHT_CLI_BIN: /home/node/.openclaw/tools/playwright-cli/playwright-cli",
+            compose,
+        )
+        self.assertIn("OPENCLAW_INSTALL_BROWSER=1", runbook)
+        self.assertIn("OPENCLAW_INSTALL_BROWSER=1", restore)
+
+    def test_friend_safe_config_enables_isolated_browser_tool(self) -> None:
+        config = json.loads(
+            (REPO / "templates/openclaw.friend-safe.example.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertTrue(config["browser"]["enabled"])
+        self.assertTrue(config["browser"]["headless"])
+        self.assertTrue(config["browser"]["noSandbox"])
+        self.assertFalse(config["browser"]["evaluateEnabled"])
+        self.assertTrue(
+            config["browser"]["ssrfPolicy"]["dangerouslyAllowPrivateNetwork"]
+        )
+        self.assertEqual(
+            config["browser"]["ssrfPolicy"]["allowedHostnames"],
+            ["localhost", "127.0.0.1"],
+        )
+        self.assertIn("browser", config["plugins"]["allow"])
+        self.assertIn("browser", config["tools"]["allow"])
 
     def test_restore_replaces_source_local_entrypoint_from_blueprint(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
