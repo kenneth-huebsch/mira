@@ -631,6 +631,17 @@ def routing_object(value: str) -> dict[str, Any]:
     return data
 
 
+def automatic_routing(mode: str | None) -> dict[str, Any]:
+    planning = mode == "plan"
+    return {
+        "tier": "reasoning" if planning else "default",
+        "task_class": "planning" if planning else "ordinary",
+        "reason": "automatic conservative routing default",
+        "risk_flags": ["unclassified"],
+        "allowed_paths": [],
+    }
+
+
 def resolve_plan_path(value: str) -> Path:
     candidate = Path(value).expanduser()
     absolute = candidate if candidate.is_absolute() else INVOCATION_CWD / candidate
@@ -1558,8 +1569,11 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
             }
             if args.mode:
                 phase["mode"] = args.mode
-            if args.routing_json:
-                phase["routing"] = routing_object(args.routing_json)
+            phase["routing"] = (
+                routing_object(args.routing_json)
+                if args.routing_json
+                else automatic_routing(args.mode)
+            )
             with os.fdopen(fd, "w", encoding="utf-8") as stream:
                 json.dump({"schema_version": 2, "phases": [phase]}, stream)
             return delegate(
