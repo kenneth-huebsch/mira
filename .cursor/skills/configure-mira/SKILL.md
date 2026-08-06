@@ -19,6 +19,15 @@ Behavior changes must keep these files in sync:
   adding scheduled behavior or memory helper dependencies.
 - `scripts/workspace-manifest.txt` when adding future prompts, skills, or helper scripts.
 - `templates/openclaw.friend-safe.example.json`, `workspace/TOOLS.md`, and restore docs when changing runtime tool access.
+- `/home/kenny/mira/.openclaw/.env` is the ignored mode-`600` home for
+  environment-style secrets. Keep variable names and wiring documented, but
+  never copy values into the blueprint.
+- For default-account Telegram auth, set `TELEGRAM_BOT_TOKEN` in `.env` and
+  omit `botToken`, `tokenFile`, and invalid `token` properties from
+  `channels.telegram`.
+- When adding a secret-backed integration, update the unified env loader,
+  Compose mappings if needed, service docs/templates, and a read-only
+  verification check together.
 
 After changing live behavior, run:
 

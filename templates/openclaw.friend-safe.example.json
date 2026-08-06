@@ -4,10 +4,10 @@
       "compaction": {
         "mode": "safeguard"
       },
-      "llm": {
-        "idleTimeoutSeconds": 300
-      },
       "model": {
+        "primary": "openrouter/z-ai/glm-5.2"
+      },
+      "pdfModel": {
         "primary": "openrouter/anthropic/claude-sonnet-4.6"
       },
       "sandbox": {
@@ -55,6 +55,23 @@
       }
     }
   },
+  "browser": {
+    "enabled": true,
+    "evaluateEnabled": false,
+    "headless": true,
+    "noSandbox": true,
+    "defaultProfile": "openclaw",
+    "snapshotDefaults": {
+      "mode": "efficient"
+    },
+    "ssrfPolicy": {
+      "dangerouslyAllowPrivateNetwork": true,
+      "allowedHostnames": [
+        "localhost",
+        "127.0.0.1"
+      ]
+    }
+  },
   "channels": {
     "telegram": {
       "allowFrom": [
@@ -66,8 +83,7 @@
         "*": {
           "requireMention": true
         }
-      },
-      "tokenFile": "<set manually>"
+      }
     }
   },
   "gateway": {
@@ -114,9 +130,45 @@
       "enabled": true
     }
   },
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "openrouter": {
+        "baseUrl": "https://openrouter.ai/api/v1",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "anthropic/claude-sonnet-4.6",
+            "name": "Claude Sonnet 4.6 via OpenRouter",
+            "api": "openai-completions",
+            "reasoning": true,
+            "input": [
+              "text",
+              "image"
+            ],
+            "contextWindow": 1000000,
+            "maxTokens": 64000
+          },
+          {
+            "id": "z-ai/glm-5.2",
+            "name": "Z.ai: GLM 5.2 via OpenRouter",
+            "api": "openai-completions",
+            "reasoning": true,
+            "input": [
+              "text"
+            ],
+            "contextWindow": 1048576,
+            "maxTokens": 131072
+          }
+        ]
+      }
+    }
+  },
   "plugins": {
     "allow": [
-      "memory-lancedb"
+      "memory-lancedb",
+      "document-extract",
+      "browser"
     ],
     "slots": {
       "memory": "memory-lancedb"
@@ -126,6 +178,12 @@
         "enabled": true
       },
       "openrouter": {
+        "enabled": true
+      },
+      "document-extract": {
+        "enabled": true
+      },
+      "browser": {
         "enabled": true
       },
       "active-memory": {
@@ -172,10 +230,22 @@
   },
   "skills": {
     "entries": {
+      "addicks-barker-case-updates": {
+        "enabled": true
+      },
+      "blueprint": {
+        "enabled": true
+      },
       "coding-harness": {
         "enabled": true
       },
+      "collaborative-planning": {
+        "enabled": true
+      },
       "cursor-agent-login": {
+        "enabled": true
+      },
+      "documentation-lookup": {
         "enabled": true
       },
       "gog": {
@@ -193,6 +263,12 @@
       "n8n": {
         "enabled": true
       },
+      "risk-based-testing": {
+        "enabled": true
+      },
+      "wordpress-page-updater": {
+        "enabled": true
+      },
       "model-usage": {
         "enabled": false
       },
@@ -206,6 +282,8 @@
       "read",
       "exec",
       "process",
+      "pdf",
+      "browser",
       "memory_recall",
       "memory_store",
       "memory_forget"
@@ -213,7 +291,7 @@
     "exec": {
       "host": "gateway"
     },
-    "profile": "coding",
+    "profile": "full",
     "sessions": {
       "visibility": "agent"
     }

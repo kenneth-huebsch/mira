@@ -91,7 +91,9 @@ else:
             },
             "allowed_target_roots": [str(self.workspace / "runtime/repos")],
             "inherited_environment_keys": ["HOME", "PATH", "LANG"],
-            "capability_environment": {},
+            "capability_environment": {
+                "browser": ["PLAYWRIGHT_CLI_BIN"],
+            },
             "sensitive_path_patterns": [r"(^|/)\.env$"],
             "default_timeout_seconds": 3000,
             "cancellation_grace_seconds": 1,
@@ -405,7 +407,16 @@ else:
             self.module.resolve_target(str(nested), policy)
 
     def test_environment_scrub_single_json_and_forwarding(self) -> None:
-        with mock.patch.dict(os.environ, {**self.env, "OPENROUTER_API_KEY": "secret", "LANG": "C"}, clear=False):
+        with mock.patch.dict(
+            os.environ,
+            {
+                **self.env,
+                "OPENROUTER_API_KEY": "secret",
+                "PLAYWRIGHT_CLI_BIN": "/runtime/playwright-cli",
+                "LANG": "C",
+            },
+            clear=False,
+        ):
             combined, code = self.module.delegate(
                 "resume",
                 ["record-1", "--restart-current-stage", "--implement-model", "model-x"],
@@ -414,6 +425,9 @@ else:
         self.assertEqual(combined["harness_revision"], self.sha)
         result = combined["runner_result"]
         self.assertNotIn("OPENROUTER_API_KEY", result["env"])
+        self.assertEqual(
+            result["env"]["PLAYWRIGHT_CLI_BIN"], "/runtime/playwright-cli"
+        )
         self.assertEqual(result["env"]["XDG_CONFIG_HOME"], "/home/node/.openclaw")
         self.assertEqual(result["env"]["GH_CONFIG_DIR"], "/home/node/.openclaw/gh")
         self.assertIn("--restart-current-stage", result["argv"])
@@ -447,12 +461,14 @@ else:
         plan_args = self.module.build_parser().parse_args([
             "run-plan", "--target", str(target),
             "--plan", "runtime/coding-harness-plans/documented.json", "--dry-run",
+            "--strip-completed", "prior-plan",
         ])
         combined, code = self.module.execute(plan_args)
         self.assertEqual(code, 0)
         argv = combined["runner_result"]["argv"]
         self.assertEqual(argv[argv.index("--timeout") + 1], "3000")
         self.assertEqual(Path(argv[argv.index("--plan") + 1]), plan.resolve())
+        self.assertEqual(argv[argv.index("--strip-completed") + 1], "prior-plan")
         parsed = json.loads(plan.read_text())
         self.assertEqual(parsed["schema_version"], 2)
         self.assertIn("commands", parsed["phases"][0]["verification"])

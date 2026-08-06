@@ -12,8 +12,8 @@ export OPENCLAW_BRIDGE_PORT="${OPENCLAW_BRIDGE_PORT:-18792}"
 export OPENCLAW_UI_PORT="${OPENCLAW_UI_PORT:-3501}"
 export OPENCLAW_TZ="${OPENCLAW_TZ:-America/New_York}"
 
-# Load per-instance provider credentials after defaults so this claw does not
-# inherit another OpenClaw home's model auth from the shell.
+# Load this instance's unified environment after defaults so this claw does not
+# inherit another OpenClaw home's credentials from the shell.
 # shellcheck source=scripts/load-openclaw-env.sh
 . "$BLUEPRINT_ROOT/scripts/load-openclaw-env.sh"
 load_openclaw_secret_env

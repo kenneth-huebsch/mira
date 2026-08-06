@@ -62,6 +62,18 @@ Also inspect the host-mounted file when permissions allow:
 /home/kenny/mira/.openclaw/openclaw.json
 ```
 
+## Environment Secrets
+
+- Environment-style secrets live only in
+  `/home/kenny/mira/.openclaw/.env`, with mode `600`.
+- Audit names, syntax, duplicates, and presence without printing values.
+- Restart through `/home/kenny/mira/scripts/stop-openclaw.sh` and
+  `start-openclaw.sh` after changes so both Compose and OpenClaw reload them.
+- For the default Telegram account, set `TELEGRAM_BOT_TOKEN` in `.env` and
+  omit `botToken`, `tokenFile`, and `token` from `channels.telegram`.
+- Keep OpenClaw-managed OAuth/device state and file-shaped private keys in
+  their native ignored runtime stores.
+
 ## Safety Notes
 
 - Never expose or commit gateway tokens, bot tokens, OAuth tokens, credentials, sessions, logs, or private memory history.

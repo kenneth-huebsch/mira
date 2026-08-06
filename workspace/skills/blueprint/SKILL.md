@@ -43,6 +43,7 @@ Each phase should include:
 - a clear done condition
 - dependencies and shared-file constraints
 - rollback or recovery notes when applicable
+- any separately gated action
 - explicit negation of delivery actions when they must be mentioned
 
 Avoid phases that say only "implement the feature," rely on unstated

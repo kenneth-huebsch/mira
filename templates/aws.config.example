@@ -1,0 +1,10 @@
+[profile coding-agent]
+region = us-east-1
+output = json
+
+[profile locks-publish]
+role_arn = arn:aws:iam::ACCOUNT_ID:role/LocksAppPublishRole
+source_profile = coding-agent
+role_session_name = mira-locks-publish
+region = us-east-1
+output = json
