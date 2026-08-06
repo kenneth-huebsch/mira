@@ -551,6 +551,27 @@ else:
         with self.assertRaisesRegex(self.module.AdapterError, "requires --verification-json"):
             self.module.execute(args)
 
+    def test_structured_single_run_gets_automatic_conservative_routing(self) -> None:
+        target = self.make_repo(self.workspace / "runtime/repos/acme--automatic-routing")
+        for mode, tier in ((None, "default"), ("plan", "reasoning")):
+            arguments = [
+                "run",
+                "--target", str(target),
+                "--prompt", "unclassified task",
+                "--verification-json", json.dumps({
+                    "commands": [{"argv": ["python3", "-c", "pass"]}],
+                }),
+            ]
+            if mode:
+                arguments += ["--mode", mode]
+            combined, code = self.module.execute(
+                self.module.build_parser().parse_args(arguments)
+            )
+            self.assertEqual(code, 0)
+            routing = combined["runner_result"]["plan"]["phases"][0]["routing"]
+            self.assertEqual(routing["tier"], tier)
+            self.assertEqual(routing["risk_flags"], ["unclassified"])
+
     def test_run_plan_rejects_outside_symlink_and_directory_paths(self) -> None:
         plans = self.workspace / "runtime/coding-harness-plans"
         plans.mkdir(parents=True)

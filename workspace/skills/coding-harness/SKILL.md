@@ -53,9 +53,11 @@ Prefer structured checks with
 `--verify` is legacy shell compatibility and is denied unless the tracked
 policy explicitly permits shell verification. The adapter emits exactly one
 JSON object containing `harness_revision` and `runner_result`.
-Automatic cost routing requires structured verification. Supply `--routing-json`
-with `--verification-json`; the adapter creates a one-phase spec so the pinned
-runner validates the same routing contract used by larger plans.
+Routing is automatic. Omitted metadata normalizes conservatively to `default`
+for autonomous work or `reasoning` for plan mode. To select `cheap`, supply
+`--routing-json` with `--verification-json`; the adapter creates a one-phase
+spec so the pinned runner validates the same routing contract used by larger
+plans.
 
 ## Larger work: plan, then approved phased execution
 
@@ -115,7 +117,9 @@ use the harness plan-then-approved-execution contract:
    no risk flags or capabilities, bounded exact paths or `directory/**`, and
    deterministic verification. Architecture, diagnosis, security/auth,
    persistence, concurrency, infrastructure, cross-system work, and ambiguity
-   must route upward. Add `"capabilities": ["browser"]` only to
+   must route upward. If routing is omitted, the runner inserts a conservative
+   `default` or `reasoning` route with an `unclassified` risk marker so model
+   choice and telemetry never silently disappear. Add `"capabilities": ["browser"]` only to
    a phase that needs interactive browser QA; the harness provides a fresh
    headless session and cleans it up. Phase-specs live in ignored runtime, not
    the blueprint. Every child `prompt` and `done` value must omit delivery

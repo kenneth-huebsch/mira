@@ -75,8 +75,11 @@ python3 skills/coding-harness/coding_harness.py show <run-id>
   maps tiers to concrete models. Cheap routing is accepted only for approved
   mechanical classes with bounded paths, deterministic verification, no
   capabilities, and no risk flags. Unknown or ambiguous work routes upward.
+  If Mira omits routing metadata, the adapter/runner inserts a conservative
+  `default` autonomous route or `reasoning` plan route marked `unclassified`;
+  unrouted execution is not a separate bypass.
   The runner enforces path scope and records tier, resolved model, attempts,
-  child duration, and gate evidence.
+  every child role/model/duration/outcome, and gate evidence.
 - Children must follow repository evidence rather than invent requirements or
   widen scope. A typed `needs_parent` handoff preserves the checkpoint and
   returns a constrained reason, evidence, precise question, and recommended
