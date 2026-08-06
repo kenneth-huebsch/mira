@@ -73,6 +73,7 @@ use the harness plan-then-approved-execution contract:
          "id": "phase-1",
          "prompt": "...",
          "done": "...",
+         "capabilities": ["browser"],
          "verification": {
            "commands": [
              {"argv": ["python3", "-m", "pytest", "tests/foo.py"]}
@@ -97,8 +98,10 @@ use the harness plan-then-approved-execution contract:
    shape. Use structured `verification.commands[].argv`; legacy `verify` shell
    strings are denied by Mira's policy. `done`, `verification`, `mode`
    (`autonomous`/`plan`), `review`, `review_threshold`, and `review_max_rounds`
-   are optional per-phase overrides. Phase-specs live in ignored runtime, not the
-   blueprint.
+   are optional per-phase overrides. Add `"capabilities": ["browser"]` only to
+   a phase that needs interactive browser QA; the harness provides a fresh
+   headless session and cleans it up. Phase-specs live in ignored runtime, not
+   the blueprint.
 3. **Approval gate.** Show Kenny the phase-spec and get explicit approval. Do not
    run an unapproved plan.
 4. **Delegate the approved plan:**

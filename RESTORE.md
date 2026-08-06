@@ -36,7 +36,10 @@ therefore preserve run records, phase specs, checkouts, locks, and checkpoints.
 
 ```bash
 cd ~/mira/openclaw-src
-docker build --build-arg OPENCLAW_EXTENSIONS=memory-lancedb -t openclaw:local .
+docker build \
+  --build-arg OPENCLAW_EXTENSIONS=memory-lancedb \
+  --build-arg OPENCLAW_INSTALL_BROWSER=1 \
+  -t openclaw:local .
 ```
 
 6. Manually configure credentials and runtime secrets:

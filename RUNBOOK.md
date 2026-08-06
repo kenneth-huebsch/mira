@@ -62,7 +62,10 @@ Rebuild and recreate Mira's gateway after the source update:
 
 ```bash
 cd /home/kenny/mira/openclaw-src
-docker build --build-arg OPENCLAW_EXTENSIONS=memory-lancedb -t openclaw:local .
+docker build \
+  --build-arg OPENCLAW_EXTENSIONS=memory-lancedb \
+  --build-arg OPENCLAW_INSTALL_BROWSER=1 \
+  -t openclaw:local .
 cd /home/kenny/mira
 ./scripts/start-openclaw.sh
 ```
@@ -106,7 +109,16 @@ surface inside the gateway:
 ```bash
 aws --version
 cdk --version
+test -x "$PLAYWRIGHT_CLI_BIN"
+"$PLAYWRIGHT_CLI_BIN" --help
 ```
+
+The image bakes OpenClaw's Chromium revision. The entrypoint installs the exact
+`@playwright/cli` pin under
+`/home/node/.openclaw/tools/playwright-cli/` and generates a private wrapper
+that targets that baked executable. It intentionally does not place
+`playwright-cli` on the global PATH; browser-capable harness phases receive a
+run-local command wrapper.
 
 
 ## Provider Credentials

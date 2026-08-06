@@ -215,6 +215,44 @@ install_aws_cdk() {
   export PATH="${aws_cdk_bin_dir}:${PATH}"
 }
 
+install_playwright_cli() {
+  playwright_cli_version="${OPENCLAW_PLAYWRIGHT_CLI_VERSION:-0.1.17}"
+  playwright_cli_root="${OPENCLAW_PLAYWRIGHT_CLI_ROOT:-/home/node/.openclaw/tools/playwright-cli}"
+  playwright_cli_install_dir="${playwright_cli_root}/${playwright_cli_version}"
+  playwright_cli_real_bin="${playwright_cli_install_dir}/bin/playwright-cli"
+  playwright_cli_wrapper="${playwright_cli_root}/playwright-cli"
+
+  mkdir -p "$playwright_cli_root"
+  chown -R node:node "$playwright_cli_root"
+
+  if [ ! -x "$playwright_cli_real_bin" ]; then
+    rm -rf "$playwright_cli_install_dir"
+    mkdir -p "$playwright_cli_install_dir"
+    chown -R node:node "$playwright_cli_install_dir"
+    su -m -s /bin/sh node -c \
+      'npm install --global --prefix "$1" --no-audit --no-fund "$2"' \
+      sh "$playwright_cli_install_dir" "@playwright/cli@${playwright_cli_version}"
+  fi
+
+  chromium_executable="$(
+    cd /app
+    node -e 'process.stdout.write(require("playwright-core").chromium.executablePath())'
+  )"
+  if [ ! -x "$chromium_executable" ]; then
+    echo "Playwright Chromium is missing; rebuild with OPENCLAW_INSTALL_BROWSER=1" >&2
+    exit 1
+  fi
+
+  cat > "$playwright_cli_wrapper" <<EOF
+#!/bin/sh
+export PLAYWRIGHT_MCP_BROWSER=chromium
+export PLAYWRIGHT_MCP_EXECUTABLE_PATH=${chromium_executable}
+exec ${playwright_cli_real_bin} "\$@"
+EOF
+  chmod 755 "$playwright_cli_wrapper"
+  chown -R node:node "$playwright_cli_root"
+}
+
 ensure_runtime_tools
 prepare_gogcli_runtime
 prepare_npm_runtime
@@ -224,6 +262,7 @@ ensure_github_cli_runtime
 install_gogcli
 install_aws_cli
 install_aws_cdk
+install_playwright_cli
 install_cursor_agent_runtime
 
 exec env PATH="$PATH" GH_CONFIG_DIR="${GH_CONFIG_DIR:-}" su -m -s /bin/sh node -c 'exec "$@"' -- "$@"

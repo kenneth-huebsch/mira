@@ -58,6 +58,13 @@ Mira plans with workspace-local adaptations of `collaborative-planning`,
 `blueprint`, `risk-based-testing`, and `documentation-lookup`. Those skills
 shape the user-facing plan but never bypass the coding-harness adapter.
 
+UI-testing phases may declare the harness `browser` capability. The child
+Cursor CLI then receives a pinned `playwright-cli` command backed by Chromium
+inside Mira's image, with a unique headless in-memory session and artifacts
+under the ignored run record. Mira also has OpenClaw's managed browser tool for
+direct diagnostics, but coding verification remains child-owned. No browser
+profile, cookie state, screenshot, trace, or login is synced into this repo.
+
 Mira self-work is intentionally out of scope for this harness skill.
 Target clones use collision-free `owner--repo` paths and are not auto-pulled.
 Run records and phase specs remain under ignored `workspace/runtime/`.

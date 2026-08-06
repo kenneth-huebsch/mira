@@ -83,6 +83,15 @@ Mira's own infrastructure:
     omit `botToken`, `tokenFile`, and `token` from `channels.telegram`. Update
     `scripts/load-openclaw-env.sh`, Compose mappings, runtime docs, templates,
     and service checks together when introducing another environment variable.
+15. Browser QA uses the Chromium baked into Mira's image. Keep OpenClaw's
+    managed browser headless and isolated from personal profiles, and expose
+    the private `playwright-cli` wrapper to Cursor children only through an
+    explicit harness `browser` capability. The managed local-CDP profile permits
+    private-network navigation for local app testing because strict redirect
+    inspection is unavailable on that path; compensate with explicit phase
+    scope, no credentials, and no production mutation. Browser profiles,
+    cookies, storage state, screenshots, traces, and run artifacts remain
+    ignored runtime data.
 
 ## Memory Restore Notes
 
