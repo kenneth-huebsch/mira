@@ -44,7 +44,8 @@ For a well-scoped change that fits one autonomous run, delegate directly:
 ```bash
 python3 skills/coding-harness/coding_harness.py run \
   --target <path-or-repo> --prompt "<Kenny's coding request>" \
-  [--mode plan] [--verify "<cmd>"] [--timeout <secs>] [--dry-run]
+  [--mode plan] [--verification-json '<object>'] [--routing-json '<object>'] \
+  [--timeout <secs>] [--dry-run]
 ```
 
 Prefer structured checks with
@@ -52,6 +53,9 @@ Prefer structured checks with
 `--verify` is legacy shell compatibility and is denied unless the tracked
 policy explicitly permits shell verification. The adapter emits exactly one
 JSON object containing `harness_revision` and `runner_result`.
+Automatic cost routing requires structured verification. Supply `--routing-json`
+with `--verification-json`; the adapter creates a one-phase spec so the pinned
+runner validates the same routing contract used by larger plans.
 
 ## Larger work: plan, then approved phased execution
 
@@ -78,6 +82,13 @@ use the harness plan-then-approved-execution contract:
            "commands": [
              {"argv": ["python3", "-m", "pytest", "tests/foo.py"]}
            ]
+         },
+         "routing": {
+           "tier": "cheap",
+           "task_class": "mechanical",
+           "reason": "bounded transform with deterministic tests",
+           "risk_flags": [],
+           "allowed_paths": ["src/generated/**"]
          }
        },
        {
@@ -98,7 +109,13 @@ use the harness plan-then-approved-execution contract:
    shape. Use structured `verification.commands[].argv`; legacy `verify` shell
    strings are denied by Mira's policy. `done`, `verification`, `mode`
    (`autonomous`/`plan`), `review`, `review_threshold`, and `review_max_rounds`
-   are optional per-phase overrides. Add `"capabilities": ["browser"]` only to
+   are optional per-phase overrides. `routing` uses symbolic `cheap`, `default`,
+   or `reasoning` tiers mapped to concrete models by policy. `cheap` is
+   fail-closed: it requires an approved mechanical task class, autonomous mode,
+   no risk flags or capabilities, bounded exact paths or `directory/**`, and
+   deterministic verification. Architecture, diagnosis, security/auth,
+   persistence, concurrency, infrastructure, cross-system work, and ambiguity
+   must route upward. Add `"capabilities": ["browser"]` only to
    a phase that needs interactive browser QA; the harness provides a fresh
    headless session and cleans it up. Phase-specs live in ignored runtime, not
    the blueprint. Every child `prompt` and `done` value must omit delivery
@@ -179,6 +196,10 @@ python3 skills/coding-harness/coding_harness.py cancel <run-or-plan-id> --reason
 
 Resume never discards target work or reruns green phases. Drift fails closed;
 an interrupted implementation/fix needs explicit `--restart-current-stage`.
+If a child returns a typed `needs_parent` result, report its evidence and exact
+question. Do not auto-retry or auto-escalate. After resolving it, Mira may
+resume with `--restart-current-stage`, optional `--guidance "<clarification>"`,
+and an explicit stronger model flag when warranted.
 Cancellation from another session requires the same run store and a verifiable
 recorded process; otherwise the request is persisted for later reconciliation.
 The legacy `recover_phase.py` entrypoint is a non-mutating tombstone. It never

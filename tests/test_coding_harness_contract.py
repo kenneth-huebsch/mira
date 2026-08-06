@@ -99,6 +99,25 @@ else:
             "default_timeout_seconds": 3000,
             "cancellation_grace_seconds": 1,
             "allow_shell_verification": False,
+            "model_tiers": {
+                "cheap": {
+                    "implement": "composer-2.5-fast",
+                    "review": "composer-2.5-fast",
+                    "fix": "composer-2.5-fast",
+                },
+                "default": {
+                    "implement": "composer-2.5",
+                    "review": "gpt-5.5-medium",
+                    "fix": "composer-2.5",
+                },
+                "reasoning": {
+                    "implement": "gpt-5.5-medium",
+                    "review": "gpt-5.5-medium",
+                    "fix": "gpt-5.5-medium",
+                },
+            },
+            "cheap_task_classes": ["mechanical", "formatting", "boilerplate"],
+            "cheap_no_review_task_classes": ["mechanical", "formatting"],
             "default_branches": ["main", "master"],
             "guarded_commands": ["git push"],
         }))
@@ -474,6 +493,63 @@ else:
         self.assertEqual(parsed["schema_version"], 2)
         self.assertIn("commands", parsed["phases"][0]["verification"])
         self.assertEqual(combined["runner_result"]["plan"], parsed)
+
+    def test_structured_single_run_forwards_symbolic_routing_and_resume_guidance(self) -> None:
+        target = self.make_repo(self.workspace / "runtime/repos/acme--routed")
+        routing = {
+            "tier": "cheap",
+            "task_class": "mechanical",
+            "reason": "bounded fixture transform",
+            "risk_flags": [],
+            "allowed_paths": ["generated/**"],
+        }
+        args = self.module.build_parser().parse_args([
+            "run",
+            "--target", str(target),
+            "--prompt", "update generated output",
+            "--verification-json", json.dumps({
+                "commands": [{"argv": ["python3", "-m", "unittest"]}],
+            }),
+            "--routing-json", json.dumps(routing),
+        ])
+        combined, code = self.module.execute(args)
+        self.assertEqual(code, 0)
+        result = combined["runner_result"]
+        self.assertEqual(result["argv"][0], "run-plan")
+        self.assertEqual(result["plan"]["phases"][0]["routing"], routing)
+
+        resume = self.module.build_parser().parse_args([
+            "resume",
+            "record-1",
+            "--restart-current-stage",
+            "--guidance", "Use the existing generated-file convention.",
+            "--implement-model", "gpt-5.5-medium",
+        ])
+        combined, code = self.module.execute(resume)
+        self.assertEqual(code, 0)
+        argv = combined["runner_result"]["argv"]
+        self.assertEqual(
+            argv[argv.index("--guidance") + 1],
+            "Use the existing generated-file convention.",
+        )
+        self.assertEqual(argv[argv.index("--implement-model") + 1], "gpt-5.5-medium")
+
+    def test_symbolic_routing_requires_structured_verification(self) -> None:
+        target = self.make_repo(self.workspace / "runtime/repos/acme--bad-routing")
+        args = self.module.build_parser().parse_args([
+            "run",
+            "--target", str(target),
+            "--prompt", "task",
+            "--routing-json", json.dumps({
+                "tier": "cheap",
+                "task_class": "mechanical",
+                "reason": "missing verification",
+                "risk_flags": [],
+                "allowed_paths": ["x.py"],
+            }),
+        ])
+        with self.assertRaisesRegex(self.module.AdapterError, "requires --verification-json"):
+            self.module.execute(args)
 
     def test_run_plan_rejects_outside_symlink_and_directory_paths(self) -> None:
         plans = self.workspace / "runtime/coding-harness-plans"

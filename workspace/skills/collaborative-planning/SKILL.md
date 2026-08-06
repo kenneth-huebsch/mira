@@ -34,9 +34,19 @@ repository.
 4. Turn the agreed direction into a concise implementation plan with files or
    areas to inspect, ordered work, verification, risks, non-goals, and gated
    actions.
-5. For larger work, use `skills/blueprint/SKILL.md` to make each phase
+5. Assign each execution phase a symbolic model tier:
+   - `cheap` only for mechanical, formatting, or boilerplate work with exact
+     path scope, deterministic verification, no capabilities, and no material
+     ambiguity or risk flags;
+   - `default` for ordinary implementation, refactoring, tests, and debugging;
+   - `reasoning` for architecture, root-cause analysis, security/auth,
+     persistence or migrations, concurrency, infrastructure, cross-system
+     invariants, or ambiguous requirements.
+   Unknowns default upward. Record a concrete routing reason; never use a
+   separate classifier child just to choose the tier.
+6. For larger work, use `skills/blueprint/SKILL.md` to make each phase
    independently understandable and verifiable.
-6. Hand approved implementation to `skills/coding-harness/SKILL.md`.
+7. Hand approved implementation to `skills/coding-harness/SKILL.md`.
 
 ## Pressure-Test Proposals
 
