@@ -812,6 +812,11 @@ def repository_config_bytes(target: Path) -> bytes:
     return b"".join(chunks)
 
 
+def runner_config_bytes(target: Path) -> bytes:
+    """Match the pinned runner's persisted config checkpoint contract exactly."""
+    return git_bytes(target, "config", "--local", "--list", "--show-origin")
+
+
 def git_checkpoint(target: Path) -> dict[str, str]:
     object_dir = Path(finalization_git_output(target, "rev-parse", "--git-path", "objects"))
     if not object_dir.is_absolute():
@@ -841,7 +846,7 @@ def git_checkpoint(target: Path) -> dict[str, str]:
     if not git_dir.is_absolute():
         git_dir = target / git_dir
     index_bytes = (git_dir.resolve() / "index").read_bytes() if (git_dir.resolve() / "index").exists() else b""
-    config = repository_config_bytes(target)
+    config = runner_config_bytes(target)
     refs = git_bytes(target, "for-each-ref", "--format=%(refname)%00%(objectname)")
     digest = lambda value: hashlib.sha256(value).hexdigest()
     return {
@@ -1146,6 +1151,7 @@ def assert_repository_state(
     head: str,
     tree: str,
     config_sha256: str,
+    protected_config_sha256: str,
     refs: dict[str, str],
     origin: str,
     context: str,
@@ -1155,6 +1161,8 @@ def assert_repository_state(
         raise AdapterError(f"{context} changed branch, HEAD, or tree")
     if current["config_sha256"] != config_sha256:
         raise AdapterError(f"{context} changed repository config")
+    if hashlib.sha256(repository_config_bytes(target)).hexdigest() != protected_config_sha256:
+        raise AdapterError(f"{context} changed protected local/worktree config")
     if git_refs(target) != refs:
         raise AdapterError(f"{context} changed unexpected refs")
     if validated_origin(target) != origin:
@@ -1324,6 +1332,7 @@ def finalize_plan(plan_id: str, message: str, approve_commit: bool, approve_push
                 raise AdapterError(f"target is not on expected runner branch {expected_branch}")
             if current != final_checkpoint:
                 raise AdapterError("target branch/HEAD/config/refs/tree drifted from final green checkpoint")
+            protected_config_sha256 = hashlib.sha256(repository_config_bytes(target)).hexdigest()
             if current["head_oid"] != initial["head_oid"]:
                 raise AdapterError("target HEAD drifted from the recorded main baseline")
             origin = validated_origin(target)
@@ -1367,6 +1376,7 @@ def finalize_plan(plan_id: str, message: str, approve_commit: bool, approve_push
                 head=commit_oid,
                 tree=final_checkpoint["tree_oid"],
                 config_sha256=final_checkpoint["config_sha256"],
+                protected_config_sha256=protected_config_sha256,
                 refs=refs_after_commit,
                 origin=origin,
                 context="commit hook",
@@ -1396,6 +1406,7 @@ def finalize_plan(plan_id: str, message: str, approve_commit: bool, approve_push
                 head=commit_oid,
                 tree=final_checkpoint["tree_oid"],
                 config_sha256=final_checkpoint["config_sha256"],
+                protected_config_sha256=protected_config_sha256,
                 refs=refs_after_fast_forward,
                 origin=origin,
                 context="checkout/merge hook",

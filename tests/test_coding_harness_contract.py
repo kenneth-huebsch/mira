@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import os
@@ -558,6 +559,25 @@ else:
             "refs/heads/main:refs/heads/main",
         ])
         self.assertFalse(any("force" in arg for arg in push))
+
+    def test_git_checkpoint_matches_runner_config_digest_contract(self) -> None:
+        fixture = self.make_finalization_fixture("plan-runner-config-contract")
+        config = subprocess.run(
+            [
+                "git", "-C", str(fixture["target"]),
+                "config", "--local", "--list", "--show-origin",
+            ],
+            check=True,
+            capture_output=True,
+            env=self.module.finalization_git_environment(),
+        ).stdout
+
+        checkpoint = self.module.git_checkpoint(fixture["target"])
+
+        self.assertEqual(
+            checkpoint["config_sha256"],
+            hashlib.sha256(config).hexdigest(),
+        )
 
     def test_finalize_rejects_missing_message_and_approvals(self) -> None:
         fixture = self.make_finalization_fixture()
