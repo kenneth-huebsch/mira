@@ -24,9 +24,21 @@
     "TERM",
     "TMPDIR",
     "TZ",
-    "USER"
+    "USER",
+    "XDG_CONFIG_HOME"
   ],
-  "capability_environment": {},
+  "capability_environment": {
+    "aws": [
+      "AWS_CONFIG_FILE",
+      "AWS_PROFILE",
+      "AWS_REGION",
+      "AWS_DEFAULT_REGION",
+      "AWS_SHARED_CREDENTIALS_FILE"
+    ],
+    "browser": [
+      "PLAYWRIGHT_CLI_BIN"
+    ]
+  },
   "sensitive_path_patterns": [
     "(^|/)(\\.env($|\\.)|[^/]*\\.env$|credentials?($|[./])|secrets?($|[./]))",
     "\\.(pem|key|p12|pfx)$"

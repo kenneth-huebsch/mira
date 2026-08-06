@@ -9,8 +9,14 @@ Use this skill for coding work in repositories other than Mira's own repo/home.
 Do not use it for changes to `/home/kenny/mira`, Mira's OpenClaw runtime, or
 Mira behavior files; self-work belongs to a separate future skill.
 
-Mira is a thin router here. She resolves/clones the target repo and rejects
-self-work, then delegates all execution to the harness runner
+Mira owns the user-facing planning conversation. Use
+`skills/collaborative-planning/SKILL.md`, `skills/blueprint/SKILL.md`,
+`skills/risk-based-testing/SKILL.md`, and
+`skills/documentation-lookup/SKILL.md` when their triggers apply. These are
+Mira-adapted planning skills, not alternate execution routes.
+
+After planning, Mira is a thin execution router. She resolves/clones the target
+repo and rejects self-work, then delegates all execution to the harness runner
 (`runtime/repos/agent/scripts/agent_run.py`). The harness owns prompt
 construction, blocking child runs, the green/red gate, handoffs, the per-phase
 review-and-remediate loop, phased scheduling, and run records. Mira never
@@ -49,9 +55,9 @@ JSON object containing `harness_revision` and `runner_result`.
 
 ## Larger work: plan, then approved phased execution
 
-For work that is too large or risky for one run, follow the harness
-plan-then-approved-execution contract (`skills/phased-execution/SKILL.md` and
-`skills/collaborative-planning/SKILL.md` inside the refreshed harness checkout):
+For work that is too large or risky for one run, follow Mira's
+`skills/collaborative-planning/SKILL.md` and `skills/blueprint/SKILL.md`, then
+use the harness plan-then-approved-execution contract:
 
 1. **Plan interactively with Kenny.** Research the target, present options, and
    converge on an ordered set of phases. Each phase needs a clear done condition
@@ -67,6 +73,7 @@ plan-then-approved-execution contract (`skills/phased-execution/SKILL.md` and
          "id": "phase-1",
          "prompt": "...",
          "done": "...",
+         "capabilities": ["browser"],
          "verification": {
            "commands": [
              {"argv": ["python3", "-m", "pytest", "tests/foo.py"]}
@@ -91,24 +98,71 @@ plan-then-approved-execution contract (`skills/phased-execution/SKILL.md` and
    shape. Use structured `verification.commands[].argv`; legacy `verify` shell
    strings are denied by Mira's policy. `done`, `verification`, `mode`
    (`autonomous`/`plan`), `review`, `review_threshold`, and `review_max_rounds`
-   are optional per-phase overrides. Phase-specs live in ignored runtime, not the
-   blueprint.
-3. **Approval gate.** Show Kenny the phase-spec and get explicit approval. Do not
-   run an unapproved plan.
+   are optional per-phase overrides. Add `"capabilities": ["browser"]` only to
+   a phase that needs interactive browser QA; the harness provides a fresh
+   headless session and cleans it up. Phase-specs live in ignored runtime, not
+   the blueprint. Every child `prompt` and `done` value must omit delivery
+   actions, or mention them only as an explicit negation such as "Do not commit
+   or push." Never assign commit, push, PR, merge, publish, release, or deploy
+   work to a phase.
+3. **Preflight and approval gate.** Validate the phase-spec before asking for
+   approval:
+
+   ```bash
+   python3 skills/coding-harness/coding_harness.py preflight-plan \
+     --plan runtime/coding-harness-plans/<name>.json \
+     [--timeout <secs>] \
+     [--no-review] [--review-threshold {blocking,high,medium,low}] [--review-max-rounds N]
+   ```
+
+   Show Kenny the returned `normalized_spec` and `spec_sha256`, then get explicit
+   approval for that exact normalized plan. Any edit to the phase-spec after it
+   is shown invalidates approval: preflight it again, show the new normalized
+   spec/hash, and obtain fresh approval. Do not run an unapproved plan.
 4. **Delegate the approved plan:**
 
    ```bash
    python3 skills/coding-harness/coding_harness.py run-plan \
      --target <path-or-repo> --plan runtime/coding-harness-plans/<name>.json \
+     [--strip-completed <prior-plan-id>] \
      [--timeout <secs>] [--dry-run] \
      [--no-review] [--review-threshold {blocking,high,medium,low}] [--review-max-rounds N]
    ```
 
    The harness auto-schedules approved phases in sequence and stops on the first
-   red gate.
+   red gate. After revising a failed plan, pass the new full phase-spec with
+   `--strip-completed <prior-plan-id>` to create a fresh plan that skips only
+   the prior plan's validated, unchanged contiguous green prefix. The harness
+   records continuation provenance and fails closed on drift or tampering.
 
 Use `--dry-run` to build run records without invoking `agent` when you want to
 confirm the plan shape before a real launch.
+
+## Final delivery
+
+Child phases never commit or push, and there is no per-phase delivery. After the
+entire approved plan is terminal green, the parent may ask for fresh explicit
+approval to commit and push the exact recorded final tree directly to the
+target's configured `main` or `master`:
+
+```bash
+python3 skills/coding-harness/coding_harness.py finalize-plan <plan-id> \
+  --message "<explicit commit message>" --approve-commit --approve-push
+```
+
+`finalize-plan` is fail-closed. It accepts only a non-dry-run, non-no-op,
+complete green plan with no active run, validated green phase records (including
+continued prefixes), an unchanged clean baseline, the exact final runner branch
+and checkpoint, and an unchanged remote baseline. It stages only after all
+safety checks, commits with hooks enabled, fast-forwards the local default
+branch, and performs a non-force authenticated push. If any step fails, report
+the returned partial state exactly; never reset or auto-rollback.
+It rejects disabled or external `core.hooksPath` values, divergent push URLs,
+non-GitHub origins, and any unexpected config, ref, branch, origin, tree, or
+worktree mutation from commit/checkout/merge hooks.
+Finalization ignores global/system Git config, rejects local URL rewrites and
+tag-broadening push settings, and pushes only the explicit default-branch
+refspec to the validated canonical GitHub URL with tag following disabled.
 
 ## Inspecting runs
 
@@ -127,6 +181,9 @@ Resume never discards target work or reruns green phases. Drift fails closed;
 an interrupted implementation/fix needs explicit `--restart-current-stage`.
 Cancellation from another session requires the same run store and a verifiable
 recorded process; otherwise the request is persisted for later reconciliation.
+The legacy `recover_phase.py` entrypoint is a non-mutating tombstone. It never
+stages, commits, or pushes; use `status`/`show`, normal continuation, and
+whole-plan `finalize-plan` instead.
 
 ## Reporting back
 
@@ -162,5 +219,6 @@ hard network isolation. External mutations remain explicit approval gates.
 
 Do not push, deploy, open PRs, merge, rotate credentials, or mutate external
 systems unless Kenny explicitly asks and the harness run reports that approval
-gate clearly. The harness's child runs never take these actions on their own;
-they remain parent-owned and require explicit approval.
+gate clearly. Child prompts and done conditions never contain those actions
+except explicit negation. The parent owns final delivery only after the whole
+plan is green, with fresh finalization approval; never push per phase.

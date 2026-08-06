@@ -2,9 +2,9 @@
 set -eu
 
 ensure_runtime_tools() {
-  if ! command -v jq >/dev/null 2>&1 || ! command -v rg >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1 || ! command -v git >/dev/null 2>&1 || ! command -v bash >/dev/null 2>&1 || ! python3 -m pip --version >/dev/null 2>&1 || ! python3 -c 'import requests' >/dev/null 2>&1; then
+  if ! command -v jq >/dev/null 2>&1 || ! command -v rg >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1 || ! command -v git >/dev/null 2>&1 || ! command -v bash >/dev/null 2>&1 || ! command -v unzip >/dev/null 2>&1 || ! python3 -m pip --version >/dev/null 2>&1 || ! python3 -c 'import requests' >/dev/null 2>&1; then
     apt-get update -qq >/dev/null
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends jq ripgrep curl git bash ca-certificates python3-pip python3-requests >/dev/null
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends jq ripgrep curl git bash unzip ca-certificates python3-pip python3-requests >/dev/null
   fi
 }
 
@@ -141,6 +141,118 @@ install_gogcli() {
   export PATH="${gogcli_bin_dir}:${PATH}"
 }
 
+install_aws_cli() {
+  aws_cli_version="${OPENCLAW_AWS_CLI_VERSION:-2.36.14}"
+  aws_cli_root="${OPENCLAW_AWS_CLI_ROOT:-/home/node/.openclaw/tools/aws-cli}"
+  aws_cli_bin_dir="${OPENCLAW_AWS_CLI_BIN_DIR:-/home/node/.openclaw/bin}"
+  aws_cli_install_dir="${aws_cli_root}/${aws_cli_version}"
+  aws_cli_bin="${aws_cli_install_dir}/v2/current/bin/aws"
+
+  case "$(dpkg --print-architecture)" in
+    amd64)
+      aws_cli_arch="x86_64"
+      aws_cli_checksum="${OPENCLAW_AWS_CLI_SHA256_X86_64:-43b34875482244039716cc3725d1f60e7d47ef3cfb2a19e114759a46db24dc30}"
+      ;;
+    arm64)
+      aws_cli_arch="aarch64"
+      aws_cli_checksum="${OPENCLAW_AWS_CLI_SHA256_AARCH64:-61e2fb72b36dc0ad98912b3a7b7469c886b90ea703f1096428a152ab09babd8a}"
+      ;;
+    *)
+      echo "Unsupported architecture for AWS CLI: $(dpkg --print-architecture)" >&2
+      exit 1
+      ;;
+  esac
+
+  mkdir -p "$aws_cli_root" "$aws_cli_bin_dir"
+
+  if [ ! -x "$aws_cli_bin" ]; then
+    aws_cli_archive="awscli-exe-linux-${aws_cli_arch}-${aws_cli_version}.zip"
+    aws_cli_url="https://awscli.amazonaws.com/${aws_cli_archive}"
+    aws_cli_tmpdir="$(mktemp -d)"
+    trap 'rm -rf "$aws_cli_tmpdir"' EXIT HUP INT TERM
+
+    curl -fsSL "$aws_cli_url" -o "${aws_cli_tmpdir}/${aws_cli_archive}"
+    printf '%s  %s\n' "$aws_cli_checksum" "${aws_cli_tmpdir}/${aws_cli_archive}" | sha256sum -c - >/dev/null
+    unzip -q "${aws_cli_tmpdir}/${aws_cli_archive}" -d "$aws_cli_tmpdir"
+
+    rm -rf "$aws_cli_install_dir"
+    "${aws_cli_tmpdir}/aws/install" \
+      --install-dir "$aws_cli_install_dir" \
+      --bin-dir "${aws_cli_install_dir}/bin"
+
+    rm -rf "$aws_cli_tmpdir"
+    trap - EXIT HUP INT TERM
+  fi
+
+  ln -sfn "$aws_cli_bin" "${aws_cli_bin_dir}/aws"
+  ln -sfn "$aws_cli_bin" /usr/local/bin/aws
+  chown -R node:node "$aws_cli_root" "$aws_cli_bin_dir"
+  export PATH="${aws_cli_bin_dir}:${PATH}"
+}
+
+install_aws_cdk() {
+  aws_cdk_version="${OPENCLAW_AWS_CDK_VERSION:-2.1134.0}"
+  aws_cdk_root="${OPENCLAW_AWS_CDK_ROOT:-/home/node/.openclaw/tools/aws-cdk}"
+  aws_cdk_bin_dir="${OPENCLAW_AWS_CDK_BIN_DIR:-/home/node/.openclaw/bin}"
+  aws_cdk_install_dir="${aws_cdk_root}/${aws_cdk_version}"
+  aws_cdk_bin="${aws_cdk_install_dir}/bin/cdk"
+
+  mkdir -p "$aws_cdk_root" "$aws_cdk_bin_dir"
+  chown -R node:node "$aws_cdk_root" "$aws_cdk_bin_dir"
+
+  if [ ! -x "$aws_cdk_bin" ]; then
+    rm -rf "$aws_cdk_install_dir"
+    mkdir -p "$aws_cdk_install_dir"
+    chown -R node:node "$aws_cdk_install_dir"
+    su -m -s /bin/sh node -c \
+      'npm install --global --prefix "$1" --no-audit --no-fund "$2"' \
+      sh "$aws_cdk_install_dir" "aws-cdk@${aws_cdk_version}"
+  fi
+
+  ln -sfn "$aws_cdk_bin" "${aws_cdk_bin_dir}/cdk"
+  ln -sfn "$aws_cdk_bin" /usr/local/bin/cdk
+  chown -R node:node "$aws_cdk_root" "$aws_cdk_bin_dir"
+  export PATH="${aws_cdk_bin_dir}:${PATH}"
+}
+
+install_playwright_cli() {
+  playwright_cli_version="${OPENCLAW_PLAYWRIGHT_CLI_VERSION:-0.1.17}"
+  playwright_cli_root="${OPENCLAW_PLAYWRIGHT_CLI_ROOT:-/home/node/.openclaw/tools/playwright-cli}"
+  playwright_cli_install_dir="${playwright_cli_root}/${playwright_cli_version}"
+  playwright_cli_real_bin="${playwright_cli_install_dir}/bin/playwright-cli"
+  playwright_cli_wrapper="${playwright_cli_root}/playwright-cli"
+
+  mkdir -p "$playwright_cli_root"
+  chown -R node:node "$playwright_cli_root"
+
+  if [ ! -x "$playwright_cli_real_bin" ]; then
+    rm -rf "$playwright_cli_install_dir"
+    mkdir -p "$playwright_cli_install_dir"
+    chown -R node:node "$playwright_cli_install_dir"
+    su -m -s /bin/sh node -c \
+      'npm install --global --prefix "$1" --no-audit --no-fund "$2"' \
+      sh "$playwright_cli_install_dir" "@playwright/cli@${playwright_cli_version}"
+  fi
+
+  chromium_executable="$(
+    cd /app
+    node -e 'process.stdout.write(require("playwright-core").chromium.executablePath())'
+  )"
+  if [ ! -x "$chromium_executable" ]; then
+    echo "Playwright Chromium is missing; rebuild with OPENCLAW_INSTALL_BROWSER=1" >&2
+    exit 1
+  fi
+
+  cat > "$playwright_cli_wrapper" <<EOF
+#!/bin/sh
+export PLAYWRIGHT_MCP_BROWSER=chromium
+export PLAYWRIGHT_MCP_EXECUTABLE_PATH=${chromium_executable}
+exec ${playwright_cli_real_bin} "\$@"
+EOF
+  chmod 755 "$playwright_cli_wrapper"
+  chown -R node:node "$playwright_cli_root"
+}
+
 ensure_runtime_tools
 prepare_gogcli_runtime
 prepare_npm_runtime
@@ -148,6 +260,9 @@ ensure_python_requests_runtime
 prepare_gh_runtime
 ensure_github_cli_runtime
 install_gogcli
+install_aws_cli
+install_aws_cdk
+install_playwright_cli
 install_cursor_agent_runtime
 
 exec env PATH="$PATH" GH_CONFIG_DIR="${GH_CONFIG_DIR:-}" su -m -s /bin/sh node -c 'exec "$@"' -- "$@"

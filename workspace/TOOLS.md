@@ -16,10 +16,20 @@ prepare the same command surface. Live credentials and tokens remain under
 ## Coding Harness
 
 Mira routes non-Mira coding requests through Kenny's private agent harness. The
-adapter is a thin router: it resolves/clones the target and rejects Mira
-self-work, then delegates all execution to the harness runner
-`scripts/agent_run.py`. The harness owns prompts, the green/red gate, handoffs,
-the per-phase review-and-remediate loop, phased scheduling, and run records.
+live agent owns the user-facing planning conversation using the workspace
+planning skills when their triggers apply:
+
+- `skills/collaborative-planning/SKILL.md`
+- `skills/blueprint/SKILL.md`
+- `skills/risk-based-testing/SKILL.md`
+- `skills/documentation-lookup/SKILL.md`
+
+These are adapted planning guidance, not alternate execution routes. After a
+plan is approved, the adapter is a thin router: it resolves/clones the target
+and rejects Mira self-work, then delegates all execution to the harness runner
+`scripts/agent_run.py`. The harness owns execution prompts, the green/red gate,
+handoffs, the per-phase review-and-remediate loop, phased scheduling, and run
+records.
 
 - Harness repo: `https://github.com/kenneth-huebsch/agent.git`
 - Immutable revision and contract: `skills/coding-harness/harness.lock.json`
@@ -36,7 +46,9 @@ Command surface:
 python3 skills/coding-harness/coding_harness.py refresh-harness
 python3 skills/coding-harness/coding_harness.py check-config
 python3 skills/coding-harness/coding_harness.py run --target <path-or-repo> --prompt "<task>" [--mode plan] [--verification-json '<object>'|--verify "<legacy-shell-cmd>"] [--timeout <secs>] [--dry-run] [--no-review|--review-threshold {blocking,high,medium,low}|--review-max-rounds N] [--implement-model M|--plan-model M|--review-model M|--fix-model M]
-python3 skills/coding-harness/coding_harness.py run-plan --target <path-or-repo> --plan runtime/coding-harness-plans/<name>.json [--dry-run] [...]
+python3 skills/coding-harness/coding_harness.py preflight-plan --plan runtime/coding-harness-plans/<name>.json [--timeout <secs>] [--no-review] [--review-threshold {blocking,high,medium,low}] [--review-max-rounds N]
+python3 skills/coding-harness/coding_harness.py run-plan --target <path-or-repo> --plan runtime/coding-harness-plans/<name>.json [--strip-completed <prior-plan-id>] [--dry-run] [...]
+python3 skills/coding-harness/coding_harness.py finalize-plan <plan-id> --message "<explicit commit message>" --approve-commit --approve-push
 python3 skills/coding-harness/coding_harness.py resume <run-or-plan-id> [--restart-current-stage]
 python3 skills/coding-harness/coding_harness.py cancel <run-or-plan-id> --reason "<reason>"
 python3 skills/coding-harness/coding_harness.py list
@@ -44,10 +56,16 @@ python3 skills/coding-harness/coding_harness.py status <run-id>
 python3 skills/coding-harness/coding_harness.py show <run-id>
 ```
 
-- Larger work follows plan-then-approved-execution: plan interactively, author a
-  phase-spec JSON under ignored runtime (`runtime/coding-harness-plans/<name>.json`),
-  get explicit approval, then `run-plan`. Phase-specs and run records stay in
-  runtime, never in the blueprint.
+- Larger work follows plan-then-approved-execution: Mira researches and plans
+  interactively and authors a phase-spec JSON under ignored runtime
+  (`runtime/coding-harness-plans/<name>.json`). Child prompts and done conditions
+  omit delivery actions or state them only as explicit negations; they never
+  assign commit, push, PR, merge, publish, release, or deploy work. Mira runs
+  `preflight-plan`, shows Kenny the returned normalized spec and `spec_sha256`,
+  gets explicit approval for that exact result, then delegates it with
+  `run-plan`. Any phase-spec file edit invalidates approval and requires a new
+  preflight, display, and approval. Phase-specs and run records stay in runtime,
+  never in the blueprint.
 - The adapter sets `AGENT_RUN_HOME=runtime/coding-harness-runs` so run records
   land under Mira's ignored runtime, and forwards verification, policy,
   model, resume, cancellation, review, and timeout options. Phase specs remain
@@ -68,6 +86,10 @@ python3 skills/coding-harness/coding_harness.py show <run-id>
 - Resume preserves partial work. Interrupted mutating stages require
   `--restart-current-stage`; drift fails closed and completed green phases do
   not rerun.
+- To retry a terminal red plan after revising its full phase-spec, use
+  `run-plan --strip-completed <prior-plan-id>`. The runner creates a fresh
+  immutable plan, validates the prior records and target under lock, skips only
+  the unchanged contiguous green prefix, and records continuation provenance.
 - The adapter and runner enforce pin, path, environment, record, and Git
   invariants. Prompts, hooks, and command wrappers are defense in depth, not
   hard network isolation; direct executables or network-capable code may bypass
@@ -76,6 +98,26 @@ python3 skills/coding-harness/coding_harness.py show <run-id>
   directory before delegation and accepts only regular, canonical,
   non-symlink files below `runtime/coding-harness-plans`. The harness checkout
   and every repository nested beneath it are denied targets.
+- `preflight-plan` enforces the same path boundary and delegates normalization
+  and schema validation to the pinned runner. It forwards policy, review flags,
+  and the 3000-second policy timeout when none is supplied.
+- Child phases never deliver changes and there is no per-phase push. Only after
+  the whole non-dry-run plan is terminal green may the parent use
+  `finalize-plan` with fresh commit and push approvals plus an explicit message.
+  Finalization validates every phase (including continued prefixes), canonical
+  records, the clean default-branch baseline, the exact final checkpoint,
+  config/refs/tree evidence, and remote drift before staging. It commits with
+  hooks enabled, fast-forwards local `main`/`master`, and pushes without force
+  through the authenticated Git helper. On failure, report exact partial state
+  and never reset or auto-rollback. It rejects disabled/external hooks paths,
+  non-GitHub or divergent fetch/push origins, and unexpected hook mutations to
+  config, refs, branches, origins, trees, or the worktree.
+  Global/system Git config is disabled for finalization; local URL rewrites and
+  tag-broadening push settings are rejected, and the push uses only an explicit
+  default-branch refspec with tag following disabled.
+- `recover_phase.py` is retained only as a fail-closed, non-mutating tombstone.
+  It never stages, commits, or pushes; inspect with `status`/`show` and use the
+  normal full-plan continuation/finalization path.
 - Delegation scrubs provider and integration secrets while fixing
   `XDG_CONFIG_HOME=/home/node/.openclaw` and
   `GH_CONFIG_DIR=/home/node/.openclaw/gh`, so authenticated CLI state remains
@@ -89,6 +131,32 @@ Runtime prerequisites: `gh auth status` must work, `gh repo view
 kenneth-huebsch/agent` must confirm private harness access, and `agent status`
 must confirm Cursor CLI authentication. Use
 `skills/cursor-agent-login/SKILL.md` when Cursor auth is missing.
+
+### Browser QA
+
+For coding work, the Cursor CLI child owns browser testing because it has the
+target checkout and can fix and retest the same code. Add
+`"capabilities": ["browser"]` only to phases that need interactive UI QA. The
+harness exposes its pinned `playwright-cli` command, assigns a unique headless
+in-memory session, writes screenshots/traces below that phase's ignored run
+record, and closes the session on every exit path.
+
+Prefer a target repository's existing Playwright tests when they cover the
+flow. Use interactive browser QA for local, preview, or staging behavior that
+needs snapshots, clicks, responsive inspection, console/network checks, or
+visual evidence. Do not use `npx` to fetch a second browser tool, request a
+persistent profile, save storage state, attach a personal browser, enter real
+production credentials, or mutate production data.
+
+Mira's direct OpenClaw `browser` tool is available for a harmless inspection or
+diagnostic that does not belong in a coding phase. Use the managed `openclaw`
+profile, not `user` or `chrome`, and clear its cookies and local/session storage
+before stopping it when the direct task ends. Coding verification still belongs
+to the browser-capable child. The managed profile permits private-network
+navigation because local application testing requires it and OpenClaw's
+local-CDP path cannot enforce strict redirect-hop inspection. Treat every
+reachable private endpoint as sensitive and navigate only to the requested
+local, preview, or staging target.
 
 ## Memory
 
@@ -142,10 +210,9 @@ cd /home/kenny/mira
 ./scripts/openclaw-cli.sh plugins list
 ```
 
-Memory service secrets belong in ignored per-instance files under
-`.openclaw/secrets/`, not in tracked config, docs, templates, shell startup
-files, or memory notes. Mira does not use third-party cloud memory services by
-default.
+Memory service secrets belong in `~/.openclaw/.env`, not in tracked
+config, docs, templates, shell startup files, or memory notes. Mira does not
+use third-party cloud memory services by default.
 
 ### Git-Notes Cold Store
 
@@ -180,10 +247,10 @@ N8N_BASE_URL=https://your-n8n.example
 ```
 
 On this host, keep the live values in ignored runtime state at
-`.openclaw/secrets/n8n.env`. `scripts/start-openclaw.sh` and
-`scripts/openclaw-cli.sh` load that file and pass `N8N_API_KEY` and
-`N8N_BASE_URL` into the OpenClaw gateway and CLI containers. The API key must
-not be stored in tracked docs, memory, shell startup files, or workflow exports.
+`~/.openclaw/.env`. The host wrappers load that file and pass `N8N_API_KEY`
+and `N8N_BASE_URL` into the OpenClaw gateway and CLI containers. The API key
+must not be stored in tracked docs, memory, shell startup files, or workflow
+exports.
 
 n8n intentionally uses the workspace skill-plus-helper pattern, not a plugin
 tool. For Kenny-approved Telegram DM work, Mira may read the skill and run the
@@ -206,6 +273,76 @@ Listing and inspecting workflows and executions is read-only. Creating,
 updating, activating, deactivating, deleting, manually executing workflows, or
 changing server infrastructure can affect external systems; get explicit
 approval before taking those actions.
+
+## WordPress Page Updater
+
+Mira's WordPress access is intentionally limited by her helper to listing,
+reading, and updating the content of existing pages. This uses the standard
+WordPress REST API, not MCP.
+
+Runtime configuration comes from `~/.openclaw/.env`:
+
+```bash
+WORDPRESS_BASE_URL=https://your-wordpress-site.example
+WORDPRESS_USERNAME=dedicated-mira-editor
+WORDPRESS_APP_PASSWORD=...
+```
+
+The dedicated WordPress account needs the Editor role because WordPress Authors
+cannot edit pages.
+
+Inside the gateway container:
+
+```bash
+cd /home/node/.openclaw/workspace/skills/wordpress-page-updater
+python3 scripts/wordpress_page.py --pretty check
+python3 scripts/wordpress_page.py --pretty list
+python3 scripts/wordpress_page.py --pretty list --search "Page title"
+python3 scripts/wordpress_page.py --pretty get --page-id <id>
+python3 scripts/wordpress_page.py --pretty update \
+  --page-id <id> \
+  --content-file /home/node/.openclaw/workspace/runtime/wordpress-page-updater/proposed-content.html \
+  --expected-modified-gmt "<value-from-get>"
+```
+
+The helper accepts page IDs but stays within the WordPress pages API and updates
+only `content`. Do not use another HTTP client to bypass it. Listing and
+fetching are read-only. Updating changes the published page immediately: show a
+preview/diff and get fresh explicit approval immediately before the command. A
+stale `modified_gmt` fails closed so a newer edit is not silently overwritten.
+
+### Addicks/Barker PDF Case Updates
+
+Use `skills/addicks-barker-case-updates/SKILL.md` when Kenny supplies a PDF for
+the Addicks/Barker litigation update page. This specialized workflow is fixed
+to page ID `3041`, its canonical URL, and `el_id="updates-column"`.
+
+Use OpenClaw's built-in `pdf` tool to transcribe the date, direction, title,
+and body. Its extraction fallback is provided by the enabled bundled
+`document-extract` plugin and the configured OpenRouter `pdfModel`. The tool
+accepts local paths, URLs, and `media://inbound/...` references. Preserve body
+wording; remove only document furniture and PDF line wrapping as defined in
+the skill.
+
+Stage a validated snippet without changing WordPress:
+
+```bash
+cd /home/node/.openclaw/workspace/skills/addicks-barker-case-updates
+python3 scripts/case_update.py --pretty stage \
+  --snippet-file /home/node/.openclaw/workspace/runtime/addicks-barker-case-updates/draft-snippet.html
+```
+
+After showing the complete snippet and structural insertion preview, get fresh
+explicit approval. Publish only that hashed staged artifact:
+
+```bash
+python3 scripts/case_update.py --pretty publish \
+  --manifest /home/node/.openclaw/workspace/runtime/addicks-barker-case-updates/manifest.json
+```
+
+Staging is local and non-mutating. Publishing changes the live page. If page
+content, modification time, target URL, anchor, manifest, or staged hashes
+drift, fail closed and restage.
 
 ## Gmail With `gog`
 
@@ -241,3 +378,87 @@ hidden reasoning.
 
 If Kenny asks for scheduled behavior, create it intentionally through the OpenClaw cron CLI, document the
 new prompt and dependencies, and update the sync/restore manifest.
+
+## AWS
+
+Mira can interact with AWS from the container using the Node AWS SDK, the
+official AWS CLI v2, or the AWS CDK CLI.
+
+### Credential discovery and profiles
+
+OpenClaw's host env security policy blocks `AWS_ACCESS_KEY_ID`,
+`AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, and `AWS_SECURITY_TOKEN` from
+service dotenv loading and exec inheritance. Do not store AWS access keys in
+`.env` or generate a second credentials file from it.
+
+Mira uses AWS's native shared files:
+
+- Credentials: `~/.openclaw/aws/credentials`, mode `600`
+- Profile configuration: `~/.openclaw/aws/config`, mode `600`
+- Container paths are selected by inherited `AWS_SHARED_CREDENTIALS_FILE` and
+  `AWS_CONFIG_FILE`; no `~/.aws` symlinks are required
+- `coding-agent` is the default profile for read-only inspection and CDK
+- `locks-publish` assumes the short-lived `LocksAppPublishRole`
+
+```bash
+# Confirm the long-lived bootstrap identity
+AWS_PROFILE=coding-agent aws sts get-caller-identity --output json
+
+# Confirm the short-lived publishing identity
+AWS_PROFILE=locks-publish aws sts get-caller-identity --output json
+```
+
+The `coding-agent` IAM user has read-only Locks access and may assume only the
+exact Locks application, publishing, and CDK bootstrap roles. CDK uses the
+stack synthesizer and bootstrap metadata to select deployment roles.
+
+### CLI and CDK installation
+
+The entrypoint idempotently installs the official AWS CLI v2 `2.36.14` and
+`aws-cdk` `2.1134.0` into persistent versioned directories:
+
+```bash
+/home/node/.openclaw/tools/aws-cli/2.36.14
+/home/node/.openclaw/tools/aws-cdk/2.1134.0
+```
+
+The entrypoint links `aws` and `cdk` through both
+`/home/node/.openclaw/bin` and `/usr/local/bin`. The AWS CLI archive is selected
+for Debian `amd64` or `arm64` and checksum-verified before extraction. These
+tools survive container replacement because their versioned installs live
+under the persistent OpenClaw home.
+
+Repository-local npm scripts and `npx` still naturally resolve a project's
+local `node_modules/.bin` before the global fallback, so projects can retain
+their own CDK pin.
+
+### Identity and permissions
+
+The dedicated IAM user is `coding-agent` in account `580956784928`. Do not
+store credentials in `.env`, tracked files, memory notes, or shell startup. AWS
+mutations (CDK deploys, DynamoDB writes, SSM changes, Cognito mutations)
+require explicit approval.
+
+For Locks operations:
+
+```bash
+# Foundation or application infrastructure. CDK assumes the scoped role.
+AWS_PROFILE=coding-agent npm run deploy:oidc
+AWS_PROFILE=coding-agent npm run deploy:infrastructure
+
+# Static assets and seed data use a one-hour publishing-role session.
+AWS_PROFILE=locks-publish npm run deploy:app
+AWS_PROFILE=locks-publish npm run seed
+```
+
+Run the account guard, tests, synthesis, and targeted CDK diff before
+infrastructure deployment. Show the diff and obtain fresh approval before
+mutating AWS. Follow the target repository's infrastructure skill.
+
+### Harness AWS capability
+
+Phases that need AWS access should declare `"capabilities": ["aws"]` in the
+phase spec. The harness forwards only profile selection, region, and the
+trusted AWS config/credential file paths. Raw AWS access-key variables are not
+forwarded. A phase may select `locks-publish` for an approved publish or seed;
+otherwise retain `coding-agent`.
