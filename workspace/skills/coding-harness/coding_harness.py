@@ -4,17 +4,20 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import hashlib
 import json
 import os
 import re
 import shlex
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 SKILL_DIR = Path(__file__).resolve().parent
 LOCK_PATH = Path(os.environ.get("MIRA_HARNESS_LOCK", SKILL_DIR / "harness.lock.json"))
@@ -33,6 +36,7 @@ MODEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,127}$")
 ENV_KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 CAPABILITY_RE = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
 BRANCH_RE = re.compile(r"^(?![./])(?!.*(?:\.\.|//|@\{|\\))(?!.*[/.]$)[A-Za-z0-9._/-]+$")
+PLAN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 POLICY_FIELDS = {
     "schema_version", "allowed_target_roots", "inherited_environment_keys",
     "capability_environment", "sensitive_path_patterns", "default_timeout_seconds",
@@ -45,6 +49,12 @@ RUNNER_POLICY_PATH = RUNTIME / ".coding-harness-runner-policy.json"
 
 class AdapterError(RuntimeError):
     pass
+
+
+class FinalizationError(AdapterError):
+    def __init__(self, message: str, partial_state: dict[str, Any]):
+        super().__init__(message)
+        self.partial_state = partial_state
 
 
 class JsonArgumentParser(argparse.ArgumentParser):
@@ -322,6 +332,38 @@ def persistent_cli_environment() -> dict[str, str]:
     return inherited
 
 
+def finalization_git_environment() -> dict[str, str]:
+    env = persistent_cli_environment()
+    env.update({
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": os.devnull,
+    })
+    return env
+
+
+def finalization_git_output(repo: Path, *args: str) -> str:
+    result = command(
+        ["git", "-C", str(repo), *args],
+        check=False,
+        env=finalization_git_environment(),
+    )
+    if result.returncode:
+        raise AdapterError((result.stderr or result.stdout).strip() or f"git {' '.join(args)} failed")
+    return result.stdout.strip()
+
+
+def finalization_git_with_auth(
+    args: list[str],
+    *,
+    check: bool = True,
+) -> subprocess.CompletedProcess[str]:
+    return command(
+        ["git", "-c", "credential.helper=!gh auth git-credential", *args],
+        check=check,
+        env=finalization_git_environment(),
+    )
+
+
 def allowed_roots(policy: dict[str, Any]) -> list[Path]:
     return [Path(item).expanduser().resolve() for item in policy["allowed_target_roots"]]
 
@@ -409,7 +451,7 @@ def delegate(subcommand: str, extra: list[str], policy_path: Path = POLICY_PATH)
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
     runner = HARNESS_DIR / "scripts" / "agent_run.py"
     argv = [sys.executable, str(runner), subcommand, *extra]
-    if subcommand in {"run", "run-plan", "resume", "cancel"} and "--policy" not in extra:
+    if subcommand in {"run", "run-plan", "validate-plan", "resume", "cancel"} and "--policy" not in extra:
         argv += ["--policy", str(runner_policy_path)]
     process = subprocess.Popen(
         argv,
@@ -521,6 +563,17 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("--plan", required=True)
     plan.add_argument("--strip-completed", metavar="PRIOR_PLAN_ID")
     add_common(plan)
+    preflight = subs.add_parser("preflight-plan")
+    preflight.add_argument("--plan", required=True)
+    preflight.add_argument("--timeout", type=positive_int)
+    preflight.add_argument("--no-review", action="store_true")
+    preflight.add_argument("--review-threshold", choices=("blocking", "high", "medium", "low"))
+    preflight.add_argument("--review-max-rounds", type=positive_int)
+    finalize = subs.add_parser("finalize-plan")
+    finalize.add_argument("plan_id")
+    finalize.add_argument("--message", required=True)
+    finalize.add_argument("--approve-commit", action="store_true")
+    finalize.add_argument("--approve-push", action="store_true")
     for name in ("status", "show"):
         child = subs.add_parser(name)
         child.add_argument("record_id")
@@ -568,6 +621,814 @@ def successful_check(argv: list[str]) -> bool:
     return result.returncode == 0
 
 
+def read_strict_json_file(path: Path, context: str) -> dict[str, Any]:
+    """Read a regular record file without following a final-component symlink."""
+    parent = path.parent.resolve(strict=True)
+    if has_symlink_component(parent) or path.parent.resolve(strict=True) != parent:
+        raise AdapterError(f"{context} parent is not canonical")
+    directory_fd = os.open(parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        fd = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=directory_fd)
+        try:
+            before = os.fstat(fd)
+            if not stat.S_ISREG(before.st_mode):
+                raise AdapterError(f"{context} must be a regular file")
+            with os.fdopen(fd, "r", encoding="utf-8", closefd=False) as stream:
+                text = stream.read()
+            after = os.fstat(fd)
+            current = os.stat(path.name, dir_fd=directory_fd, follow_symlinks=False)
+            if (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino) or (
+                before.st_dev, before.st_ino
+            ) != (current.st_dev, current.st_ino):
+                raise AdapterError(f"{context} changed while being read")
+        finally:
+            os.close(fd)
+    except (OSError, UnicodeDecodeError) as exc:
+        raise AdapterError(f"cannot read {context}: {exc}") from exc
+    finally:
+        os.close(directory_fd)
+    value = strict_json(text, context)
+    if not isinstance(value, dict):
+        raise AdapterError(f"{context} must be a JSON object")
+    return value
+
+
+def canonical_json_sha256(value: Any) -> str:
+    encoded = (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def directory_identity(path: Path) -> tuple[int, int]:
+    value = os.stat(path, follow_symlinks=False)
+    if not stat.S_ISDIR(value.st_mode):
+        raise AdapterError(f"record path is not a directory: {path}")
+    return value.st_dev, value.st_ino
+
+
+def open_directory_path(path: Path) -> int:
+    """Open every absolute directory component without following symlinks."""
+    if not path.is_absolute():
+        raise AdapterError("record root must be absolute")
+    fd = os.open("/", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        for part in path.parts[1:]:
+            child = os.open(
+                part,
+                os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                dir_fd=fd,
+            )
+            os.close(fd)
+            fd = child
+        return fd
+    except OSError as exc:
+        os.close(fd)
+        raise AdapterError(f"cannot safely open record directory {path}: {exc}") from exc
+
+
+def open_record_directory(record_id: str) -> tuple[int, int, Path]:
+    if not isinstance(record_id, str) or not record_id:
+        raise AdapterError("record ID is invalid")
+    parts = record_id.split("/")
+    if len(parts) not in {1, 2} or any(not PLAN_ID_RE.fullmatch(part) for part in parts):
+        raise AdapterError("record ID is invalid")
+    runs_fd = open_directory_path(RUNS_DIR)
+    current_fd = os.dup(runs_fd)
+    try:
+        for part in parts:
+            child = os.open(
+                part,
+                os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                dir_fd=current_fd,
+            )
+            os.close(current_fd)
+            current_fd = child
+        return runs_fd, current_fd, RUNS_DIR.joinpath(*parts)
+    except OSError as exc:
+        os.close(current_fd)
+        os.close(runs_fd)
+        raise AdapterError(f"cannot safely open record {record_id!r}: {exc}") from exc
+
+
+def read_json_at(directory_fd: int, name: str, context: str) -> dict[str, Any]:
+    if "/" in name or name in {"", ".", ".."}:
+        raise AdapterError(f"{context} filename is invalid")
+    try:
+        fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=directory_fd)
+        try:
+            before = os.fstat(fd)
+            if not stat.S_ISREG(before.st_mode):
+                raise AdapterError(f"{context} must be a regular file")
+            with os.fdopen(fd, "r", encoding="utf-8", closefd=False) as stream:
+                text = stream.read()
+            after = os.fstat(fd)
+            current = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+            if (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino) or (
+                before.st_dev, before.st_ino
+            ) != (current.st_dev, current.st_ino):
+                raise AdapterError(f"{context} changed while being read")
+        finally:
+            os.close(fd)
+    except (OSError, UnicodeDecodeError) as exc:
+        raise AdapterError(f"cannot safely read {context}: {exc}") from exc
+    value = strict_json(text, context)
+    if not isinstance(value, dict):
+        raise AdapterError(f"{context} must be a JSON object")
+    return value
+
+
+def verify_record_directory_identity(
+    parent_fd: int,
+    name: str,
+    directory_fd: int,
+    context: str,
+) -> None:
+    opened = os.fstat(directory_fd)
+    current = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+    if not stat.S_ISDIR(current.st_mode) or (
+        opened.st_dev, opened.st_ino
+    ) != (current.st_dev, current.st_ino):
+        raise AdapterError(f"{context} directory identity changed")
+
+
+def canonical_existing_path(path: Path, root: Path, context: str, *, directory: bool = False) -> Path:
+    root = root.resolve(strict=True)
+    absolute = path if path.is_absolute() else root / path
+    if has_symlink_component(absolute):
+        raise AdapterError(f"{context} contains a symlink component")
+    try:
+        canonical = absolute.resolve(strict=True)
+    except OSError as exc:
+        raise AdapterError(f"{context} does not exist: {absolute}") from exc
+    if not within(canonical, root):
+        raise AdapterError(f"{context} escapes {root}")
+    if directory:
+        if not canonical.is_dir() or canonical.is_symlink():
+            raise AdapterError(f"{context} must be a regular directory")
+    elif not canonical.is_file() or canonical.is_symlink():
+        raise AdapterError(f"{context} must be a regular file")
+    return canonical
+
+
+def git_bytes(repo: Path, *args: str) -> bytes:
+    result = subprocess.run(
+        ["git", "-C", str(repo), *args],
+        env=finalization_git_environment(),
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode:
+        error = (result.stderr or result.stdout).decode(errors="replace").strip()
+        raise AdapterError(error or f"git {' '.join(args)} failed")
+    return result.stdout
+
+
+def worktree_config_enabled(target: Path) -> bool:
+    result = command(
+        [
+            "git", "-C", str(target), "config", "--local", "--type=bool",
+            "--get", "extensions.worktreeConfig",
+        ],
+        check=False,
+        env=finalization_git_environment(),
+    )
+    if result.returncode == 1:
+        return False
+    if result.returncode != 0 or result.stdout.strip() not in {"true", "false"}:
+        raise AdapterError("extensions.worktreeConfig must be a valid local boolean")
+    return result.stdout.strip() == "true"
+
+
+def repository_config_bytes(target: Path) -> bytes:
+    """Canonical local plus enabled worktree-scope configuration."""
+    scopes = [("local", git_bytes(target, "config", "--local", "--null", "--list"))]
+    if worktree_config_enabled(target):
+        scopes.append(
+            ("worktree", git_bytes(target, "config", "--worktree", "--null", "--list"))
+        )
+    chunks: list[bytes] = []
+    for scope, raw in scopes:
+        entries = sorted(item for item in raw.split(b"\0") if item)
+        chunks.append(scope.encode() + b"\0" + b"\0".join(entries) + b"\0")
+    return b"".join(chunks)
+
+
+def git_checkpoint(target: Path) -> dict[str, str]:
+    object_dir = Path(finalization_git_output(target, "rev-parse", "--git-path", "objects"))
+    if not object_dir.is_absolute():
+        object_dir = (target / object_dir).resolve()
+    with tempfile.TemporaryDirectory(prefix=".mira-finalize-") as raw:
+        artifacts = Path(raw)
+        index = artifacts / "snapshot.index"
+        objects = artifacts / "objects"
+        objects.mkdir()
+        env = {
+            **finalization_git_environment(),
+            "GIT_INDEX_FILE": str(index),
+            "GIT_OBJECT_DIRECTORY": str(objects),
+            "GIT_ALTERNATE_OBJECT_DIRECTORIES": str(object_dir),
+        }
+        has_head = command(
+            ["git", "-C", str(target), "rev-parse", "--verify", "HEAD"],
+            check=False,
+            env=env,
+        ).returncode == 0
+        command(["git", "-C", str(target), "read-tree", "HEAD" if has_head else "--empty"], env=env)
+        command(["git", "-C", str(target), "add", "-A", "--", "."], env=env)
+        tree = command(["git", "-C", str(target), "write-tree"], env=env).stdout.strip()
+    head = finalization_git_output(target, "rev-parse", "--verify", "HEAD")
+    branch = finalization_git_output(target, "branch", "--show-current")
+    git_dir = Path(finalization_git_output(target, "rev-parse", "--git-dir"))
+    if not git_dir.is_absolute():
+        git_dir = target / git_dir
+    index_bytes = (git_dir.resolve() / "index").read_bytes() if (git_dir.resolve() / "index").exists() else b""
+    config = repository_config_bytes(target)
+    refs = git_bytes(target, "for-each-ref", "--format=%(refname)%00%(objectname)")
+    digest = lambda value: hashlib.sha256(value).hexdigest()
+    return {
+        "tree_oid": tree,
+        "head_oid": head,
+        "branch": branch,
+        "index_sha256": digest(index_bytes),
+        "worktree_fingerprint": digest(f"{tree}\0{head}\0{branch}".encode()),
+        "config_sha256": digest(config),
+        "refs_sha256": digest(refs),
+    }
+
+
+def validate_checkpoint_shape(raw: Any, context: str) -> dict[str, str]:
+    fields = {
+        "tree_oid", "head_oid", "branch", "index_sha256", "worktree_fingerprint",
+        "config_sha256", "refs_sha256",
+    }
+    if not isinstance(raw, dict) or set(raw) != fields:
+        raise AdapterError(f"{context} has invalid checkpoint fields")
+    if not all(isinstance(value, str) for value in raw.values()):
+        raise AdapterError(f"{context} checkpoint values must be strings")
+    for name in fields - {"branch"}:
+        if not raw[name]:
+            raise AdapterError(f"{context} {name} must not be empty")
+    return raw
+
+
+def show_record(record_id: str) -> dict[str, Any]:
+    wrapped, code = delegate("show", [record_id])
+    if code:
+        error = wrapped["runner_result"].get("error", "runner show failed")
+        raise AdapterError(f"cannot validate record {record_id!r}: {error}")
+    result = wrapped["runner_result"]
+    if not isinstance(result, dict):
+        raise AdapterError("runner show result must be an object")
+    return result
+
+
+def validate_green_phase(
+    plan_id: str,
+    result: dict[str, Any],
+    *,
+    target: Path,
+    spec_sha256: str,
+) -> dict[str, str]:
+    run_id = result.get("run_id")
+    if not isinstance(run_id, str) or not run_id.startswith(f"{plan_id}/"):
+        raise AdapterError("plan phase run id is invalid")
+    shown = show_record(run_id)
+    if shown.get("kind") != "run":
+        raise AdapterError(f"record {run_id!r} is not a phase run")
+    status = shown.get("status")
+    if not isinstance(status, dict) or (
+        status.get("run_id") != run_id
+        or status.get("plan_id") != plan_id
+        or status.get("phase_id") != result.get("phase_id")
+        or status.get("target") != str(target)
+        or status.get("spec_sha256") != spec_sha256
+        or status.get("state") != "green"
+        or status.get("gate") != "green"
+    ):
+        raise AdapterError(f"phase record {run_id!r} does not match its green plan result")
+    runs_fd, record_fd, record_dir = open_record_directory(run_id)
+    try:
+        if Path(shown.get("record_dir", "")) != record_dir:
+            raise AdapterError("phase record path does not match its ID")
+        checkpoint = read_json_at(record_fd, "checkpoint.json", "phase checkpoint")
+    finally:
+        os.close(record_fd)
+        os.close(runs_fd)
+    if set(checkpoint) - {"schema_version", "stage", "git", "review_round", "prior_findings_path"}:
+        raise AdapterError("phase checkpoint has unknown fields")
+    if checkpoint.get("schema_version") != 2 or checkpoint.get("stage") != "green":
+        raise AdapterError(f"phase record {run_id!r} lacks a final green checkpoint")
+    return validate_checkpoint_shape(checkpoint.get("git"), "phase checkpoint")
+
+
+def validate_plan_spec(
+    record_fd: int,
+    plan: dict[str, Any],
+) -> tuple[list[dict[str, Any]], list[str], list[str]]:
+    spec = read_json_at(record_fd, "spec.json", "plan spec")
+    if set(spec) != {"schema_version", "phases"} or spec.get("schema_version") != 2:
+        raise AdapterError("canonical plan spec is malformed")
+    if canonical_json_sha256(spec) != plan.get("spec_sha256"):
+        raise AdapterError("canonical plan spec digest does not match the plan")
+    phases = spec.get("phases")
+    if not isinstance(phases, list) or not phases:
+        raise AdapterError("canonical plan spec phases must be a non-empty array")
+    ids: list[str] = []
+    slugs: list[str] = []
+    for phase in phases:
+        if not isinstance(phase, dict):
+            raise AdapterError("canonical plan spec phase must be an object")
+        phase_id = phase.get("id")
+        slug = phase.get("slug")
+        if not isinstance(phase_id, str) or not phase_id or not isinstance(slug, str) or not slug:
+            raise AdapterError("canonical plan spec phase identity is invalid")
+        ids.append(phase_id)
+        slugs.append(slug)
+    if len(ids) != len(set(ids)) or len(slugs) != len(set(slugs)):
+        raise AdapterError("canonical plan spec phase identities are not unique")
+    skipped = plan.get("skipped_green_phases", [])
+    scheduled = plan.get("scheduled")
+    if not isinstance(skipped, list) or not all(isinstance(item, str) for item in skipped):
+        raise AdapterError("plan skipped phase provenance is invalid")
+    if skipped != ids[: len(skipped)]:
+        raise AdapterError("skipped_green_phases must be the exact canonical spec prefix")
+    if not isinstance(scheduled, list):
+        raise AdapterError("plan scheduled results are invalid")
+    scheduled_ids = [
+        item.get("phase_id") if isinstance(item, dict) else None
+        for item in scheduled
+    ]
+    if scheduled_ids != ids[len(skipped) :]:
+        raise AdapterError("scheduled phase IDs must be the exact canonical spec suffix in order")
+    expected_runs = [
+        f"{plan.get('plan_id')}/{slug}" for slug in slugs[len(skipped) :]
+    ]
+    actual_runs = [
+        item.get("run_id") if isinstance(item, dict) else None
+        for item in scheduled
+    ]
+    if actual_runs != expected_runs:
+        raise AdapterError("scheduled run IDs must match canonical phase order")
+    if plan.get("total_phases") != len(ids):
+        raise AdapterError("plan total_phases does not match canonical spec")
+    return phases, ids, slugs
+
+
+def validate_skipped_prefix(
+    plan: dict[str, Any],
+    phases: list[dict[str, Any]],
+    *,
+    target: Path,
+    seen: set[str],
+) -> None:
+    if not phases:
+        return
+    prior_id = plan.get("continued_from_plan_id")
+    if not isinstance(prior_id, str) or prior_id in seen:
+        raise AdapterError("skipped phase provenance is missing or cyclic")
+    seen.add(prior_id)
+    shown = show_record(prior_id)
+    prior = shown.get("plan") if shown.get("kind") == "plan" else None
+    if not isinstance(prior, dict) or prior.get("target") != str(target):
+        raise AdapterError("prior plan target does not match finalization target")
+    prior_runs_fd, prior_fd, prior_record_dir = open_record_directory(prior_id)
+    try:
+        if Path(shown.get("record_dir", "")) != prior_record_dir:
+            raise AdapterError("prior plan record path does not match its ID")
+        prior_phases, prior_ids, _ = validate_plan_spec(prior_fd, prior)
+    finally:
+        os.close(prior_fd)
+        os.close(prior_runs_fd)
+    prior_skipped = prior.get("skipped_green_phases", [])
+    if not isinstance(prior_skipped, list):
+        raise AdapterError("prior plan skipped phase provenance is invalid")
+    if phases != prior_phases[: len(phases)]:
+        raise AdapterError("skipped phase definitions do not match prior canonical plan prefix")
+    scheduled_by_phase = {}
+    for item in prior.get("scheduled", []):
+        if not isinstance(item, dict) or item.get("phase_id") in scheduled_by_phase:
+            raise AdapterError("prior plan scheduled phase identities are invalid")
+        scheduled_by_phase[item.get("phase_id")] = item
+    inherited = phases[: len(prior_skipped)]
+    if inherited:
+        validate_skipped_prefix(prior, inherited, target=target, seen=seen)
+    for phase_id in [phase["id"] for phase in phases]:
+        if phase_id in prior_skipped:
+            continue
+        result = scheduled_by_phase.get(phase_id)
+        if not isinstance(result, dict) or result.get("gate") != "green":
+            raise AdapterError(f"skipped phase {phase_id!r} lacks validated green provenance")
+        validate_green_phase(
+            prior_id,
+            result,
+            target=target,
+            spec_sha256=str(prior.get("spec_sha256", "")),
+        )
+
+
+def validated_origin(target: Path) -> str:
+    fetch_values = finalization_git_output(target, "remote", "get-url", "--all", "origin").splitlines()
+    push_values = finalization_git_output(target, "remote", "get-url", "--push", "--all", "origin").splitlines()
+    github_url = re.compile(
+        r"^(?:git@github\.com:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:\.git)?|"
+        r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:\.git)?)$",
+        re.IGNORECASE,
+    )
+    if not fetch_values or not push_values or not all(
+        github_url.fullmatch(value.strip()) for value in [*fetch_values, *push_values]
+    ):
+        raise AdapterError("target origin must be a canonical GitHub repository")
+    fetch = {canonical_url(value) for value in fetch_values}
+    push = {canonical_url(value) for value in push_values}
+    if len(fetch) != 1 or push != fetch:
+        raise AdapterError("remote.origin.pushurl diverges from the fetch origin")
+    return next(iter(fetch))
+
+
+def remote_oid(target: Path, branch: str, origin: str | None = None) -> str:
+    destination = origin or validated_origin(target)
+    result = finalization_git_with_auth(
+        ["-C", str(target), "ls-remote", "--exit-code", destination, f"refs/heads/{branch}"],
+        check=False,
+    )
+    if result.returncode:
+        raise AdapterError(
+            (result.stderr or result.stdout).strip()
+            or f"cannot resolve remote {branch} baseline"
+        )
+    lines = [line for line in result.stdout.splitlines() if line.strip()]
+    if len(lines) != 1:
+        raise AdapterError(f"remote {branch} did not resolve to exactly one ref")
+    parts = lines[0].split()
+    if len(parts) != 2 or parts[1] != f"refs/heads/{branch}" or not REVISION_RE.fullmatch(parts[0]):
+        raise AdapterError(f"remote {branch} response is malformed")
+    return parts[0]
+
+
+def git_refs(target: Path) -> dict[str, str]:
+    refs: dict[str, str] = {}
+    for line in finalization_git_output(
+        target, "for-each-ref", "--format=%(refname) %(objectname)"
+    ).splitlines():
+        try:
+            name, oid = line.split(" ", 1)
+        except ValueError as exc:
+            raise AdapterError("Git refs output is malformed") from exc
+        if name in refs or not REVISION_RE.fullmatch(oid):
+            raise AdapterError("Git refs output is invalid")
+        refs[name] = oid
+    return refs
+
+
+def expected_refs(
+    before: dict[str, str],
+    updates: dict[str, str],
+) -> dict[str, str]:
+    result = dict(before)
+    for name, oid in updates.items():
+        if name not in result:
+            raise AdapterError(f"expected ref is missing: {name}")
+        result[name] = oid
+    return result
+
+
+def validated_hooks_path(target: Path) -> Path:
+    configured = command(
+        ["git", "-C", str(target), "config", "--get", "core.hooksPath"],
+        check=False,
+        env=finalization_git_environment(),
+    )
+    if configured.returncode not in {0, 1}:
+        raise AdapterError("cannot inspect core.hooksPath")
+    raw = configured.stdout.strip() if configured.returncode == 0 else ""
+    candidate = Path(raw).expanduser() if raw else Path(finalization_git_output(target, "rev-parse", "--git-path", "hooks"))
+    if not candidate.is_absolute():
+        candidate = target / candidate
+    if has_symlink_component(candidate):
+        raise AdapterError("core.hooksPath contains a symlink component")
+    try:
+        canonical = candidate.resolve(strict=True)
+    except OSError as exc:
+        raise AdapterError("core.hooksPath must be an existing directory") from exc
+    if not canonical.is_dir() or canonical.is_symlink() or not within(canonical, target.resolve()):
+        raise AdapterError("core.hooksPath must be a canonical non-symlink directory beneath the target")
+    return canonical
+
+
+def validate_safe_push_config(target: Path) -> None:
+    rewrites = command(
+        [
+            "git", "-C", str(target), "config", "--get-regexp",
+            r"^url\..*\.(insteadOf|pushInsteadOf)$",
+        ],
+        check=False,
+        env=finalization_git_environment(),
+    )
+    if rewrites.returncode == 0 and rewrites.stdout.strip():
+        raise AdapterError("local URL rewrite configuration is forbidden for finalization")
+    if rewrites.returncode not in {0, 1}:
+        raise AdapterError("cannot inspect local URL rewrite configuration")
+    for key in ("push.followTags", "remote.origin.push", "remote.origin.tagOpt"):
+        result = command(
+            ["git", "-C", str(target), "config", "--get-all", key],
+            check=False,
+            env=finalization_git_environment(),
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            raise AdapterError(f"unsafe local push configuration is set: {key}")
+        if result.returncode not in {0, 1}:
+            raise AdapterError(f"cannot inspect local push configuration: {key}")
+
+
+def assert_repository_state(
+    target: Path,
+    *,
+    branch: str,
+    head: str,
+    tree: str,
+    config_sha256: str,
+    refs: dict[str, str],
+    origin: str,
+    context: str,
+) -> None:
+    current = git_checkpoint(target)
+    if current["branch"] != branch or current["head_oid"] != head or current["tree_oid"] != tree:
+        raise AdapterError(f"{context} changed branch, HEAD, or tree")
+    if current["config_sha256"] != config_sha256:
+        raise AdapterError(f"{context} changed repository config")
+    if git_refs(target) != refs:
+        raise AdapterError(f"{context} changed unexpected refs")
+    if validated_origin(target) != origin:
+        raise AdapterError(f"{context} changed target origin")
+    validated_hooks_path(target)
+    validate_safe_push_config(target)
+    if finalization_git_output(target, "status", "--porcelain", "--untracked-files=normal"):
+        raise AdapterError(f"{context} left the worktree dirty")
+
+
+@contextmanager
+def nonblocking_lock(path: Path) -> Iterator[None]:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a+", encoding="utf-8") as handle:
+        try:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            raise AdapterError(f"lock is already held: {path}") from exc
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+def finalization_state(target: Path | None, state: dict[str, Any]) -> dict[str, Any]:
+    result = dict(state)
+    if target is not None and target.is_dir():
+        for key, args in (
+            ("current_branch", ("branch", "--show-current")),
+            ("current_head", ("rev-parse", "--verify", "HEAD")),
+            ("worktree_status", ("status", "--porcelain", "--untracked-files=normal")),
+        ):
+            try:
+                result[key] = finalization_git_output(target, *args)
+            except AdapterError as exc:
+                result[key] = f"unavailable: {exc}"
+    return result
+
+
+def finalize_plan(plan_id: str, message: str, approve_commit: bool, approve_push: bool) -> dict[str, Any]:
+    state: dict[str, Any] = {
+        "staged": False,
+        "commit_created": False,
+        "local_default_fast_forwarded": False,
+        "pushed": False,
+    }
+    target: Path | None = None
+    try:
+        if not PLAN_ID_RE.fullmatch(plan_id):
+            raise AdapterError("plan ID is invalid")
+        if not message.strip():
+            raise AdapterError("explicit commit message must not be empty")
+        if not approve_commit:
+            raise AdapterError("--approve-commit is required")
+        if not approve_push:
+            raise AdapterError("--approve-push is required")
+        policy = load_policy()
+        shown = show_record(plan_id)
+        if shown.get("kind") != "plan":
+            raise AdapterError("finalization requires a plan record")
+        plan = shown.get("plan")
+        if not isinstance(plan, dict):
+            raise AdapterError("runner show omitted the plan")
+        if (
+            plan.get("plan_id") != plan_id
+            or plan.get("state") != "green"
+            or plan.get("gate") != "green"
+        ):
+            raise AdapterError("plan is not terminal green")
+        if plan.get("active_run_id") is not None:
+            raise AdapterError("plan still has an active run")
+        if plan.get("no_op") is True:
+            raise AdapterError("no-op plans cannot be finalized")
+        scheduled = plan.get("scheduled")
+        if not isinstance(scheduled, list) or not scheduled:
+            raise AdapterError("plan has no executable green phases")
+        skipped = plan.get("skipped_green_phases", [])
+        if not isinstance(skipped, list):
+            raise AdapterError("plan skipped phase provenance is invalid")
+        if len(skipped) + len(scheduled) != plan.get("total_phases"):
+            raise AdapterError("plan does not account for every phase")
+        if any(not isinstance(item, dict) or item.get("gate") != "green" for item in scheduled):
+            raise AdapterError("not every scheduled phase is green")
+        runs_fd, record_fd, record_dir = open_record_directory(plan_id)
+        record_stat = os.fstat(record_fd)
+        expected_record_dir = RUNS_DIR / plan_id
+        try:
+            if Path(shown.get("record_dir", "")) != expected_record_dir or record_dir != expected_record_dir:
+                raise AdapterError("plan record path does not match its ID")
+            if read_json_at(record_fd, "plan.json", "plan summary") != plan:
+                raise AdapterError("runner show plan differs from canonical plan record")
+            phase_objects, phase_ids, _ = validate_plan_spec(record_fd, plan)
+            if len(skipped) + len(scheduled) != len(phase_ids):
+                raise AdapterError("plan does not account for every canonical phase")
+            target_record = read_json_at(record_fd, "target.json", "plan target")
+        finally:
+            os.close(record_fd)
+            os.close(runs_fd)
+        allowed_target_fields = {"schema_version", "root", "common_dir", "object_dir", "initial_baseline"}
+        if set(target_record) != allowed_target_fields or target_record.get("schema_version") != 2:
+            raise AdapterError("plan target record is malformed")
+        target = resolve_target(str(plan.get("target", "")), policy)
+        if target_record.get("root") != str(target):
+            raise AdapterError("plan target does not match its canonical target record")
+        git_root = Path(finalization_git_output(target, "rev-parse", "--show-toplevel")).resolve()
+        common_dir = Path(finalization_git_output(target, "rev-parse", "--git-common-dir"))
+        object_dir = Path(finalization_git_output(target, "rev-parse", "--git-path", "objects"))
+        common_dir = (target / common_dir).resolve() if not common_dir.is_absolute() else common_dir.resolve()
+        object_dir = (target / object_dir).resolve() if not object_dir.is_absolute() else object_dir.resolve()
+        if {
+            "root": str(git_root), "common_dir": str(common_dir), "object_dir": str(object_dir)
+        } != {key: target_record[key] for key in ("root", "common_dir", "object_dir")}:
+            raise AdapterError("canonical target identity drifted from plan evidence")
+        initial = validate_checkpoint_shape(target_record.get("initial_baseline"), "initial baseline")
+        default_branch = initial["branch"]
+        if default_branch not in policy["default_branches"]:
+            raise AdapterError("target did not start on a configured main/master branch")
+        if initial["tree_oid"] != finalization_git_output(target, "rev-parse", f"{initial['head_oid']}^{{tree}}"):
+            raise AdapterError("target was not clean at its initial baseline")
+        if plan.get("target") != str(target):
+            raise AdapterError("plan target does not match policy-approved repository")
+        with ExitStack() as stack:
+            stack.enter_context(nonblocking_lock(RUNS_DIR / ".locks" / f"{plan_id}.lock"))
+            stack.enter_context(nonblocking_lock(common_dir / "agent-harness.lock"))
+            locked_runs_fd, locked_record_fd, locked_record_dir = open_record_directory(plan_id)
+            stack.callback(os.close, locked_record_fd)
+            stack.callback(os.close, locked_runs_fd)
+            locked_stat = os.fstat(locked_record_fd)
+            if (
+                locked_record_dir != expected_record_dir
+                or (locked_stat.st_dev, locked_stat.st_ino)
+                != (record_stat.st_dev, record_stat.st_ino)
+            ):
+                raise AdapterError("canonical plan record directory changed while acquiring locks")
+            verify_record_directory_identity(
+                locked_runs_fd, plan_id, locked_record_fd, "plan record"
+            )
+            locked = show_record(plan_id)
+            if locked.get("plan") != plan:
+                raise AdapterError("plan record changed while finalization was acquiring locks")
+            if read_json_at(locked_record_fd, "plan.json", "locked plan summary") != plan:
+                raise AdapterError("canonical plan record changed while locks were held")
+            locked_phases, _, _ = validate_plan_spec(locked_record_fd, plan)
+            if locked_phases != phase_objects:
+                raise AdapterError("canonical plan spec changed while locks were held")
+            if read_json_at(locked_record_fd, "target.json", "locked plan target") != target_record:
+                raise AdapterError("canonical target record changed while locks were held")
+            if skipped:
+                validate_skipped_prefix(
+                    plan,
+                    phase_objects[: len(skipped)],
+                    target=target,
+                    seen={plan_id},
+                )
+            final_checkpoint: dict[str, str] | None = None
+            for result in scheduled:
+                final_checkpoint = validate_green_phase(
+                    plan_id,
+                    result,
+                    target=target,
+                    spec_sha256=str(plan.get("spec_sha256", "")),
+                )
+            assert final_checkpoint is not None
+            current = git_checkpoint(target)
+            expected_branch = f"agent/{plan_id}"
+            if current["branch"] != expected_branch:
+                raise AdapterError(f"target is not on expected runner branch {expected_branch}")
+            if current != final_checkpoint:
+                raise AdapterError("target branch/HEAD/config/refs/tree drifted from final green checkpoint")
+            if current["head_oid"] != initial["head_oid"]:
+                raise AdapterError("target HEAD drifted from the recorded main baseline")
+            origin = validated_origin(target)
+            validated_hooks_path(target)
+            validate_safe_push_config(target)
+            local_default = finalization_git_output(target, "rev-parse", f"refs/heads/{default_branch}")
+            if local_default != initial["head_oid"]:
+                raise AdapterError(f"local {default_branch} drifted from the recorded baseline")
+            baseline_remote = remote_oid(target, default_branch, origin)
+            if baseline_remote != initial["head_oid"]:
+                raise AdapterError(f"remote {default_branch} drifted from the recorded baseline")
+            if final_checkpoint["tree_oid"] == finalization_git_output(target, "rev-parse", f"{initial['head_oid']}^{{tree}}"):
+                raise AdapterError("plan produced no actual changes")
+            refs_before_commit = git_refs(target)
+            task_ref = f"refs/heads/{expected_branch}"
+            default_ref = f"refs/heads/{default_branch}"
+            command(
+                ["git", "-C", str(target), "add", "-A", "--", "."],
+                env=finalization_git_environment(),
+            )
+            state["staged"] = True
+            staged_tree = finalization_git_output(target, "write-tree")
+            if staged_tree != final_checkpoint["tree_oid"]:
+                raise AdapterError("staged tree does not match the final green checkpoint")
+            commit = command(
+                ["git", "-C", str(target), "commit", "-m", message],
+                check=False,
+                env=finalization_git_environment(),
+            )
+            if commit.returncode:
+                raise AdapterError(
+                    (commit.stderr or commit.stdout).strip() or "git commit failed"
+                )
+            state["commit_created"] = True
+            commit_oid = finalization_git_output(target, "rev-parse", "HEAD")
+            state["commit_oid"] = commit_oid
+            refs_after_commit = expected_refs(refs_before_commit, {task_ref: commit_oid})
+            assert_repository_state(
+                target,
+                branch=expected_branch,
+                head=commit_oid,
+                tree=final_checkpoint["tree_oid"],
+                config_sha256=final_checkpoint["config_sha256"],
+                refs=refs_after_commit,
+                origin=origin,
+                context="commit hook",
+            )
+            if finalization_git_output(target, "rev-parse", f"refs/heads/{default_branch}") != initial["head_oid"]:
+                raise AdapterError(f"local {default_branch} drifted before fast-forward")
+            if validated_origin(target) != origin:
+                raise AdapterError("target origin changed before local fast-forward")
+            if remote_oid(target, default_branch, origin) != baseline_remote:
+                raise AdapterError(f"remote {default_branch} drifted before local fast-forward")
+            command(
+                ["git", "-C", str(target), "switch", default_branch],
+                env=finalization_git_environment(),
+            )
+            command(
+                ["git", "-C", str(target), "merge", "--ff-only", commit_oid],
+                env=finalization_git_environment(),
+            )
+            state["local_default_fast_forwarded"] = True
+            refs_after_fast_forward = expected_refs(
+                refs_after_commit,
+                {task_ref: commit_oid, default_ref: commit_oid},
+            )
+            assert_repository_state(
+                target,
+                branch=default_branch,
+                head=commit_oid,
+                tree=final_checkpoint["tree_oid"],
+                config_sha256=final_checkpoint["config_sha256"],
+                refs=refs_after_fast_forward,
+                origin=origin,
+                context="checkout/merge hook",
+            )
+            push_origin = validated_origin(target)
+            if push_origin != origin:
+                raise AdapterError("push destination changed after final checks")
+            if remote_oid(target, default_branch, push_origin) != baseline_remote:
+                raise AdapterError(f"remote {default_branch} drifted immediately before push")
+            push = finalization_git_with_auth(
+                [
+                    "-C", str(target), "push", "--no-follow-tags", push_origin,
+                    f"refs/heads/{default_branch}:refs/heads/{default_branch}",
+                ],
+                check=False,
+            )
+            if push.returncode:
+                raise AdapterError(
+                    (push.stderr or push.stdout).strip() or f"git push {default_branch} failed"
+                )
+            state["pushed"] = True
+            return {
+                "plan_id": plan_id,
+                "target": str(target),
+                "default_branch": default_branch,
+                "commit_oid": commit_oid,
+                "final_tree": final_checkpoint["tree_oid"],
+                "partial_state": finalization_state(target, state),
+            }
+    except (AdapterError, OSError, subprocess.CalledProcessError) as exc:
+        raise FinalizationError(str(exc), finalization_state(target, state)) from exc
+
+
 def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     if args.command == "refresh-harness":
         lock = materialize_harness()
@@ -589,6 +1450,27 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         return {"harness_revision": lock["revision"], "runner_result": {"checks": checks}}, (
             0 if all(checks.values()) else 1
         )
+    if args.command == "preflight-plan":
+        policy = load_policy()
+        plan = resolve_plan_path(args.plan)
+        return delegate(
+            "validate-plan",
+            [
+                "--plan", str(plan),
+                *forwarding_flags(args, default_timeout=policy["default_timeout_seconds"]),
+            ],
+        )
+    if args.command == "finalize-plan":
+        lock = load_lock()
+        return {
+            "harness_revision": lock["revision"],
+            "runner_result": finalize_plan(
+                args.plan_id,
+                args.message,
+                args.approve_commit,
+                args.approve_push,
+            ),
+        }, 0
     if args.command in {"status", "show", "list"}:
         extra = [] if args.command == "list" else [args.record_id]
         return delegate(args.command, extra)
@@ -668,6 +1550,8 @@ def main() -> None:
         result, code = {"harness_revision": revision, "runner_result": error}, 2
     except (AdapterError, OSError) as exc:
         error = {"error": str(exc), "error_type": type(exc).__name__}
+        if isinstance(exc, FinalizationError):
+            error["partial_state"] = exc.partial_state
         try:
             revision = load_lock()["revision"]
         except Exception:

@@ -46,25 +46,25 @@ Command surface:
 python3 skills/coding-harness/coding_harness.py refresh-harness
 python3 skills/coding-harness/coding_harness.py check-config
 python3 skills/coding-harness/coding_harness.py run --target <path-or-repo> --prompt "<task>" [--mode plan] [--verification-json '<object>'|--verify "<legacy-shell-cmd>"] [--timeout <secs>] [--dry-run] [--no-review|--review-threshold {blocking,high,medium,low}|--review-max-rounds N] [--implement-model M|--plan-model M|--review-model M|--fix-model M]
-# Preferred — notifies via Telegram on completion:
-bash skills/coding-harness/run_plan_notify.sh --target <path-or-repo> --plan runtime/coding-harness-plans/<name>.json [--dry-run] [...]
-# Direct (no notification):
+python3 skills/coding-harness/coding_harness.py preflight-plan --plan runtime/coding-harness-plans/<name>.json [--timeout <secs>] [--no-review] [--review-threshold {blocking,high,medium,low}] [--review-max-rounds N]
 python3 skills/coding-harness/coding_harness.py run-plan --target <path-or-repo> --plan runtime/coding-harness-plans/<name>.json [--strip-completed <prior-plan-id>] [--dry-run] [...]
+python3 skills/coding-harness/coding_harness.py finalize-plan <plan-id> --message "<explicit commit message>" --approve-commit --approve-push
 python3 skills/coding-harness/coding_harness.py resume <run-or-plan-id> [--restart-current-stage]
 python3 skills/coding-harness/coding_harness.py cancel <run-or-plan-id> --reason "<reason>"
 python3 skills/coding-harness/coding_harness.py list
 python3 skills/coding-harness/coding_harness.py status <run-id>
 python3 skills/coding-harness/coding_harness.py show <run-id>
-# Verify target repo independently before committing harness output:
-bash skills/coding-harness/verify_target.sh runtime/repos/<owner>--<repo>
-# Recover a phase that failed only on handoff mismatch (work passed):
-python3 skills/coding-harness/recover_phase.py <run-id> -m "commit message"
 ```
 
 - Larger work follows plan-then-approved-execution: Mira researches and plans
-  interactively, authors a phase-spec JSON under ignored runtime
-  (`runtime/coding-harness-plans/<name>.json`), gets explicit approval, then
-  delegates it with `run-plan`. Phase-specs and run records stay in runtime,
+  interactively and authors a phase-spec JSON under ignored runtime
+  (`runtime/coding-harness-plans/<name>.json`). Child prompts and done conditions
+  omit delivery actions or state them only as explicit negations; they never
+  assign commit, push, PR, merge, publish, release, or deploy work. Mira runs
+  `preflight-plan`, shows Kenny the returned normalized spec and `spec_sha256`,
+  gets explicit approval for that exact result, then delegates it with
+  `run-plan`. Any phase-spec file edit invalidates approval and requires a new
+  preflight, display, and approval. Phase-specs and run records stay in runtime,
   never in the blueprint.
 - The adapter sets `AGENT_RUN_HOME=runtime/coding-harness-runs` so run records
   land under Mira's ignored runtime, and forwards verification, policy,
@@ -98,6 +98,26 @@ python3 skills/coding-harness/recover_phase.py <run-id> -m "commit message"
   directory before delegation and accepts only regular, canonical,
   non-symlink files below `runtime/coding-harness-plans`. The harness checkout
   and every repository nested beneath it are denied targets.
+- `preflight-plan` enforces the same path boundary and delegates normalization
+  and schema validation to the pinned runner. It forwards policy, review flags,
+  and the 3000-second policy timeout when none is supplied.
+- Child phases never deliver changes and there is no per-phase push. Only after
+  the whole non-dry-run plan is terminal green may the parent use
+  `finalize-plan` with fresh commit and push approvals plus an explicit message.
+  Finalization validates every phase (including continued prefixes), canonical
+  records, the clean default-branch baseline, the exact final checkpoint,
+  config/refs/tree evidence, and remote drift before staging. It commits with
+  hooks enabled, fast-forwards local `main`/`master`, and pushes without force
+  through the authenticated Git helper. On failure, report exact partial state
+  and never reset or auto-rollback. It rejects disabled/external hooks paths,
+  non-GitHub or divergent fetch/push origins, and unexpected hook mutations to
+  config, refs, branches, origins, trees, or the worktree.
+  Global/system Git config is disabled for finalization; local URL rewrites and
+  tag-broadening push settings are rejected, and the push uses only an explicit
+  default-branch refspec with tag following disabled.
+- `recover_phase.py` is retained only as a fail-closed, non-mutating tombstone.
+  It never stages, commits, or pushes; inspect with `status`/`show` and use the
+  normal full-plan continuation/finalization path.
 - Delegation scrubs provider and integration secrets while fixing
   `XDG_CONFIG_HOME=/home/node/.openclaw` and
   `GH_CONFIG_DIR=/home/node/.openclaw/gh`, so authenticated CLI state remains

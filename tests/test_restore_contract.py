@@ -82,6 +82,20 @@ class RestoreContractTests(unittest.TestCase):
         for rel, value in memory.items():
             self.assertEqual((self.workspace / rel).read_text(), value)
 
+    def test_disabled_recovery_tombstone_is_managed_and_non_mutating(self) -> None:
+        self.restore()
+        stub = self.workspace / "skills/coding-harness/recover_phase.py"
+        self.assertTrue(stub.is_file())
+        result = subprocess.run(
+            ["python3", str(stub), "ignored-run-id"],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("disabled", result.stdout)
+        self.assertIn('"mutated":false', result.stdout)
+
     def test_injected_failure_rolls_back_managed_files(self) -> None:
         self.restore()
         managed = self.workspace / "AGENTS.md"

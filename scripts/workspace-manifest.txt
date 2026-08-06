@@ -8,6 +8,7 @@ package.json
 package-lock.json
 skills/blueprint/SKILL.md
 skills/coding-harness/coding_harness.py
+skills/coding-harness/recover_phase.py
 skills/coding-harness/SKILL.md
 skills/coding-harness/harness.lock.json
 skills/coding-harness/policy.json
