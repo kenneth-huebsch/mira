@@ -41,7 +41,8 @@ POLICY_FIELDS = {
     "schema_version", "allowed_target_roots", "inherited_environment_keys",
     "capability_environment", "sensitive_path_patterns", "default_timeout_seconds",
     "cancellation_grace_seconds", "allow_shell_verification", "default_branches",
-    "guarded_commands",
+    "guarded_commands", "model_tiers", "cheap_task_classes",
+    "cheap_no_review_task_classes",
 }
 ADAPTER_POLICY_FIELDS = {"contract_version", "runtime_repos", "runs_dir", "denied_roots"}
 RUNNER_POLICY_PATH = RUNTIME / ".coding-harness-runner-policy.json"
@@ -158,6 +159,18 @@ def load_policy(path: Path = POLICY_PATH) -> dict[str, Any]:
             raise AdapterError(f"harness policy sensitive path regex is invalid: {exc}") from exc
     if type(value.get("allow_shell_verification")) is not bool:
         raise AdapterError("harness policy allow_shell_verification must be a boolean")
+    tiers = value.get("model_tiers")
+    if not isinstance(tiers, dict) or set(tiers) != {"cheap", "default", "reasoning"}:
+        raise AdapterError("harness policy model_tiers must define cheap, default, and reasoning")
+    for tier, mapping in tiers.items():
+        if not isinstance(mapping, dict) or set(mapping) != {"implement", "review", "fix"}:
+            raise AdapterError(f"harness policy model tier {tier!r} is invalid")
+        if not all(isinstance(model, str) and MODEL_RE.fullmatch(model) for model in mapping.values()):
+            raise AdapterError(f"harness policy model tier {tier!r} has an invalid model")
+    cheap_classes = unique_strings("cheap_task_classes", nonempty=True)
+    no_review_classes = unique_strings("cheap_no_review_task_classes")
+    if not set(no_review_classes).issubset(cheap_classes):
+        raise AdapterError("harness policy cheap no-review classes must be a subset")
     branches = unique_strings("default_branches", nonempty=True)
     if not all(BRANCH_RE.fullmatch(item) for item in branches):
         raise AdapterError("harness policy default_branches contains an invalid branch")
@@ -557,6 +570,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--mode", choices=("autonomous", "plan"))
     run.add_argument("--verify")
     run.add_argument("--verification-json", help="Structured verification object JSON or @path.")
+    run.add_argument("--routing-json", help="Symbolic routing object JSON or @path.")
     add_common(run)
     plan = subs.add_parser("run-plan")
     plan.add_argument("--target", required=True)
@@ -581,6 +595,7 @@ def build_parser() -> argparse.ArgumentParser:
     resume = subs.add_parser("resume")
     resume.add_argument("record_id")
     resume.add_argument("--restart-current-stage", action="store_true")
+    resume.add_argument("--guidance")
     add_common(resume, execution=False)
     cancel = subs.add_parser("cancel")
     cancel.add_argument("record_id")
@@ -596,6 +611,23 @@ def verification_object(value: str) -> dict[str, Any]:
         raise AdapterError(f"invalid structured verification: {exc}") from exc
     if not isinstance(data, dict) or set(data) != {"commands"} or not isinstance(data["commands"], list):
         raise AdapterError("structured verification must be an object containing only commands")
+    return data
+
+
+def routing_object(value: str) -> dict[str, Any]:
+    source = Path(value[1:]) if value.startswith("@") else None
+    try:
+        data = strict_json(
+            source.read_text(encoding="utf-8") if source else value,
+            "symbolic routing",
+        )
+    except OSError as exc:
+        raise AdapterError(f"invalid symbolic routing: {exc}") from exc
+    required = {"tier", "task_class", "reason", "risk_flags", "allowed_paths"}
+    if not isinstance(data, dict) or set(data) != required:
+        raise AdapterError(
+            "symbolic routing must contain tier, task_class, reason, risk_flags, and allowed_paths"
+        )
     return data
 
 
@@ -1489,6 +1521,8 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         extra = [args.record_id]
         if args.restart_current_stage:
             extra.append("--restart-current-stage")
+        if args.guidance:
+            extra += ["--guidance", args.guidance]
         extra += forwarding_flags(args)
         return delegate("resume", extra)
     if args.command == "cancel":
@@ -1524,6 +1558,8 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
             }
             if args.mode:
                 phase["mode"] = args.mode
+            if args.routing_json:
+                phase["routing"] = routing_object(args.routing_json)
             with os.fdopen(fd, "w", encoding="utf-8") as stream:
                 json.dump({"schema_version": 2, "phases": [phase]}, stream)
             return delegate(
@@ -1536,6 +1572,8 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         finally:
             plan_path.unlink(missing_ok=True)
     extra = ["--target", str(target), "--prompt", args.prompt]
+    if args.routing_json:
+        raise AdapterError("--routing-json requires --verification-json")
     if args.mode:
         extra += ["--mode", args.mode]
     if args.verify:

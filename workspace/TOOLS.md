@@ -45,11 +45,11 @@ Command surface:
 ```bash
 python3 skills/coding-harness/coding_harness.py refresh-harness
 python3 skills/coding-harness/coding_harness.py check-config
-python3 skills/coding-harness/coding_harness.py run --target <path-or-repo> --prompt "<task>" [--mode plan] [--verification-json '<object>'|--verify "<legacy-shell-cmd>"] [--timeout <secs>] [--dry-run] [--no-review|--review-threshold {blocking,high,medium,low}|--review-max-rounds N] [--implement-model M|--plan-model M|--review-model M|--fix-model M]
+python3 skills/coding-harness/coding_harness.py run --target <path-or-repo> --prompt "<task>" [--mode plan] [--verification-json '<object>' --routing-json '<object>'|--verify "<legacy-shell-cmd>"] [--timeout <secs>] [--dry-run] [--no-review|--review-threshold {blocking,high,medium,low}|--review-max-rounds N] [--implement-model M|--plan-model M|--review-model M|--fix-model M]
 python3 skills/coding-harness/coding_harness.py preflight-plan --plan runtime/coding-harness-plans/<name>.json [--timeout <secs>] [--no-review] [--review-threshold {blocking,high,medium,low}] [--review-max-rounds N]
 python3 skills/coding-harness/coding_harness.py run-plan --target <path-or-repo> --plan runtime/coding-harness-plans/<name>.json [--strip-completed <prior-plan-id>] [--dry-run] [...]
 python3 skills/coding-harness/coding_harness.py finalize-plan <plan-id> --message "<explicit commit message>" --approve-commit --approve-push
-python3 skills/coding-harness/coding_harness.py resume <run-or-plan-id> [--restart-current-stage]
+python3 skills/coding-harness/coding_harness.py resume <run-or-plan-id> [--restart-current-stage] [--guidance "<clarification>"] [--implement-model M|--review-model M|--fix-model M]
 python3 skills/coding-harness/coding_harness.py cancel <run-or-plan-id> --reason "<reason>"
 python3 skills/coding-harness/coding_harness.py list
 python3 skills/coding-harness/coding_harness.py status <run-id>
@@ -70,6 +70,18 @@ python3 skills/coding-harness/coding_harness.py show <run-id>
   land under Mira's ignored runtime, and forwards verification, policy,
   model, resume, cancellation, review, and timeout options. Phase specs remain
   under `runtime/coding-harness-plans`.
+- Mira assigns symbolic `cheap`, `default`, or `reasoning` routing while she
+  already has repository context; no separate classifier child is used. Policy
+  maps tiers to concrete models. Cheap routing is accepted only for approved
+  mechanical classes with bounded paths, deterministic verification, no
+  capabilities, and no risk flags. Unknown or ambiguous work routes upward.
+  The runner enforces path scope and records tier, resolved model, attempts,
+  child duration, and gate evidence.
+- Children must follow repository evidence rather than invent requirements or
+  widen scope. A typed `needs_parent` handoff preserves the checkpoint and
+  returns a constrained reason, evidence, precise question, and recommended
+  next tier. Mira reports it and decides whether to provide resume guidance or
+  select a stronger model; the harness never retries or escalates automatically.
 - `refresh-harness` materializes the tracked full SHA detached; it never switches
   to or pulls a branch. It verifies detached state even when the checkout was
   already at the pinned SHA. Target clones use `owner--repo`, validate origin,

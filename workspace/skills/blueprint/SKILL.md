@@ -45,6 +45,9 @@ Each phase should include:
 - rollback or recovery notes when applicable
 - any separately gated action
 - explicit negation of delivery actions when they must be mentioned
+- symbolic routing tier, task class, concrete reason, risk flags, and bounded
+  allowed paths. Use `cheap` only when the phase is mechanical and
+  deterministic; otherwise choose `default` or `reasoning` conservatively.
 
 Avoid phases that say only "implement the feature," rely on unstated
 conversation context, or claim parallelism while touching the same files.

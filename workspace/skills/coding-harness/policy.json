@@ -46,6 +46,32 @@
   "default_timeout_seconds": 3000,
   "cancellation_grace_seconds": 15,
   "allow_shell_verification": false,
+  "model_tiers": {
+    "cheap": {
+      "implement": "composer-2.5-fast",
+      "review": "composer-2.5-fast",
+      "fix": "composer-2.5-fast"
+    },
+    "default": {
+      "implement": "composer-2.5",
+      "review": "gpt-5.5-medium",
+      "fix": "composer-2.5"
+    },
+    "reasoning": {
+      "implement": "gpt-5.5-medium",
+      "review": "gpt-5.5-medium",
+      "fix": "gpt-5.5-medium"
+    }
+  },
+  "cheap_task_classes": [
+    "mechanical",
+    "formatting",
+    "boilerplate"
+  ],
+  "cheap_no_review_task_classes": [
+    "mechanical",
+    "formatting"
+  ],
   "default_branches": [
     "main",
     "master"
