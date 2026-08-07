@@ -58,6 +58,7 @@ for autonomous work or `reasoning` for plan mode. To select `cheap`, supply
 `--routing-json` with `--verification-json`; the adapter creates a one-phase
 spec so the pinned runner validates the same routing contract used by larger
 plans.
+Single runs default to `execution_only` and are recorded as non-finalizable.
 
 ## Larger work: plan, then approved phased execution
 
@@ -74,6 +75,7 @@ use the harness plan-then-approved-execution contract:
    ```json
    {
      "schema_version": 2,
+     "delivery_intent": "finalizable",
      "phases": [
        {
          "id": "phase-1",
@@ -107,7 +109,7 @@ use the harness plan-then-approved-execution contract:
    }
    ```
 
-   `schema_version: 2`, `id`, and `prompt` are required for the documented
+   `schema_version: 2`, `delivery_intent`, `id`, and `prompt` are required for the documented
    shape. Use structured `verification.commands[].argv`; legacy `verify` shell
    strings are denied by Mira's policy. `done`, `verification`, `mode`
    (`autonomous`/`plan`), `review`, `review_threshold`, and `review_max_rounds`
@@ -131,21 +133,31 @@ use the harness plan-then-approved-execution contract:
 
    ```bash
    python3 skills/coding-harness/coding_harness.py preflight-plan \
+     --target <path-or-repo> \
      --plan runtime/coding-harness-plans/<name>.json \
+     --delivery-intent {finalizable,execution_only} \
+     [--strip-completed <prior-plan-id> | --recover-scope-from <prior-plan-id>] \
      [--timeout <secs>] \
      [--no-review] [--review-threshold {blocking,high,medium,low}] [--review-max-rounds N]
    ```
 
-   Show Kenny the returned `normalized_spec` and `spec_sha256`, then get explicit
-   approval for that exact normalized plan. Any edit to the phase-spec after it
-   is shown invalidates approval: preflight it again, show the new normalized
-   spec/hash, and obtain fresh approval. Do not run an unapproved plan.
+   Show Kenny the returned `normalized_spec`, `spec_sha256`, and
+   `approval_context`, then get explicit approval for that exact normalized
+   plan, canonical target, and delivery intent. A finalizable preflight fails
+   unless the target is currently clean on configured `main`/`master`; this is
+   early evidence only, and execution repeats the authoritative check under the
+   runner lock. Any edit to the phase-spec, target, delivery intent, or
+   continuation/recovery choice after it is shown invalidates approval:
+   preflight again, show the new result, and obtain fresh approval. Do not run
+   an unapproved plan.
 4. **Delegate the approved plan:**
 
    ```bash
    python3 skills/coding-harness/coding_harness.py run-plan \
      --target <path-or-repo> --plan runtime/coding-harness-plans/<name>.json \
+     --delivery-intent {finalizable,execution_only} \
      [--strip-completed <prior-plan-id>] \
+     [--recover-scope-from <prior-plan-id>] \
      [--timeout <secs>] [--dry-run] \
      [--no-review] [--review-threshold {blocking,high,medium,low}] [--review-max-rounds N]
    ```
@@ -155,14 +167,22 @@ use the harness plan-then-approved-execution contract:
    `--strip-completed <prior-plan-id>` to create a fresh plan that skips only
    the prior plan's validated, unchanged contiguous green prefix. The harness
    records continuation provenance and fails closed on drift or tampering.
+   After a typed scope violation, a newly approved full phase-spec may instead
+   use `--recover-scope-from <prior-plan-id>` when its only semantic change is
+   a strict widening of the failing phase's allowed paths. It is mutually
+   exclusive with `--strip-completed` and `--dry-run`; the runner reuses the
+   preserved implementation but reruns verification and review. Preflight and
+   approve the widened normalized spec, canonical target, unchanged delivery
+   intent, and recovery provenance before executing it.
 
 Use `--dry-run` to build run records without invoking `agent` when you want to
 confirm the plan shape before a real launch.
 
 ## Final delivery
 
-Child phases never commit or push, and there is no per-phase delivery. After the
-entire approved plan is terminal green, the parent may ask for fresh explicit
+Child phases never commit or push, and there is no per-phase delivery.
+`execution_only` plans are explicitly non-finalizable. After an approved
+`finalizable` plan is terminal green, the parent may ask for fresh explicit
 approval to commit and push the exact recorded final tree directly to the
 target's configured `main` or `master`:
 
@@ -173,8 +193,9 @@ python3 skills/coding-harness/coding_harness.py finalize-plan <plan-id> \
 
 `finalize-plan` is fail-closed. It accepts only a non-dry-run, non-no-op,
 complete green plan with no active run, validated green phase records (including
-continued prefixes), an unchanged clean baseline, the exact final runner branch
-and checkpoint, and an unchanged remote baseline. It stages only after all
+continued/recovered provenance), persisted finalizable evidence, the unchanged
+original delivery baseline, the actual preserved runner branch and exact final
+checkpoint, and an unchanged remote baseline. It stages only after all
 safety checks, commits with hooks enabled, fast-forwards the local default
 branch, and performs a non-force authenticated push. If any step fails, report
 the returned partial state exactly; never reset or auto-rollback.

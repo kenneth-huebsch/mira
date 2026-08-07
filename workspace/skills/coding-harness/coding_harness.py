@@ -37,6 +37,7 @@ ENV_KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 CAPABILITY_RE = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
 BRANCH_RE = re.compile(r"^(?![./])(?!.*(?:\.\.|//|@\{|\\))(?!.*[/.]$)[A-Za-z0-9._/-]+$")
 PLAN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+DELIVERY_INTENTS = ("finalizable", "execution_only")
 POLICY_FIELDS = {
     "schema_version", "allowed_target_roots", "inherited_environment_keys",
     "capability_environment", "sensitive_path_patterns", "default_timeout_seconds",
@@ -532,6 +533,11 @@ def forwarding_flags(
     return result
 
 
+def delivery_flags(args: argparse.Namespace) -> list[str]:
+    intent = getattr(args, "delivery_intent", None)
+    return ["--delivery-intent", intent] if intent is not None else []
+
+
 def add_common(parser: argparse.ArgumentParser, *, execution: bool = True) -> None:
     if execution:
         parser.add_argument("--timeout", type=positive_int)
@@ -571,14 +577,23 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--verify")
     run.add_argument("--verification-json", help="Structured verification object JSON or @path.")
     run.add_argument("--routing-json", help="Symbolic routing object JSON or @path.")
+    run.set_defaults(delivery_intent="execution_only")
     add_common(run)
     plan = subs.add_parser("run-plan")
     plan.add_argument("--target", required=True)
     plan.add_argument("--plan", required=True)
-    plan.add_argument("--strip-completed", metavar="PRIOR_PLAN_ID")
+    plan.add_argument("--delivery-intent", choices=DELIVERY_INTENTS, required=True)
+    continuation = plan.add_mutually_exclusive_group()
+    continuation.add_argument("--strip-completed", metavar="PRIOR_PLAN_ID")
+    continuation.add_argument("--recover-scope-from", metavar="PRIOR_PLAN_ID")
     add_common(plan)
     preflight = subs.add_parser("preflight-plan")
+    preflight.add_argument("--target", required=True)
     preflight.add_argument("--plan", required=True)
+    preflight.add_argument("--delivery-intent", choices=DELIVERY_INTENTS, required=True)
+    approval_provenance = preflight.add_mutually_exclusive_group()
+    approval_provenance.add_argument("--strip-completed", metavar="PRIOR_PLAN_ID")
+    approval_provenance.add_argument("--recover-scope-from", metavar="PRIOR_PLAN_ID")
     preflight.add_argument("--timeout", type=positive_int)
     preflight.add_argument("--no-review", action="store_true")
     preflight.add_argument("--review-threshold", choices=("blocking", "high", "medium", "low"))
@@ -918,6 +933,45 @@ def validate_checkpoint_shape(raw: Any, context: str) -> dict[str, str]:
     return raw
 
 
+def preflight_delivery_context(
+    target: Path,
+    policy: dict[str, Any],
+    delivery_intent: str,
+) -> dict[str, Any]:
+    context: dict[str, Any] = {
+        "target": str(target),
+        "delivery_intent": delivery_intent,
+        "finalizable": delivery_intent == "finalizable",
+    }
+    if delivery_intent == "execution_only":
+        context["target_ready"] = True
+        context["note"] = "execution-only plans are not eligible for finalize-plan"
+        return context
+    checkpoint = git_checkpoint(target)
+    if checkpoint["branch"] not in policy["default_branches"]:
+        raise AdapterError(
+            "finalizable preflight requires the target on a configured main/master branch"
+        )
+    head_tree = finalization_git_output(
+        target, "rev-parse", f"{checkpoint['head_oid']}^{{tree}}"
+    )
+    if (
+        checkpoint["tree_oid"] != head_tree
+        or finalization_git_output(
+            target, "status", "--porcelain", "--untracked-files=normal"
+        )
+    ):
+        raise AdapterError("finalizable preflight requires a clean target")
+    context.update({
+        "target_ready": True,
+        "branch": checkpoint["branch"],
+        "head_oid": checkpoint["head_oid"],
+        "tree_oid": checkpoint["tree_oid"],
+        "note": "execution revalidates this target under the runner lock",
+    })
+    return context
+
+
 def show_record(record_id: str) -> dict[str, Any]:
     wrapped, code = delegate("show", [record_id])
     if code:
@@ -973,7 +1027,11 @@ def validate_plan_spec(
     plan: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], list[str], list[str]]:
     spec = read_json_at(record_fd, "spec.json", "plan spec")
-    if set(spec) != {"schema_version", "phases"} or spec.get("schema_version") != 2:
+    if (
+        set(spec) != {"schema_version", "delivery_intent", "phases"}
+        or spec.get("schema_version") != 2
+        or spec.get("delivery_intent") != "finalizable"
+    ):
         raise AdapterError("canonical plan spec is malformed")
     if canonical_json_sha256(spec) != plan.get("spec_sha256"):
         raise AdapterError("canonical plan spec digest does not match the plan")
@@ -1026,6 +1084,8 @@ def validate_skipped_prefix(
     phases: list[dict[str, Any]],
     *,
     target: Path,
+    delivery_baseline: dict[str, str],
+    runner_branch: str,
     seen: set[str],
 ) -> None:
     if not phases:
@@ -1043,9 +1103,21 @@ def validate_skipped_prefix(
         if Path(shown.get("record_dir", "")) != prior_record_dir:
             raise AdapterError("prior plan record path does not match its ID")
         prior_phases, prior_ids, _ = validate_plan_spec(prior_fd, prior)
+        prior_target = read_json_at(prior_fd, "target.json", "prior plan target")
     finally:
         os.close(prior_fd)
         os.close(prior_runs_fd)
+    if (
+        prior.get("delivery_intent") != "finalizable"
+        or prior.get("finalizable") is not True
+        or prior.get("delivery_baseline") != delivery_baseline
+        or prior.get("runner_branch") != runner_branch
+        or prior_target.get("delivery_intent") != "finalizable"
+        or prior_target.get("finalizable") is not True
+        or prior_target.get("delivery_baseline") != delivery_baseline
+        or prior_target.get("runner_branch") != runner_branch
+    ):
+        raise AdapterError("prior plan finalizable delivery evidence is inconsistent")
     prior_skipped = prior.get("skipped_green_phases", [])
     if not isinstance(prior_skipped, list):
         raise AdapterError("prior plan skipped phase provenance is invalid")
@@ -1058,7 +1130,14 @@ def validate_skipped_prefix(
         scheduled_by_phase[item.get("phase_id")] = item
     inherited = phases[: len(prior_skipped)]
     if inherited:
-        validate_skipped_prefix(prior, inherited, target=target, seen=seen)
+        validate_skipped_prefix(
+            prior,
+            inherited,
+            target=target,
+            delivery_baseline=delivery_baseline,
+            runner_branch=runner_branch,
+            seen=seen,
+        )
     for phase_id in [phase["id"] for phase in phases]:
         if phase_id in prior_skipped:
             continue
@@ -1275,6 +1354,15 @@ def finalize_plan(plan_id: str, message: str, approve_commit: bool, approve_push
             or plan.get("gate") != "green"
         ):
             raise AdapterError("plan is not terminal green")
+        if plan.get("delivery_intent") != "finalizable" or plan.get("finalizable") is not True:
+            raise AdapterError("plan is explicitly non-finalizable or lacks finalizable evidence")
+        runner_branch = plan.get("runner_branch")
+        if not isinstance(runner_branch, str) or not runner_branch:
+            raise AdapterError("finalizable plan runner_branch evidence is invalid")
+        delivery_baseline = validate_checkpoint_shape(
+            plan.get("delivery_baseline"),
+            "plan delivery baseline",
+        )
         if plan.get("active_run_id") is not None:
             raise AdapterError("plan still has an active run")
         if plan.get("no_op") is True:
@@ -1304,9 +1392,19 @@ def finalize_plan(plan_id: str, message: str, approve_commit: bool, approve_push
         finally:
             os.close(record_fd)
             os.close(runs_fd)
-        allowed_target_fields = {"schema_version", "root", "common_dir", "object_dir", "initial_baseline"}
+        allowed_target_fields = {
+            "schema_version", "root", "common_dir", "object_dir", "initial_baseline",
+            "delivery_intent", "finalizable", "delivery_baseline", "runner_branch",
+        }
         if set(target_record) != allowed_target_fields or target_record.get("schema_version") != 2:
             raise AdapterError("plan target record is malformed")
+        if (
+            target_record.get("delivery_intent") != "finalizable"
+            or target_record.get("finalizable") is not True
+            or target_record.get("delivery_baseline") != delivery_baseline
+            or target_record.get("runner_branch") != runner_branch
+        ):
+            raise AdapterError("plan target finalizable delivery evidence is inconsistent")
         target = resolve_target(str(plan.get("target", "")), policy)
         if target_record.get("root") != str(target):
             raise AdapterError("plan target does not match its canonical target record")
@@ -1319,12 +1417,14 @@ def finalize_plan(plan_id: str, message: str, approve_commit: bool, approve_push
             "root": str(git_root), "common_dir": str(common_dir), "object_dir": str(object_dir)
         } != {key: target_record[key] for key in ("root", "common_dir", "object_dir")}:
             raise AdapterError("canonical target identity drifted from plan evidence")
-        initial = validate_checkpoint_shape(target_record.get("initial_baseline"), "initial baseline")
-        default_branch = initial["branch"]
+        validate_checkpoint_shape(target_record.get("initial_baseline"), "initial baseline")
+        default_branch = delivery_baseline["branch"]
         if default_branch not in policy["default_branches"]:
             raise AdapterError("target did not start on a configured main/master branch")
-        if initial["tree_oid"] != finalization_git_output(target, "rev-parse", f"{initial['head_oid']}^{{tree}}"):
-            raise AdapterError("target was not clean at its initial baseline")
+        if delivery_baseline["tree_oid"] != finalization_git_output(
+            target, "rev-parse", f"{delivery_baseline['head_oid']}^{{tree}}"
+        ):
+            raise AdapterError("target was not clean at its delivery baseline")
         if plan.get("target") != str(target):
             raise AdapterError("plan target does not match policy-approved repository")
         with ExitStack() as stack:
@@ -1358,6 +1458,8 @@ def finalize_plan(plan_id: str, message: str, approve_commit: bool, approve_push
                     plan,
                     phase_objects[: len(skipped)],
                     target=target,
+                    delivery_baseline=delivery_baseline,
+                    runner_branch=runner_branch,
                     seen={plan_id},
                 )
             final_checkpoint: dict[str, str] | None = None
@@ -1370,24 +1472,28 @@ def finalize_plan(plan_id: str, message: str, approve_commit: bool, approve_push
                 )
             assert final_checkpoint is not None
             current = git_checkpoint(target)
-            expected_branch = f"agent/{plan_id}"
+            expected_branch = runner_branch
             if current["branch"] != expected_branch:
                 raise AdapterError(f"target is not on expected runner branch {expected_branch}")
             if current != final_checkpoint:
                 raise AdapterError("target branch/HEAD/config/refs/tree drifted from final green checkpoint")
             protected_config_sha256 = hashlib.sha256(repository_config_bytes(target)).hexdigest()
-            if current["head_oid"] != initial["head_oid"]:
+            if current["head_oid"] != delivery_baseline["head_oid"]:
                 raise AdapterError("target HEAD drifted from the recorded main baseline")
             origin = validated_origin(target)
             validated_hooks_path(target)
             validate_safe_push_config(target)
             local_default = finalization_git_output(target, "rev-parse", f"refs/heads/{default_branch}")
-            if local_default != initial["head_oid"]:
+            if local_default != delivery_baseline["head_oid"]:
                 raise AdapterError(f"local {default_branch} drifted from the recorded baseline")
             baseline_remote = remote_oid(target, default_branch, origin)
-            if baseline_remote != initial["head_oid"]:
+            if baseline_remote != delivery_baseline["head_oid"]:
                 raise AdapterError(f"remote {default_branch} drifted from the recorded baseline")
-            if final_checkpoint["tree_oid"] == finalization_git_output(target, "rev-parse", f"{initial['head_oid']}^{{tree}}"):
+            if final_checkpoint["tree_oid"] == finalization_git_output(
+                target,
+                "rev-parse",
+                f"{delivery_baseline['head_oid']}^{{tree}}",
+            ):
                 raise AdapterError("plan produced no actual changes")
             refs_before_commit = git_refs(target)
             task_ref = f"refs/heads/{expected_branch}"
@@ -1424,7 +1530,9 @@ def finalize_plan(plan_id: str, message: str, approve_commit: bool, approve_push
                 origin=origin,
                 context="commit hook",
             )
-            if finalization_git_output(target, "rev-parse", f"refs/heads/{default_branch}") != initial["head_oid"]:
+            if finalization_git_output(
+                target, "rev-parse", f"refs/heads/{default_branch}"
+            ) != delivery_baseline["head_oid"]:
                 raise AdapterError(f"local {default_branch} drifted before fast-forward")
             if validated_origin(target) != origin:
                 raise AdapterError("target origin changed before local fast-forward")
@@ -1507,13 +1615,41 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     if args.command == "preflight-plan":
         policy = load_policy()
         plan = resolve_plan_path(args.plan)
-        return delegate(
+        for record_id in (args.strip_completed, args.recover_scope_from):
+            if record_id is not None and not PLAN_ID_RE.fullmatch(record_id):
+                raise AdapterError("approval provenance plan ID is invalid")
+        wrapped, code = delegate(
             "validate-plan",
             [
                 "--plan", str(plan),
+                *delivery_flags(args),
                 *forwarding_flags(args, default_timeout=policy["default_timeout_seconds"]),
             ],
         )
+        if code:
+            return wrapped, code
+        normalized = wrapped["runner_result"].get("normalized_spec")
+        if not isinstance(normalized, dict) or normalized.get("delivery_intent") != args.delivery_intent:
+            raise AdapterError("runner preflight omitted the approved delivery intent")
+        target = resolve_target(args.target, policy)
+        wrapped["runner_result"]["approval_context"] = preflight_delivery_context(
+            target,
+            policy,
+            args.delivery_intent,
+        )
+        provenance = None
+        if args.strip_completed is not None:
+            provenance = {
+                "mode": "strip_completed",
+                "prior_plan_id": args.strip_completed,
+            }
+        elif args.recover_scope_from is not None:
+            provenance = {
+                "mode": "recover_scope",
+                "prior_plan_id": args.recover_scope_from,
+            }
+        wrapped["runner_result"]["approval_context"]["provenance"] = provenance
+        return wrapped, code
     if args.command == "finalize-plan":
         lock = load_lock()
         return {
@@ -1543,15 +1679,16 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     target = resolve_target(args.target, policy)
     if args.command == "run-plan":
         plan = resolve_plan_path(args.plan)
-        continuation = (
-            ["--strip-completed", args.strip_completed]
-            if args.strip_completed is not None
-            else []
-        )
+        continuation: list[str] = []
+        if args.strip_completed is not None:
+            continuation = ["--strip-completed", args.strip_completed]
+        elif args.recover_scope_from is not None:
+            continuation = ["--recover-scope-from", args.recover_scope_from]
         return delegate(
             "run-plan",
             [
                 "--target", str(target), "--plan", str(plan),
+                *delivery_flags(args),
                 *continuation,
                 *forwarding_flags(args, default_timeout=policy["default_timeout_seconds"]),
             ],
@@ -1580,6 +1717,7 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
                 "run-plan",
                 [
                     "--target", str(target), "--plan", str(plan_path),
+                    *delivery_flags(args),
                     *forwarding_flags(args, default_timeout=policy["default_timeout_seconds"]),
                 ],
             )
@@ -1594,7 +1732,11 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         extra += ["--verify", args.verify]
     return delegate(
         "run",
-        [*extra, *forwarding_flags(args, default_timeout=policy["default_timeout_seconds"])],
+        [
+            *extra,
+            *delivery_flags(args),
+            *forwarding_flags(args, default_timeout=policy["default_timeout_seconds"]),
+        ],
     )
 
 

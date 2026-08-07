@@ -51,6 +51,10 @@ elif sys.argv[1:2] == ["validate-plan"]:
     plan_path = sys.argv[sys.argv.index("--plan") + 1]
     with open(plan_path, encoding="utf-8") as stream:
         normalized = json.load(stream)
+    requested_intent = sys.argv[sys.argv.index("--delivery-intent") + 1]
+    if "delivery_intent" in normalized and normalized["delivery_intent"] != requested_intent:
+        raise SystemExit(2)
+    normalized["delivery_intent"] = requested_intent
     print(json.dumps({
         "schema_version": 2,
         "normalized_spec": normalized,
@@ -181,6 +185,7 @@ else:
         result = {"run_id": f"{plan_id}/phase-1", "phase_id": "phase-1", "gate": "green"}
         spec = {
             "schema_version": 2,
+            "delivery_intent": "finalizable",
             "phases": [{"id": "phase-1", "slug": "phase-1"}],
         }
         plan = {
@@ -190,6 +195,10 @@ else:
             "source_spec": str(self.workspace / "runtime/coding-harness-plans/plan.json"),
             "spec_sha256": self.module.canonical_json_sha256(spec),
             "models": {"implement": None, "plan": None, "review": None, "fix": None},
+            "delivery_intent": "finalizable",
+            "finalizable": True,
+            "delivery_baseline": initial,
+            "runner_branch": f"agent/{plan_id}",
             "state": "green",
             "gate": "green",
             "total_phases": 1,
@@ -212,6 +221,10 @@ else:
             "schema_version": 2,
             **identity,
             "initial_baseline": initial,
+            "delivery_intent": "finalizable",
+            "finalizable": True,
+            "delivery_baseline": initial,
+            "runner_branch": f"agent/{plan_id}",
         }), encoding="utf-8")
         (phase_dir / "checkpoint.json").write_text(json.dumps({
             "schema_version": 2,
@@ -294,6 +307,7 @@ else:
         skipped = skipped_ids or []
         spec = {
             "schema_version": 2,
+            "delivery_intent": "finalizable",
             "phases": [{"id": phase_id, "slug": phase_id} for phase_id in spec_ids],
         }
         plan = fixture["plan"]
@@ -466,6 +480,10 @@ else:
         self.assertEqual(code, 0)
         argv = combined["runner_result"]["argv"]
         self.assertEqual(argv[argv.index("--timeout") + 1], "3000")
+        self.assertEqual(
+            argv[argv.index("--delivery-intent") + 1],
+            "execution_only",
+        )
 
         plan = self.workspace / "runtime/coding-harness-plans/documented.json"
         plan.parent.mkdir(parents=True)
@@ -481,6 +499,7 @@ else:
         plan_args = self.module.build_parser().parse_args([
             "run-plan", "--target", str(target),
             "--plan", "runtime/coding-harness-plans/documented.json", "--dry-run",
+            "--delivery-intent", "finalizable",
             "--strip-completed", "prior-plan",
         ])
         combined, code = self.module.execute(plan_args)
@@ -493,6 +512,25 @@ else:
         self.assertEqual(parsed["schema_version"], 2)
         self.assertIn("commands", parsed["phases"][0]["verification"])
         self.assertEqual(combined["runner_result"]["plan"], parsed)
+
+        recovery_args = self.module.build_parser().parse_args([
+            "run-plan",
+            "--target", str(target),
+            "--plan", str(plan),
+            "--delivery-intent", "finalizable",
+            "--recover-scope-from", "scope-plan",
+        ])
+        combined, code = self.module.execute(recovery_args)
+        self.assertEqual(code, 0)
+        argv = combined["runner_result"]["argv"]
+        self.assertEqual(
+            argv[argv.index("--recover-scope-from") + 1],
+            "scope-plan",
+        )
+        self.assertEqual(
+            argv[argv.index("--delivery-intent") + 1],
+            "finalizable",
+        )
 
     def test_structured_single_run_forwards_symbolic_routing_and_resume_guidance(self) -> None:
         target = self.make_repo(self.workspace / "runtime/repos/acme--routed")
@@ -516,6 +554,10 @@ else:
         self.assertEqual(code, 0)
         result = combined["runner_result"]
         self.assertEqual(result["argv"][0], "run-plan")
+        self.assertEqual(
+            result["argv"][result["argv"].index("--delivery-intent") + 1],
+            "execution_only",
+        )
         self.assertEqual(result["plan"]["phases"][0]["routing"], routing)
 
         resume = self.module.build_parser().parse_args([
@@ -588,6 +630,7 @@ else:
             self.module.resolve_plan_path(str(plans))
 
     def test_preflight_delegates_normalization_policy_timeout_and_review_flags(self) -> None:
+        target = self.make_repo(self.workspace / "runtime/repos/acme--preflight")
         plan = self.workspace / "runtime/coding-harness-plans/preflight.json"
         plan.parent.mkdir(parents=True)
         raw = {
@@ -598,7 +641,10 @@ else:
         self.module.INVOCATION_CWD = self.workspace
         args = self.module.build_parser().parse_args([
             "preflight-plan",
+            "--target", str(target),
             "--plan", "runtime/coding-harness-plans/preflight.json",
+            "--delivery-intent", "execution_only",
+            "--recover-scope-from", "prior-scope-plan",
             "--no-review",
             "--review-threshold", "high",
             "--review-max-rounds", "4",
@@ -606,8 +652,18 @@ else:
         combined, code = self.module.execute(args)
         self.assertEqual(code, 0)
         result = combined["runner_result"]
-        self.assertEqual(result["normalized_spec"], raw)
+        self.assertEqual(
+            result["normalized_spec"],
+            {**raw, "delivery_intent": "execution_only"},
+        )
+        self.assertEqual(result["normalized_spec"]["delivery_intent"], "execution_only")
         self.assertEqual(result["spec_sha256"], "runner-owned-digest")
+        self.assertFalse(result["approval_context"]["finalizable"])
+        self.assertEqual(result["approval_context"]["target"], str(target.resolve()))
+        self.assertEqual(result["approval_context"]["provenance"], {
+            "mode": "recover_scope",
+            "prior_plan_id": "prior-scope-plan",
+        })
         argv = result["argv"]
         self.assertEqual(Path(argv[argv.index("--plan") + 1]), plan.resolve())
         self.assertEqual(argv[argv.index("--timeout") + 1], "3000")
@@ -623,10 +679,65 @@ else:
         outside.write_text("{}", encoding="utf-8")
         link = plans / "link.json"
         link.symlink_to(outside)
+        target = self.make_repo(self.workspace / "runtime/repos/acme--preflight-errors")
         for value, error in ((str(outside), "beneath"), (str(link), "symlink"), (str(plans), "regular")):
             with self.subTest(value=value), self.assertRaisesRegex(self.module.AdapterError, error):
-                args = self.module.build_parser().parse_args(["preflight-plan", "--plan", value])
+                args = self.module.build_parser().parse_args([
+                    "preflight-plan",
+                    "--target", str(target),
+                    "--plan", value,
+                    "--delivery-intent", "execution_only",
+                ])
                 self.module.execute(args)
+
+    def test_preflight_finalizable_requires_clean_configured_default_branch(self) -> None:
+        plan = self.workspace / "runtime/coding-harness-plans/finalizable.json"
+        plan.parent.mkdir(parents=True)
+        plan.write_text(json.dumps({
+            "schema_version": 2,
+            "delivery_intent": "finalizable",
+            "phases": [{"id": "phase-1", "prompt": "task"}],
+        }), encoding="utf-8")
+        self.module.INVOCATION_CWD = self.workspace
+
+        def committed_target(name: str) -> Path:
+            target = self.make_repo(self.workspace / "runtime/repos" / name)
+            git("config", "user.name", "Test", cwd=target)
+            git("config", "user.email", "test@example.invalid", cwd=target)
+            (target / "base.txt").write_text("base\n", encoding="utf-8")
+            git("add", ".", cwd=target)
+            git("commit", "-qm", "base", cwd=target)
+            return target
+
+        clean = committed_target("acme--clean-preflight")
+        args = self.module.build_parser().parse_args([
+            "preflight-plan",
+            "--target", str(clean),
+            "--plan", str(plan),
+            "--delivery-intent", "finalizable",
+        ])
+        combined, code = self.module.execute(args)
+        self.assertEqual(code, 0)
+        context = combined["runner_result"]["approval_context"]
+        self.assertTrue(context["finalizable"])
+        self.assertTrue(context["target_ready"])
+        self.assertIn(context["branch"], ("main", "master"))
+
+        dirty = committed_target("acme--dirty-preflight")
+        (dirty / "dirty.txt").write_text("dirty\n", encoding="utf-8")
+        feature = committed_target("acme--feature-preflight")
+        git("switch", "-qc", "feature", cwd=feature)
+        for target, error in ((dirty, "clean"), (feature, "main/master")):
+            with self.subTest(target=target), self.assertRaisesRegex(
+                self.module.AdapterError,
+                error,
+            ):
+                self.module.execute(self.module.build_parser().parse_args([
+                    "preflight-plan",
+                    "--target", str(target),
+                    "--plan", str(plan),
+                    "--delivery-intent", "finalizable",
+                ]))
 
     def test_finalize_plan_success_uses_authenticated_non_force_push(self) -> None:
         fixture = self.make_finalization_fixture()
@@ -656,6 +767,44 @@ else:
             "refs/heads/main:refs/heads/main",
         ])
         self.assertFalse(any("force" in arg for arg in push))
+
+    def test_finalize_rejects_execution_only_plan(self) -> None:
+        fixture = self.make_finalization_fixture("plan-execution-only")
+        fixture["plan"].update(delivery_intent="execution_only", finalizable=False)
+        fixture["spec"]["delivery_intent"] = "execution_only"
+        (fixture["record_dir"] / "plan.json").write_text(
+            json.dumps(fixture["plan"]), encoding="utf-8"
+        )
+        (fixture["record_dir"] / "spec.json").write_text(
+            json.dumps(fixture["spec"]), encoding="utf-8"
+        )
+        with self.assertRaisesRegex(self.module.FinalizationError, "non-finalizable"):
+            self.finalize_fixture(fixture)
+
+    def test_finalize_accepts_preserved_runner_branch_for_recovered_plan(self) -> None:
+        fixture = self.make_finalization_fixture("plan-recovered")
+        preserved_branch = "agent/original-plan"
+        git("branch", "-m", preserved_branch, cwd=fixture["target"])
+        fixture["final"] = self.module.git_checkpoint(fixture["target"])
+        fixture["plan"].update({
+            "runner_branch": preserved_branch,
+            "recovered_scope_from_plan_id": "original-plan",
+            "recovered_scope_phase_id": "phase-1",
+        })
+        target_record_path = fixture["record_dir"] / "target.json"
+        target_record = json.loads(target_record_path.read_text())
+        target_record["runner_branch"] = preserved_branch
+        target_record_path.write_text(json.dumps(target_record), encoding="utf-8")
+        checkpoint_path = fixture["phase_dir"] / "checkpoint.json"
+        checkpoint = json.loads(checkpoint_path.read_text())
+        checkpoint["git"] = fixture["final"]
+        checkpoint_path.write_text(json.dumps(checkpoint), encoding="utf-8")
+        (fixture["record_dir"] / "plan.json").write_text(
+            json.dumps(fixture["plan"]), encoding="utf-8"
+        )
+
+        result = self.finalize_fixture(fixture)
+        self.assertTrue(result["partial_state"]["pushed"])
 
     def test_git_checkpoint_matches_runner_config_digest_contract(self) -> None:
         fixture = self.make_finalization_fixture("plan-runner-config-contract")
@@ -745,12 +894,23 @@ else:
                 prior_id = f"prior-{label}"
                 prior_dir = self.workspace / "runtime/coding-harness-runs" / prior_id
                 prior_dir.mkdir(parents=True)
-                spec = {"schema_version": 2, "phases": [base]}
+                baseline = self.make_finalization_fixture(
+                    f"provenance-{label}"
+                )["initial"]
+                spec = {
+                    "schema_version": 2,
+                    "delivery_intent": "finalizable",
+                    "phases": [base],
+                }
                 plan = {
                     "plan_id": prior_id,
                     "target": "/safe/target",
                     "spec_sha256": self.module.canonical_json_sha256(spec),
                     "total_phases": 1,
+                    "delivery_intent": "finalizable",
+                    "finalizable": True,
+                    "delivery_baseline": baseline,
+                    "runner_branch": f"agent/{prior_id}",
                     "scheduled": [{
                         "run_id": f"{prior_id}/one",
                         "phase_id": "one",
@@ -758,6 +918,12 @@ else:
                     }],
                 }
                 (prior_dir / "spec.json").write_text(json.dumps(spec), encoding="utf-8")
+                (prior_dir / "target.json").write_text(json.dumps({
+                    "delivery_intent": "finalizable",
+                    "finalizable": True,
+                    "delivery_baseline": baseline,
+                    "runner_branch": f"agent/{prior_id}",
+                }), encoding="utf-8")
                 shown = {"kind": "plan", "record_dir": str(prior_dir), "plan": plan}
                 with mock.patch.object(self.module, "show_record", return_value=shown), \
                      self.assertRaisesRegex(self.module.AdapterError, "phase definitions"):
@@ -765,6 +931,8 @@ else:
                         {"continued_from_plan_id": prior_id},
                         [current_phase],
                         target=Path("/safe/target"),
+                        delivery_baseline=baseline,
+                        runner_branch=f"agent/{prior_id}",
                         seen={"current"},
                     )
 
@@ -802,7 +970,7 @@ else:
                 if case == "baseline-dirt":
                     target_record_path = fixture["record_dir"] / "target.json"
                     target_record = json.loads(target_record_path.read_text())
-                    target_record["initial_baseline"]["tree_oid"] = "0" * 40
+                    target_record["delivery_baseline"]["tree_oid"] = "0" * 40
                     target_record_path.write_text(json.dumps(target_record), encoding="utf-8")
                 elif case == "branch":
                     git("branch", "-m", "agent/wrong", cwd=target)
