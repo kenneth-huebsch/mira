@@ -22,6 +22,7 @@ startup files, logs, or repository-local `.env` files.
 | Secret type | Storage |
 |---|---|
 | Environment-native API key or password | `/home/kenny/mira/.openclaw/.env`, mode `600` |
+| Cursor CLI API key | `/home/kenny/mira/.openclaw/.env` as `CURSOR_API_KEY`, mode `600` |
 | AWS access key | `/home/kenny/mira/.openclaw/aws/credentials`, mode `600` |
 | AWS profile and role routing | `/home/kenny/mira/.openclaw/aws/config`, mode `600` |
 | OpenClaw OAuth/device credential | OpenClaw's native ignored runtime store |
@@ -36,8 +37,8 @@ credential values.
 ## Environment-style secrets
 
 The ignored per-instance `.env` remains the source for consumers that actually
-expect environment variables, including provider, Telegram, n8n, and WordPress
-credentials.
+expect environment variables, including provider, Telegram, n8n, WordPress, and
+Cursor CLI credentials.
 
 Rules:
 

@@ -33,8 +33,8 @@ reimplements those; she forwards flags and reports results.
    python3 skills/coding-harness/coding_harness.py check-config
    ```
 
-   If `check-config` reports missing Cursor CLI auth, Kenny must authenticate
-   Cursor CLI in Mira's runtime before coding runs can execute; use
+   If `check-config` reports missing Cursor CLI auth, configure `CURSOR_API_KEY`
+   in `.openclaw/.env`, restart OpenClaw, and use
    `skills/cursor-agent-login/SKILL.md`.
 
 ## Small, single-shot work

@@ -420,9 +420,10 @@ The preflight runs `gh auth status`, a private `gh repo view` for the harness,
 and `agent status`. Fresh private clones use GitHub CLI's Git credential helper
 without exporting or printing a token. Delegation preserves the mounted CLI
 config locations at `/home/node/.openclaw` and `/home/node/.openclaw/gh` while
-scrubbing secret environment variables. If Cursor auth is missing, use
-`workspace/skills/cursor-agent-login/SKILL.md` or provide `CURSOR_API_KEY`
-through ignored runtime secrets before expecting coding runs to execute.
+scrubbing secret environment variables. Cursor CLI auth comes from
+`CURSOR_API_KEY` in `.openclaw/.env`, passed through
+`openclaw/provider-auth.compose.yml` and forwarded to harness children. If
+Cursor auth is missing, use `workspace/skills/cursor-agent-login/SKILL.md`.
 
 `refresh-harness` materializes the exact full SHA in `harness.lock.json`
 detached; it never switches or pulls a branch. Update that lock only after

@@ -156,8 +156,9 @@ python3 skills/coding-harness/coding_harness.py show <run-id>
 
 Runtime prerequisites: `gh auth status` must work, `gh repo view
 kenneth-huebsch/agent` must confirm private harness access, and `agent status`
-must confirm Cursor CLI authentication. Use
-`skills/cursor-agent-login/SKILL.md` when Cursor auth is missing.
+must confirm Cursor CLI authentication via `CURSOR_API_KEY` in `.openclaw/.env`.
+Use `skills/cursor-agent-login/SKILL.md` when Cursor auth is missing or needs
+rotation.
 
 ### Browser QA
 

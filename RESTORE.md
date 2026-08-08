@@ -94,7 +94,7 @@ cd ~/mira
   get-caller-identity` resolves `LocksAppPublishRole`.
 - `jq` and `rg` are available in the gateway container for bundled skills such
   as `session-logs`.
-- `python3 skills/coding-harness/coding_harness.py check-config` passes after GitHub CLI, private harness repo access, and Cursor CLI auth are configured.
+- `python3 skills/coding-harness/coding_harness.py check-config` passes after GitHub CLI, private harness repo access, and `CURSOR_API_KEY` are configured for Cursor CLI.
 - `refresh-harness` reports the full locked SHA and a detached, clean checkout.
 - The outer OpenClaw timeout is 3600 seconds, above the 3000-second runner
   timeout plus 15-second cancellation grace.

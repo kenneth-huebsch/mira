@@ -15,6 +15,7 @@
     "/home/node/.openclaw/workspace/runtime/repos"
   ],
   "inherited_environment_keys": [
+    "CURSOR_API_KEY",
     "HOME",
     "LANG",
     "LC_ALL",
@@ -54,13 +55,13 @@
     },
     "default": {
       "implement": "composer-2.5",
-      "review": "gpt-5.5-medium",
+      "review": "cursor-grok-4.5-high",
       "fix": "composer-2.5"
     },
     "reasoning": {
-      "implement": "gpt-5.5-medium",
-      "review": "gpt-5.5-medium",
-      "fix": "gpt-5.5-medium"
+      "implement": "cursor-grok-4.5-high",
+      "review": "cursor-grok-4.5-high",
+      "fix": "cursor-grok-4.5-high"
     }
   },
   "cheap_task_classes": [

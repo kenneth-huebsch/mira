@@ -1221,9 +1221,17 @@ else:
             seen.append(tuple(argv))
             return True
 
-        with mock.patch.object(self.module, "materialize_harness", return_value=self.module.load_lock()), \
+        def fake_command(argv, **kwargs):
+            if argv[:2] == ["agent", "status"]:
+                seen.append(tuple(argv))
+                return mock.Mock(returncode=0, stdout="Logged in as test@example.com\n", stderr="")
+            return mock.Mock(returncode=0, stdout="", stderr="")
+
+        with mock.patch.dict(os.environ, {"CURSOR_API_KEY": ""}, clear=False), \
+             mock.patch.object(self.module, "materialize_harness", return_value=self.module.load_lock()), \
              mock.patch.object(self.module.shutil, "which", return_value="/usr/bin/fake"), \
-             mock.patch.object(self.module, "successful_check", side_effect=fake_success):
+             mock.patch.object(self.module, "successful_check", side_effect=fake_success), \
+             mock.patch.object(self.module, "command", side_effect=fake_command):
             combined, code = self.module.execute(self.module.build_parser().parse_args(["check-config"]))
         self.assertEqual(code, 0)
         checks = combined["runner_result"]["checks"]
@@ -1232,6 +1240,15 @@ else:
         self.assertTrue(checks["agent_auth"])
         self.assertIn(("gh", "auth", "status"), seen)
         self.assertIn(("agent", "status"), seen)
+
+    def test_check_config_accepts_cursor_api_key_without_browser_login(self) -> None:
+        with mock.patch.dict(os.environ, {"CURSOR_API_KEY": "cursor-test-key"}, clear=False), \
+             mock.patch.object(self.module, "materialize_harness", return_value=self.module.load_lock()), \
+             mock.patch.object(self.module.shutil, "which", return_value="/usr/bin/agent"), \
+             mock.patch.object(self.module, "successful_check", return_value=True):
+            combined, code = self.module.execute(self.module.build_parser().parse_args(["check-config"]))
+        self.assertEqual(code, 0)
+        self.assertTrue(combined["runner_result"]["checks"]["agent_auth"])
 
     def test_policy_strictly_rejects_types_duplicates_regex_and_capabilities(self) -> None:
         baseline = json.loads(self.policy.read_text())

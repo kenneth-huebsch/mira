@@ -333,7 +333,19 @@ def git_with_gh_auth(args: list[str], *, check: bool = True) -> subprocess.Compl
 def persistent_cli_environment() -> dict[str, str]:
     inherited = {
         key: os.environ[key]
-        for key in ("HOME", "LANG", "LC_ALL", "LOGNAME", "PATH", "SHELL", "TERM", "TMPDIR", "TZ", "USER")
+        for key in (
+            "CURSOR_API_KEY",
+            "HOME",
+            "LANG",
+            "LC_ALL",
+            "LOGNAME",
+            "PATH",
+            "SHELL",
+            "TERM",
+            "TMPDIR",
+            "TZ",
+            "USER",
+        )
         if key in os.environ
     }
     inherited.update({
@@ -514,6 +526,7 @@ def forwarding_flags(
     args: argparse.Namespace,
     *,
     default_timeout: int | None = None,
+    policy: dict[str, Any] | None = None,
 ) -> list[str]:
     result: list[str] = []
     for attr, flag in (
@@ -524,6 +537,8 @@ def forwarding_flags(
         value = getattr(args, attr, None)
         if value is not None:
             result += [flag, str(value)]
+    if policy is not None and getattr(args, "plan_model", None) is None:
+        result += ["--plan-model", policy["model_tiers"]["reasoning"]["implement"]]
     if getattr(args, "no_review", False):
         result.append("--no-review")
     if getattr(args, "dry_run", False):
@@ -677,6 +692,16 @@ def resolve_plan_path(value: str) -> Path:
 def successful_check(argv: list[str]) -> bool:
     result = command(argv, check=False, env=persistent_cli_environment())
     return result.returncode == 0
+
+
+def cursor_agent_authenticated() -> bool:
+    if not shutil.which("agent"):
+        return False
+    if os.environ.get("CURSOR_API_KEY", "").strip():
+        return True
+    result = command(["agent", "status"], check=False, env=persistent_cli_environment())
+    output = f"{result.stdout}\n{result.stderr}".lower()
+    return "logged in as" in output
 
 
 def read_strict_json_file(path: Path, context: str) -> dict[str, Any]:
@@ -1606,7 +1631,7 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         checks["private_harness_access"] = bool(checks["gh"]) and successful_check([
             "gh", "repo", "view", "kenneth-huebsch/agent", "--json", "nameWithOwner",
         ])
-        checks["agent_auth"] = bool(checks["agent"]) and successful_check(["agent", "status"])
+        checks["agent_auth"] = cursor_agent_authenticated()
         checks["policy"] = policy["schema_version"] == lock["contract_version"]
         checks["harness"] = True
         return {"harness_revision": lock["revision"], "runner_result": {"checks": checks}}, (
@@ -1623,7 +1648,7 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
             [
                 "--plan", str(plan),
                 *delivery_flags(args),
-                *forwarding_flags(args, default_timeout=policy["default_timeout_seconds"]),
+                *forwarding_flags(args, default_timeout=policy["default_timeout_seconds"], policy=policy),
             ],
         )
         if code:
@@ -1665,12 +1690,13 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         extra = [] if args.command == "list" else [args.record_id]
         return delegate(args.command, extra)
     if args.command == "resume":
+        policy = load_policy()
         extra = [args.record_id]
         if args.restart_current_stage:
             extra.append("--restart-current-stage")
         if args.guidance:
             extra += ["--guidance", args.guidance]
-        extra += forwarding_flags(args)
+        extra += forwarding_flags(args, policy=policy)
         return delegate("resume", extra)
     if args.command == "cancel":
         return delegate("cancel", [args.record_id, "--reason", args.reason])
@@ -1690,7 +1716,7 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
                 "--target", str(target), "--plan", str(plan),
                 *delivery_flags(args),
                 *continuation,
-                *forwarding_flags(args, default_timeout=policy["default_timeout_seconds"]),
+                *forwarding_flags(args, default_timeout=policy["default_timeout_seconds"], policy=policy),
             ],
         )
     if args.verification_json and args.verify:
@@ -1718,7 +1744,7 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
                 [
                     "--target", str(target), "--plan", str(plan_path),
                     *delivery_flags(args),
-                    *forwarding_flags(args, default_timeout=policy["default_timeout_seconds"]),
+                    *forwarding_flags(args, default_timeout=policy["default_timeout_seconds"], policy=policy),
                 ],
             )
         finally:
@@ -1735,7 +1761,7 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         [
             *extra,
             *delivery_flags(args),
-            *forwarding_flags(args, default_timeout=policy["default_timeout_seconds"]),
+            *forwarding_flags(args, default_timeout=policy["default_timeout_seconds"], policy=policy),
         ],
     )
 
