@@ -35,7 +35,12 @@ reimplements those; she forwards flags and reports results.
 
    If `check-config` reports missing Cursor CLI auth, configure `CURSOR_API_KEY`
    in `.openclaw/.env`, restart OpenClaw, and use
-   `skills/cursor-agent-login/SKILL.md`.
+   `skills/cursor-agent-login/SKILL.md`. Prefer API-key auth over browser SSO.
+   The adapter injects `CURSOR_API_KEY` into delegated runner/child envs even
+   though the runner forbids listing it under `inherited_environment_keys`
+   (API_KEY-shaped names are treated as secrets). `agent status` may still show
+   an old SSO session in `~/.openclaw/cursor/auth.json`; clear it with
+   `agent logout` when switching to key-only auth.
 
 ## Small, single-shot work
 
@@ -128,6 +133,37 @@ use the harness plan-then-approved-execution contract:
    actions, or mention them only as an explicit negation such as "Do not commit
    or push." Never assign commit, push, PR, merge, publish, release, or deploy
    work to a phase.
+
+### Phase delivery-language guard (fail-closed)
+
+The pinned runner validates every phase `prompt` and `done` with
+`validate_phase_delivery_language` before preflight/run succeeds. Bare delivery
+verbs are rejected even in narrative context like "after merge/deploy".
+
+**Forbidden as assigned outcomes** (unless clearly negated/prevented, or a
+narrow benign technical clause):
+
+- git/delivery: `commit`, `push`, `merge`
+- shipping: `publish`, `deploy`/`deployment`, `release`
+- PR flow: `open`/`create` + `PR` / `pull request`, plus `submit`/`raise`/`file`
+  in delivery sense
+
+**Safe patterns:**
+
+- Explicit negation in the same clause: `Do not commit or push.`,
+  `Do not run CDK deploy.`, `Do not open a pull request.`
+- Prevention wording: `blocked from merging`, `prevent push`
+- Parent-owned after full plan: `parent-owned only after the full plan is green`
+  (still pair with `Do not …` on the child)
+- Prefer neutral ops words when describing AWS/CFN risk: `pool replacement`,
+  `parent-owned AWS apply`, not "after merge/deploy"
+
+**Not a free pass:** hyphenated identifiers help only for true technical names
+matched by the runner's benign patterns (e.g. discussing a merge algorithm).
+Do not rely on that for real delivery instructions.
+
+If preflight errors with `assigns forbidden phase delivery outcome '<word>'`,
+rewrite the phase text—do not weaken the runner guard.
 3. **Preflight and approval gate.** Validate the phase-spec before asking for
    approval:
 

@@ -15,7 +15,6 @@
     "/home/node/.openclaw/workspace/runtime/repos"
   ],
   "inherited_environment_keys": [
-    "CURSOR_API_KEY",
     "HOME",
     "LANG",
     "LC_ALL",

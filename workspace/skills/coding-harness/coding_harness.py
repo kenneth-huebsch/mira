@@ -467,6 +467,12 @@ def sanitized_environment(policy: dict[str, Any]) -> dict[str, str]:
         "XDG_CONFIG_HOME": "/home/node/.openclaw",
         "GH_CONFIG_DIR": "/home/node/.openclaw/gh",
     })
+    # Cursor CLI accepts CURSOR_API_KEY, but the runner rejects API_KEY-shaped
+    # names in inherited_environment_keys. Inject from the gateway env here so
+    # children can auth with the key instead of browser SSO only.
+    cursor_key = os.environ.get("CURSOR_API_KEY", "").strip()
+    if cursor_key:
+        env["CURSOR_API_KEY"] = cursor_key
     return env
 
 
@@ -527,18 +533,28 @@ def forwarding_flags(
     *,
     default_timeout: int | None = None,
     policy: dict[str, Any] | None = None,
+    include_model_flags: bool = True,
 ) -> list[str]:
     result: list[str] = []
     for attr, flag in (
         ("timeout", "--timeout"), ("review_threshold", "--review-threshold"),
-        ("review_max_rounds", "--review-max-rounds"), ("implement_model", "--implement-model"),
-        ("plan_model", "--plan-model"), ("review_model", "--review-model"), ("fix_model", "--fix-model"),
+        ("review_max_rounds", "--review-max-rounds"),
     ):
         value = getattr(args, attr, None)
         if value is not None:
             result += [flag, str(value)]
-    if policy is not None and getattr(args, "plan_model", None) is None:
-        result += ["--plan-model", policy["model_tiers"]["reasoning"]["implement"]]
+    if include_model_flags:
+        for attr, flag in (
+            ("implement_model", "--implement-model"),
+            ("plan_model", "--plan-model"),
+            ("review_model", "--review-model"),
+            ("fix_model", "--fix-model"),
+        ):
+            value = getattr(args, attr, None)
+            if value is not None:
+                result += [flag, str(value)]
+        if policy is not None and getattr(args, "plan_model", None) is None:
+            result += ["--plan-model", policy["model_tiers"]["reasoning"]["implement"]]
     if getattr(args, "no_review", False):
         result.append("--no-review")
     if getattr(args, "dry_run", False):
@@ -1648,7 +1664,12 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
             [
                 "--plan", str(plan),
                 *delivery_flags(args),
-                *forwarding_flags(args, default_timeout=policy["default_timeout_seconds"], policy=policy),
+                *forwarding_flags(
+                    args,
+                    default_timeout=policy["default_timeout_seconds"],
+                    policy=policy,
+                    include_model_flags=False,
+                ),
             ],
         )
         if code:
