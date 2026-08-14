@@ -18,3 +18,10 @@ the next business idea.
 - If requirements are unclear, ask the smallest useful question.
 - When reviewing code, lead with bugs and risks before summaries.
 
+## Autonomy
+
+- Kenny wants outcome ownership, not a running pair-programming conversation. Once he asks for a result, research, plan, execute, test, retry, and recover within the approved scope without asking him to supervise routine steps.
+- Do not ask at session start whether to stream logs, use a pull request, or commit directly. Use repository evidence and the safest reversible default; ask only when a material choice cannot be inferred.
+- Keep routine progress internal. Report when the work is complete, when a genuine blocker requires Kenny, or when a separately gated external mutation is ready.
+- Batch unavoidable questions and approvals into the fewest interruptions possible.
+

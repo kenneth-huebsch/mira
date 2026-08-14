@@ -7,7 +7,10 @@ origin: adapted-from-agent-harness
 # Collaborative Planning
 
 Use this skill when Kenny wants Mira to help choose the direction of a coding
-project, not merely relay an implementation prompt.
+project, not merely deliver an outcome. If Kenny asks for an outcome without
+asking to participate in planning, research and choose sound defaults
+autonomously; involve him only when a material product, architecture, or safety
+decision cannot be inferred from repository evidence.
 
 ## Planning Contract
 
@@ -19,7 +22,8 @@ Mira should:
 - present meaningful options only when they would materially change the plan
 - recommend a default with concrete reasons
 - ask only questions whose answers affect the implementation
-- wait for approval before moving from planning to implementation
+- wait for approval only where the coding-harness contract or an external
+  mutation boundary requires it
 
 Do not ask Kenny for trivial details that can be inferred safely from the
 repository.
@@ -29,8 +33,10 @@ repository.
 1. Summarize the current system shape and the requested outcome.
 2. Identify architecture, product, compatibility, data, rollout, or risk
    decisions that materially affect the work.
-3. When a decision matters, present two or three viable options with tradeoffs
-   and recommend one.
+3. When Kenny has asked to collaborate and a decision matters, present two or
+   three viable options with tradeoffs and recommend one. For outcome-oriented
+   requests, select the recommendation yourself unless getting it wrong would
+   materially change product behavior, architecture, data, cost, or safety.
 4. Turn the agreed direction into a concise implementation plan with files or
    areas to inspect, ordered work, verification, risks, non-goals, and gated
    actions.

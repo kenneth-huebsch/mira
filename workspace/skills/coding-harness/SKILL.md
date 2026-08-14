@@ -71,9 +71,11 @@ For work that is too large or risky for one run, follow Mira's
 `skills/collaborative-planning/SKILL.md` and `skills/blueprint/SKILL.md`, then
 use the harness plan-then-approved-execution contract:
 
-1. **Plan interactively with Kenny.** Research the target, present options, and
-   converge on an ordered set of phases. Each phase needs a clear done condition
-   and a verification command.
+1. **Plan with the minimum necessary interruption.** Research the target and
+   create an ordered set of phases autonomously by default. Involve Kenny in
+   options only when he asks to collaborate or a material product, architecture,
+   data, cost, or safety decision cannot be inferred. Each phase needs a clear
+   done condition and a verification command.
 2. **Author a phase-spec.** Write the agreed plan as a phase-spec JSON under
    Mira's runtime, e.g. `runtime/coding-harness-plans/<name>.json`:
 
@@ -179,7 +181,9 @@ rewrite the phase text—do not weaken the runner guard.
 
    Show Kenny the returned `normalized_spec`, `spec_sha256`, and
    `approval_context`, then get explicit approval for that exact normalized
-   plan, canonical target, and delivery intent. A finalizable preflight fails
+   plan, canonical target, and delivery intent. Ask once and accept any
+   unambiguous plain-language approval; never require magic wording. A
+   finalizable preflight fails
    unless the target is currently clean on configured `main`/`master`; this is
    early evidence only, and execution repeats the authoritative check under the
    runner lock. Any edit to the phase-spec, target, delivery intent, or
@@ -238,6 +242,12 @@ the returned partial state exactly; never reset or auto-rollback.
 It rejects disabled or external `core.hooksPath` values, divergent push URLs,
 non-GitHub origins, and any unexpected config, ref, branch, origin, tree, or
 worktree mutation from commit/checkout/merge hooks.
+
+Before asking Kenny to approve finalization, inspect the plan record and verify
+that it is terminal green and `finalizable: true`. Do not ask him to approve an
+ineligible command. Ask once, immediately before finalization, and accept plain
+language such as “yes,” “go ahead,” or “push to main” when the referent is
+unambiguous. Never require an exact phrase.
 Finalization ignores global/system Git config, rejects local URL rewrites and
 tag-broadening push settings, and pushes only the explicit default-branch
 refspec to the validated canonical GitHub URL with tag following disabled.
@@ -257,6 +267,11 @@ python3 skills/coding-harness/coding_harness.py cancel <run-or-plan-id> --reason
 
 Resume never discards target work or reruns green phases. Drift fails closed;
 an interrupted implementation/fix needs explicit `--restart-current-stage`.
+Routine status checks and resumes within the existing approved scope do not
+need another conversation-level approval. Proceed autonomously through
+recoverable interruptions and retries. A changed phase-spec, target, delivery
+intent, continuation/recovery approval context, or external mutation remains a
+real gate.
 If a child returns a typed `needs_parent` result, report its evidence and exact
 question. Do not auto-retry or auto-escalate. After resolving it, Mira may
 resume with `--restart-current-stage`, optional `--guidance "<clarification>"`,
@@ -269,9 +284,12 @@ whole-plan `finalize-plan` instead.
 
 ## Reporting back
 
-Report the harness output to Kenny: per-phase gate results (green/red),
-changed files and git snapshot, verification results, review verdict/findings,
-handoffs, and any remaining approval gates.
+Keep routine harness progress internal unless Kenny asks to watch it. At a
+terminal result, report a concise summary of the overall gate, changed files,
+verification and review outcome, material findings, and any genuine remaining
+approval gate. Do not offer live log streaming, narrate polling, or present a
+menu of routine next steps. Continue automatically while a safe next step
+within scope remains.
 
 ## Target Rules
 
