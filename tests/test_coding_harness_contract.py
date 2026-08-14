@@ -99,6 +99,7 @@ else:
             "capability_environment": {
                 "browser": ["PLAYWRIGHT_CLI_BIN"],
             },
+            "capability_verification_hints": {},
             "sensitive_path_patterns": [r"(^|/)\.env$"],
             "default_timeout_seconds": 3000,
             "cancellation_grace_seconds": 1,

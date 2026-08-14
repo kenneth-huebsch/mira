@@ -39,6 +39,9 @@
       "PLAYWRIGHT_CLI_BIN"
     ]
   },
+  "capability_verification_hints": {
+    "aws": ["synth", "cdk", "aws"]
+  },
   "sensitive_path_patterns": [
     "(^|/)(\\.env($|\\.)|[^/]*\\.env$|credentials?($|[./])|secrets?($|[./]))",
     "\\.(pem|key|p12|pfx)$"

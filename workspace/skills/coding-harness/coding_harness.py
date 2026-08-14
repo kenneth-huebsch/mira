@@ -40,7 +40,8 @@ PLAN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 DELIVERY_INTENTS = ("finalizable", "execution_only")
 POLICY_FIELDS = {
     "schema_version", "allowed_target_roots", "inherited_environment_keys",
-    "capability_environment", "sensitive_path_patterns", "default_timeout_seconds",
+    "capability_environment", "capability_verification_hints",
+    "sensitive_path_patterns", "default_timeout_seconds",
     "cancellation_grace_seconds", "allow_shell_verification", "default_branches",
     "guarded_commands", "model_tiers", "cheap_task_classes",
     "cheap_no_review_task_classes",
@@ -195,6 +196,22 @@ def load_policy(path: Path = POLICY_PATH) -> dict[str, Any]:
             raise AdapterError(f"harness policy capability {capability!r} keys are invalid")
         if len(keys) != len(set(keys)):
             raise AdapterError(f"harness policy capability {capability!r} keys contain duplicates")
+    hints = value.get("capability_verification_hints")
+    if not isinstance(hints, dict):
+        raise AdapterError("harness policy capability_verification_hints must be an object")
+    for capability, tokens in hints.items():
+        if not isinstance(capability, str) or not CAPABILITY_RE.fullmatch(capability):
+            raise AdapterError("harness policy capability verification hint name is invalid")
+        if not isinstance(tokens, list) or not all(
+            isinstance(token, str) and bool(token.strip()) for token in tokens
+        ):
+            raise AdapterError(
+                f"harness policy capability verification hint {capability!r} tokens are invalid"
+            )
+        if len(tokens) != len(set(tokens)):
+            raise AdapterError(
+                f"harness policy capability verification hint {capability!r} tokens contain duplicates"
+            )
     adapter = value.get("adapter")
     if not isinstance(adapter, dict) or set(adapter) != ADAPTER_POLICY_FIELDS:
         raise AdapterError("harness adapter policy fields are invalid")
